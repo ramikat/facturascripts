@@ -29,7 +29,6 @@ use FacturaScripts\Core\Base;
  */
 abstract class PanelController extends Base\Controller
 {
-
     /**
      * Indica cual es la vista activa
      *
@@ -157,7 +156,7 @@ abstract class PanelController extends Base\Controller
                 $view->loadFromData($data);
                 $this->editAction($view);
                 break;
-            
+
             case 'delete':
                 $this->deleteAction($view);
                 break;
@@ -207,7 +206,7 @@ abstract class PanelController extends Base\Controller
      */
     protected function insertAction($view)
     {
-        $view->setNewCode();
+        
     }
 
     /**
@@ -225,7 +224,7 @@ abstract class PanelController extends Base\Controller
         }
         return false;
     }
-    
+
     /**
      * Añade una vista al controlador y carga sus datos.
      *

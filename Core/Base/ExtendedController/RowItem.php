@@ -26,7 +26,6 @@ namespace FacturaScripts\Core\Base\ExtendedController;
  */
 class RowItem implements VisualItemInterface
 {
-
     /**
      * Tipo de row que se visualiza
      *
@@ -105,13 +104,13 @@ class RowItem implements VisualItemInterface
             if ($option['value'] == $value) {
                 return $option['color'];
             }
-            
+
             $operator = $option['value'][0];
             $value2 = (float) substr($option['value'], 1);
             if ($operator == '>' && $value > $value2) {
                 return $option['color'];
             }
-            
+
             if ($operator == '<' && $value < $value2) {
                 return $option['color'];
             }

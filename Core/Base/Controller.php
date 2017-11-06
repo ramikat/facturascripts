@@ -179,7 +179,7 @@ class Controller
             $this->template = false;
             return true;
         }
-        
+
         $this->template = $template . '.html';
         return true;
     }
