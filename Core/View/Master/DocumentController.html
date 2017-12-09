@@ -1,0 +1,259 @@
+{% extends "Master/MenuTemplate.html" %}
+
+{% block css %}
+{{ parent() }}
+
+<link rel="stylesheet" href="Core/Assets/CSS/extendedcontroller.css" />
+<link rel="stylesheet" href="node_modules/handsontable/dist/handsontable.full.min.css" />
+{% endblock %}
+
+{% block javascript %}
+{{ parent() }}
+<script src="node_modules/handsontable/dist/handsontable.full.min.js"></script>
+
+<script type="text/javascript">
+    var documentLineHeaders = {{ fsc.getLineHeaders()|raw }};
+    var documentLineColumns = {{ fsc.getLineColumns()|raw }};
+    var documentLines = {{ fsc.getLineData()|raw }};
+    var tabActive = '{{ fsc.active }}';
+    $(document).ready(function () {
+        $('#mainTabs').on('shown.bs.tab', function (e) {
+            tabActive = e.target.hash.substring(1);
+        });
+        
+        var container = document.getElementById('document-lines');
+        var hstable = new Handsontable(container, {
+            data: documentLines,
+            columns: documentLineColumns,
+            rowHeaders: true,
+            colHeaders: documentLineHeaders,
+            stretchH: 'all',
+            autoWrapRow: true,
+            manualRowResize: true,
+            manualColumnResize: true,
+            manualRowMove: true,
+            manualColumnMove: true,
+            contextMenu: true,
+            filters: true,
+            dropdownMenu: true,
+            preventOverflow: 'horizontal'
+        });
+    });
+
+    function deleteRecord(formName) {
+        bootbox.confirm({
+            title: "{{ i18n.trans('confirm-delete')|raw }}",
+            message: "{{ i18n.trans('are-you-sure') }}",
+            closeButton: false,
+            buttons: {
+                cancel: {
+                    label: "<i class='fa fa-times'></i> {{ i18n.trans('cancel') }}"
+                },
+                confirm: {
+                    label: "<i class='fa fa-check'></i> {{ i18n.trans('confirm') }}",
+                    className: 'btn-danger'
+                }
+            },
+            callback: function (result) {
+                if (result) {
+                    var form = document.forms[formName];
+                    form.action.value = 'delete';
+                    if(formName === "f_document_primary") {
+                        form.action.value = 'delete-doc';
+                    }
+                    form.submit();
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+
+{% block messages %}
+<div class="container-fluid">
+    <div id="messages" class="row">
+        <div class="col-12">
+            {{ parent() }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
+{# -- Calculate texts according to language -- #}
+{% set go_back = i18n.trans('back') %}
+{% set refresh_title = i18n.trans('refresh') %}
+{% set remove = i18n.trans('delete') %}
+{% set save = i18n.trans('save') %}
+
+{% set title = i18n.trans(fsc.getPageData()['title']) | capitalize %}
+
+{# -- Calculate common values -- #}
+{% set list_url = fsc.getURL('list') %}
+{% set edit_url = fsc.getURL('edit') %}
+
+{# -- Visual macros -- #}
+{% from 'Macro/Utils.html' import popoverTitle as popoverTitle %}
+{% from 'Macro/Utils.html' import exportData as exportData %}
+{% from 'Macro/BaseController.html' import columnsForListView as columnsForListView %}
+{% from 'Macro/BaseController.html' import columnsForEditListView as columnsForEditListView %}
+{% from 'Macro/BaseController.html' import columnsForEditView as columnsForEditView %}
+{% from 'Macro/BaseController.html' import rowHeaderForEditView as rowHeaderForEditView %}
+{% from 'Macro/BaseController.html' import rowFooterForEditView as rowFooterForEditView %}
+{% from 'Macro/BaseController.html' import modalFormFromColumns as modalFormFromColumns %}
+
+<div class="container-fluid">
+    {{ parent() }}
+    <div class="row">
+        <div class="col-12 d-print-none">
+            <div class="btn-group" aria-label="Button group with navigation actions">
+                <a href="{{ list_url }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                    <span class="d-none d-md-inline-block">&nbsp;{{ go_back }} </span>
+                </a>
+                <a href="{{ edit_url }}" class="btn btn-sm btn-outline-secondary" {{ popoverTitle(refresh_title, 'bottom') }}>
+                   <i class="fa fa-refresh" aria-hidden="true"></i>
+                </a>
+            </div>
+            {# -- Adds print and export options -- #}
+            {{ exportData(fsc, i18n, 'edit') }}
+        </div>
+    </div>
+    {# -- Tabs -- #}
+    <div class="row">
+        <div class="col-sm-12">
+            <br/>
+            <div class="nav nav-tabs" id="optionsindex" role="tablist">
+                {# -- Primary tab -- #}
+                <a class="nav-link active" id="document-primary-tab" data-toggle="pill" href="#document-primary" role="tab" aria-controls="document-primary" aria-expanded="true">
+                    <i class="fa fa-file fa-fw" aria-hidden="true"></i>
+                </a>
+                {% for indexView, view in fsc.views %}
+                    <a class="nav-link" id="{{ indexView }}-tab" data-toggle="pill" href="#{{ indexView }}" role="tab" aria-controls="{{ indexView }}" aria-expanded="true">
+                        <i class="fa {{ fsc.icons[indexView] }} fa-fw" aria-hidden="true"></i>
+                        &nbsp;{{ view.title }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="optionsindex-tabContent">
+    <div class="tab-pane fade show active" id="document-primary" role="tabpanel" aria-labelledby="document-primary-tab">
+        <form name="f_document_primary" action="{{ edit_url }}" method="post">
+            <input type="hidden" name="action"/>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <p class="alert alert-success">
+                            <span>Empresa &nbsp;/&nbsp;</span>
+                            <span>{{ fsc.document.codalmacen }} &nbsp;/&nbsp;</span>
+                            {% if fsc.document.codcliente %}
+                            <span>{{ fsc.document.nombrecliente }} &nbsp;/&nbsp;</span>
+                            {% else %}
+                            <span>{{ fsc.document.nombre }} &nbsp;/&nbsp;</span>
+                            {% endif %}
+                            <span>{{ fsc.document.codserie }} &nbsp;/&nbsp;</span>
+                            <span>{{ fsc.document.fecha }} &nbsp;/&nbsp;</span>
+                            <span>{{ fsc.document.hora }} &nbsp;/&nbsp;</span>
+                            <span>{{ title }} {{ fsc.document.codigo }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-btn">
+                                    <button class="btn btn-info" type="button">
+                                        <i class="fa fa-search" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                                <input type="text" class="form-control" placeholder="Buscar..." autocomplete="off" autofocus=""/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">Subtotal</span>
+                                <input type="text" value="{{ fsc.document.neto }}" class="form-control text-right" readonly=""/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">Dto.</span>
+                                <input type="text" value="0.00" class="form-control text-right" autocomplete="off"/>
+                                <span class="input-group-addon">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">Total</span>
+                                <input type="text" value="{{ fsc.document.total }}" class="form-control text-right" readonly=""/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4 text-right">
+                        <div class="btn-group">
+                            <a href="#" class="btn btn-sm btn-danger" onclick="deleteRecord('f_document_primary')">
+                                <i class="fa fa-trash" aria-hidden="true"></i>
+                                <span class="d-none d-sm-inline-block">&nbsp;{{ remove }}</span>
+                            </a>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fa fa-floppy-o" aria-hidden="true"></i>&nbsp; {{ save }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div id="document-lines"></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% for indexView, view in fsc.views %}
+        <div class="tab-pane fade" id="{{ indexView }}" role="tabpanel" aria-labelledby="{{ indexView }}-tab">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        {% set viewType = fsc.viewClass(view) %}
+                        {% if viewType == 'ListView' %}
+                            {{ columnsForListView(_context, view) }}
+                        {% else %}
+                            <br/>
+                        {% endif %}
+
+                        {% if viewType == 'EditView' %}
+                            <!-- Statistical buttons bar -->
+                            {{ rowHeaderForEditView(_context, view) }}
+                            <!-- Main Form -->
+                            {% set model = view.getModel() %}
+                            {{ columnsForEditView(_context, view, model, TRUE) }}
+                        {% endif %}
+
+                        {% if viewType == 'EditListView' %}
+                            {{ columnsForEditListView(_context, view) }}
+                        {% endif %}
+
+                        {% if viewType == 'HtmlView' %}
+                            <div>{% include view.fileName ignore missing %}</div>
+                        {% else %}
+                            {{ rowFooterForEditView(_context, view) }}
+                            {{ modalFormFromColumns(_context, view) }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+<br/>
+{% endblock %}

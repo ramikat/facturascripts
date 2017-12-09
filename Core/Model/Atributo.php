@@ -27,7 +27,7 @@ class Atributo
 {
 
     use Base\ModelTrait {
-        save as private saveTrait;
+        save as private traitSave;
     }
 
     /**
@@ -86,10 +86,10 @@ class Atributo
      */
     public function getByNombre($nombre, $minusculas = false)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE nombre = ' . $this->var2str($nombre) . ';';
+        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE nombre = ' . $this->dataBase->var2str($nombre) . ';';
         if ($minusculas) {
             $sql = 'SELECT * FROM ' . $this->tableName()
-                . ' WHERE lower(nombre) = ' . $this->var2str(mb_strtolower($nombre, 'UTF8') . ';');
+                . ' WHERE lower(nombre) = ' . $this->dataBase->var2str(mb_strtolower($nombre, 'UTF8') . ';');
         }
 
         $data = $this->dataBase->select($sql);
@@ -110,6 +110,6 @@ class Atributo
     {
         $this->nombre = self::noHtml($this->nombre);
 
-        return $this->saveTrait();
+        return $this->traitSave();
     }
 }

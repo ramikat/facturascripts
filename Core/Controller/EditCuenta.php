@@ -20,10 +20,9 @@ namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\ExtendedController;
 use FacturaScripts\Core\Base\DataBase;
-use FacturaScripts\Core\Model;
 
 /**
- * Controlador para la edición de un registro del modelo Fabricante
+ * Controller to edit a single item from the Cuenta model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
@@ -32,62 +31,51 @@ use FacturaScripts\Core\Model;
 class EditCuenta extends ExtendedController\PanelController
 {
 
-   /**
-    * Procedimiento para insertar vistas en el controlador
-    */
-   protected function createViews()
-   {
-      $this->addEditView('FacturaScripts\Core\Model\Cuenta', 'EditCuenta', 'account');
-      $this->addListView('FacturaScripts\Core\Model\Subcuenta', 'ListSubcuenta', 'subaccounts');
-   }
+    /**
+     * Load views
+     */
+    protected function createViews()
+    {
+        $this->addEditView('FacturaScripts\Core\Model\Cuenta', 'EditCuenta', 'account');
+        $this->addListView('FacturaScripts\Core\Model\Subcuenta', 'ListSubcuenta', 'subaccounts');
+        $this->setTabsPosition('bottom');
+    }
 
-   /**
-    * Devuele el campo $fieldName del modelo Cuenta
-    *
-    * @param string $fieldName
-    *
-    * @return string|boolean
-    */
-   private function getCuentaFieldValue($fieldName)
-   {
-      $model = $this->views['EditCuenta']->getModel();
-      return $model->{$fieldName};
-   }
+    /**
+     * Load view data procedure
+     *
+     * @param string $keyView
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($keyView, $view)
+    {
+        $value = $this->request->get('code');
+        
+        switch ($keyView) {
+            case 'EditCuenta':
+                $view->loadData($value);
+                break;
 
-   /**
-    * Procedimiento encargado de cargar los datos a visualizar
-    *
-    * @param string $keyView
-    * @param ExtendedController\EditView $view
-    */
-   protected function loadData($keyView, $view)
-   {
-      switch ($keyView) {
-         case 'EditCuenta':
-            $value = $this->request->get('code');
-            $view->loadData($value);
-            break;
+            case 'ListSubcuenta':
+                $where = [new DataBase\DataBaseWhere('idcuenta', $value)];
+                $view->loadData($where);
+                break;
+        }
+    }
 
-         case 'ListSubcuenta':
-            $where = [new DataBase\DataBaseWhere('idcuenta', $this->getCuentaFieldValue('idcuenta'))];
-            $view->loadData($where);
-            break;
-      }
-   }
+    /**
+     * Returns basic page attributes
+     *
+     * @return array
+     */
+    public function getPageData()
+    {
+        $pagedata = parent::getPageData();
+        $pagedata['title'] = 'accounts';
+        $pagedata['menu'] = 'accounting';
+        $pagedata['icon'] = 'fa-bar-chart';
+        $pagedata['showonmenu'] = false;
 
-   /**
-    * Devuelve los datos básicos de la página
-    *
-    * @return array
-    */
-   public function getPageData()
-   {
-      $pagedata = parent::getPageData();
-      $pagedata['title'] = 'accounts';
-      $pagedata['menu'] = 'accounting';
-      $pagedata['icon'] = 'fa-bar-chart';
-      $pagedata['showonmenu'] = false;
-
-      return $pagedata;
-   }
+        return $pagedata;
+    }
 }

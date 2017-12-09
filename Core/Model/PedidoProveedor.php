@@ -76,12 +76,17 @@ class PedidoProveedor
     {
         return 'idpedido';
     }
-    
+
+    /**
+     * Crea la consulta necesaria para crear un nuevo agente en la base de datos.
+     *
+     * @return string
+     */
     public function install()
     {
         new Serie();
         new Ejercicio();
-        
+
         return '';
     }
 
@@ -102,7 +107,7 @@ class PedidoProveedor
     public function getLineas()
     {
         $lineaModel = new LineaPedidoProveedor();
-        return $lineaModel->all(new DataBaseWhere('idpedido', $this->idpedido));
+        return $lineaModel->all([new DataBaseWhere('idpedido', $this->idpedido)]);
     }
 
     /**
@@ -114,10 +119,10 @@ class PedidoProveedor
     {
         $versiones = [];
 
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE idoriginal = ' . $this->var2str($this->idpedido);
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE idoriginal = ' . $this->dataBase->var2str($this->idpedido);
         if ($this->idoriginal) {
-            $sql .= ' OR idoriginal = ' . $this->var2str($this->idoriginal);
-            $sql .= ' OR idpedido = ' . $this->var2str($this->idoriginal);
+            $sql .= ' OR idoriginal = ' . $this->dataBase->var2str($this->idoriginal);
+            $sql .= ' OR idpedido = ' . $this->dataBase->var2str($this->idoriginal);
         }
         $sql .= 'ORDER BY fecha DESC, hora DESC;';
 
@@ -156,8 +161,8 @@ class PedidoProveedor
      */
     public function cronJob()
     {
-        $sql = 'UPDATE ' . $this->tableName() . ' SET idalbaran = NULL, editable = TRUE'
-            . ' WHERE idalbaran IS NOT NULL AND NOT EXISTS(SELECT 1 FROM albaranesprov t1 WHERE t1.idalbaran = ' . $this->tableName() . '.idalbaran);';
+        $sql = 'UPDATE ' . static::tableName() . ' SET idalbaran = NULL, editable = TRUE'
+            . ' WHERE idalbaran IS NOT NULL AND NOT EXISTS(SELECT 1 FROM albaranesprov t1 WHERE t1.idalbaran = ' . static::tableName() . '.idalbaran);';
         $this->dataBase->exec($sql);
     }
 }

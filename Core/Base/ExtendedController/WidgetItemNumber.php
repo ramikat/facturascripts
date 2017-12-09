@@ -29,43 +29,42 @@ use FacturaScripts\Core\Base\NumberTools;
 class WidgetItemNumber extends WidgetItem
 {
     /**
-     * Clase para formatear las visualizaciones y herramientas
-     * para tratar los valores numéricos
+     * Class that formats the display and provides tools to manage numeric values
      *
      * @var NumberTools
      */
     private static $numberTools;
 
     /**
-     * Numero de decimales para tipos numéricos
+     * Number of decimals for numeric types
      *
      * @var int
      */
     public $decimal;
 
     /**
-     * Valor del incremento/decremento
+     * Increment/decrement value
      *
      * @var string
      */
     public $step;
 
     /**
-     * Valor máximo
+     * Maximum value
      *
      * @var string
      */
     public $max;
 
     /**
-     * Valor mínimo
+     * Minimum value
      *
      * @var string
      */
     public $min;
 
     /**
-     * Constructor de la clase
+     * Class constructor
      */
     public function __construct()
     {
@@ -83,15 +82,15 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Carga la estructura de atributos en base a un archivo XML
+     * Loads the attributes structure from a XML file
      *
      * @param \SimpleXMLElement $column
-     * @param \SimpleXMLElement $widgetAtributes
      */
-    protected function loadFromXMLColumn($column, $widgetAtributes)
+    public function loadFromXML($column)
     {
-        parent::loadFromXMLColumn($column, $widgetAtributes);
+        parent::loadFromXML($column);
 
+        $widgetAtributes = $column->widget->attributes();
         $this->decimal = (int) $widgetAtributes->decimal;
         $this->step = (string) $widgetAtributes->step;
         $this->min = (string) $widgetAtributes->min;
@@ -99,13 +98,13 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Carga la estructura de atributos en base a la base de datos
+     * Loads the attributes structure from a the database
      *
      * @param \SimpleXMLElement $column
      */
-    protected function loadFromJSONColumn($column)
+    public function loadFromJSON($column)
     {
-        parent::loadFromJSONColumn($column);
+        parent::loadFromJSON($column);
 
         $this->decimal = (int) $column['widget']['decimal'];
         $this->step = (string) $column['widget']['step'];
@@ -114,10 +113,10 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Genera el código html para atributos especiales de widgets numericos como:
+     * Generates the HTML code for widget special attributes such as:
      * step
-     * valor mínimo
-     * valor máximo
+     * maximum value
+     * minimum value
      *
      * @return string
      */
@@ -131,8 +130,7 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Genera el código html para la visualización de los datos en el
-     * controlador List
+     * Generates the HTML code to display the data in the List controller
      *
      * @param string $value
      *
@@ -150,8 +148,7 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Genera el código html para la visualización y edición de los datos
-     * en el controlador Edit / EditList
+     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
      *
      * @param string $value
      *

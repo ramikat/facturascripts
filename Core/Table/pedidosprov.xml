@@ -3,7 +3,7 @@
     Document   : pedidosprov.xml
     Author     : Carlos Garcia Gomez
     Description:
-        Estructura de la tabla pedidosprov.
+        Structure for the pedidosprov table.
 -->
 <table>
     <column>
@@ -61,6 +61,10 @@
         <name>observaciones</name>
         <type>text</type>
         <null>YES</null>
+    </column>
+    <column>
+        <name>femail</name>
+        <type>date</type>
     </column>
     <column>
         <name>servido</name>
@@ -160,6 +164,11 @@
     <column>
         <name>idoriginal</name>
         <type>integer</type>
+    </column>
+    <column>
+        <name>idempresa</name>
+        <type>integer</type>
+        <null>YES</null>
     </column>
     <constraint>
         <name>pedidosprov_pkey</name>

@@ -17,13 +17,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Base\Cache;
 
 use FacturaScripts\Core\Base\MiniLog;
 use FacturaScripts\Core\Base\Translator;
 
 /**
- * Clase para conectar e interactuar con APC.
+ * Class to connect and interact with APC.
  *
  * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @author Carlos García Gómez <carlos@facturascripts.com>
@@ -32,14 +33,14 @@ class APCAdapter implements AdaptorInterface
 {
 
     /**
-     * Objeto traductor
+     * Translator object
      *
      * @var Translator
      */
     private $i18n;
 
     /**
-     * Objeto del minilog
+     * MiniLog Object
      *
      * @var MiniLog
      */
@@ -50,6 +51,9 @@ class APCAdapter implements AdaptorInterface
      */
     public function __construct()
     {
+        $this->i18n = new Translator();
+        $this->minilog = new MiniLog();
+
         $this->minilog->debug($this->i18n->trans('using-apc'));
     }
 
@@ -63,22 +67,29 @@ class APCAdapter implements AdaptorInterface
     public function get($key)
     {
         $this->minilog->debug($this->i18n->trans('apc-get-key-item', [$key]));
-        return apc_fetch($key);
+        if (apc_exists($key)) {
+            $result = apc_fetch($key);
+            return ($result === false) ? null : $result;
+        }
+        return null;
     }
 
     /**
      * Put content into the cache.
      *
      * @param string $key
-     * @param mixed  $content   the the content you want to store
-     * @param int    $expire    time to expire
+     * @param mixed $content the the content you want to store
+     * @param int $expire time to expire
      *
      * @return bool whether if the operation was successful or not
      */
     public function set($key, $content, $expire = 5400)
     {
         $this->minilog->debug($this->i18n->trans('apc-set-key-item', [$key]));
-        return apc_store($key, $content, $expire);
+        if (apc_fetch($key) !== false) {
+            return apc_store($key, $content, $expire);
+        }
+        return apc_add($key, $content, $expire);
     }
 
     /**
@@ -102,6 +113,12 @@ class APCAdapter implements AdaptorInterface
     public function clear()
     {
         $this->minilog->debug($this->i18n->trans('apc-clear'));
-        return apc_clear_cache();
+        /**
+         * If cache_type is "user", the user cache will be cleared;
+         * otherwise, the system cache (cached files) will be cleared.
+         * On shared hostings, users only have perms to his own apache user.
+         * @source: http://php.net/manual/function.apc-clear-cache.php
+         */
+        return apc_clear_cache('user');
     }
 }

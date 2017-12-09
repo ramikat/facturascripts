@@ -3,7 +3,7 @@
     Document   : facturascli.xml
     Author     : Carlos Garcia Gomez
     Description:
-        Estructura de la tabla facturascli.
+        Structure for the facturascli table.
 -->
 <table>
     <column>
@@ -298,6 +298,11 @@
         <name>numdocs</name>
         <type>integer</type>
         <default>0</default>
+    </column>
+    <column>
+        <name>idempresa</name>
+        <type>integer</type>
+        <null>YES</null>
     </column>
     <constraint>
         <name>ca_facturascli_series2</name>

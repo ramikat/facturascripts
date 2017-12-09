@@ -99,6 +99,11 @@ class Page
         return 'name';
     }
 
+    public function install()
+    {
+        return 'INSERT INTO ' . $this->tableName() . " (name,title) VALUES ('AdminHome','AdminHome');";
+    }
+
     /**
      * Resetea los valores de todas las propiedades modelo.
      */
@@ -121,25 +126,5 @@ class Page
     public function url()
     {
         return 'index.php?page=' . $this->name;
-    }
-
-    /**
-     * Devuelve True si es la página por defecto, sino False
-     *
-     * @return bool
-     */
-    public function isDefault()
-    {
-        return $this->name === $this->defaultItems->defaultPage();
-    }
-
-    /**
-     * Devuelve True si es la página que se está mostrando, sino False
-     *
-     * @return bool
-     */
-    public function showing()
-    {
-        return $this->name === $this->defaultItems->showingPage();
     }
 }

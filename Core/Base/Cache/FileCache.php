@@ -24,7 +24,7 @@ use FacturaScripts\Core\Base\Translator;
 
 /**
  * Simple file cache
- * This class is great for those who can't use apc or memcached in their proyects.
+ * This class is great for those who can't use apc or memcached in their projects.
  *
  * @author Emilio Cobos (emiliocobos.net) <ecoal95@gmail.com> and github contributors
  * @author Carlos García Gómez <carlos@facturascripts.com>
@@ -37,21 +37,21 @@ use FacturaScripts\Core\Base\Translator;
 class FileCache implements AdaptorInterface
 {
     /**
-     * Configuración de la cache.
+     * Cache configuration
      *
      * @var array
      */
     private static $config;
 
     /**
-     * Objeto traductor
+     * Translator object
      *
      * @var Translator
      */
     private $i18n;
 
     /**
-     * Objeto del minilog
+     * MiniLog object
      *
      * @var MiniLog
      */
@@ -94,8 +94,8 @@ class FileCache implements AdaptorInterface
      * Get the data associated with a key.
      *
      * @param string $key
-     * @param bool   $raw
-     * @param null   $custom_time
+     * @param bool $raw
+     * @param int|null $custom_time
      *
      * @return mixed the content you put in, or null if expired or not found
      */
@@ -119,8 +119,8 @@ class FileCache implements AdaptorInterface
      * Put content into the cache.
      *
      * @param string $key
-     * @param mixed  $content the the content you want to store
-     * @param bool   $raw     whether if you want to store raw data or not. If it is true, $content *must* be a string
+     * @param mixed $content the the content you want to store
+     * @param bool $raw whether if you want to store raw data or not. If it is true, $content *must* be a string
      *
      * @return bool whether if the operation was successful or not
      */
@@ -178,7 +178,7 @@ class FileCache implements AdaptorInterface
      * Check if a file has expired or not.
      *
      * @param string $file the rout to the file
-     * @param int    $time the number of minutes it was set to expire
+     * @param int $time the number of minutes it was set to expire
      *
      * @return bool if the file has expired or not
      */

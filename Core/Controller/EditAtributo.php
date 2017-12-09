@@ -18,37 +18,53 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base;
 use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Base\DataBase;
 
 /**
- * Controlador para la edición de un registro del modelo Atributo
+ * Controller to edit a single item from the Atributo model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  * @author Ramiro Salvador Mamani <ramiro@solsun.pe>
+ * @author Carlos Jiménez Gómez <carlos@evolunext.es>
  */
-class EditAtributo extends ExtendedController\EditController
+class EditAtributo extends ExtendedController\PanelController
 {
 
     /**
-     * EditAtributo constructor.
-     *
-     * @param Base\Cache $cache
-     * @param Base\Translator $i18n
-     * @param Base\MiniLog $miniLog
-     * @param string $className
+     * Load views
      */
-    public function __construct(&$cache, &$i18n, &$miniLog, $className)
+    protected function createViews()
     {
-        parent::__construct($cache, $i18n, $miniLog, $className);
-
-        // Establecemos el modelo de datos
-        $this->modelName = 'FacturaScripts\Core\Model\Atributo';
+        $this->addEditView('FacturaScripts\Core\Model\Atributo', 'EditAtributo', 'attribute');
+        $this->addEditListView('FacturaScripts\Core\Model\AtributoValor', 'EditAtributoValor', 'attribute values', 'fa-road');
     }
 
     /**
-     * Devuelve los datos básicos de la página
+     * Load view data procedure
+     *
+     * @param string $keyView
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($keyView, $view)
+    {
+        $codatributo = $this->request->get('code');
+
+        switch ($keyView) {
+            case 'EditAtributo':
+                $view->loadData($codatributo);
+                break;
+
+            case 'EditAtributoValor':
+                $where = [new DataBase\DataBaseWhere('codatributo', $codatributo)];
+                $view->loadData($where);
+                break;
+        }
+    }
+
+    /**
+     * Returns basic page attributes
      *
      * @return array
      */

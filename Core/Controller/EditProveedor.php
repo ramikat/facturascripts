@@ -22,7 +22,7 @@ use FacturaScripts\Core\Base\ExtendedController;
 use FacturaScripts\Core\Base\DataBase;
 
 /**
- * Description of PanelSettings
+ * Controller to edit a single item from the Proveedor model
  *
  * @author Nazca Networks <comercial@nazcanetworks.com>
  */
@@ -30,7 +30,7 @@ class EditProveedor extends ExtendedController\PanelController
 {
 
     /**
-     * Procedimiento para insertar vistas en el controlador
+     * Load views
      */
     protected function createViews()
     {
@@ -38,54 +38,41 @@ class EditProveedor extends ExtendedController\PanelController
         $this->addEditListView('FacturaScripts\Core\Model\DireccionProveedor', 'EditDireccionProveedor', 'addresses', 'fa-road');
         $this->addEditListView('FacturaScripts\Core\Model\CuentaBancoProveedor', 'EditCuentaBancoProveedor', 'bank-accounts', 'fa-university');
         $this->addEditListView('FacturaScripts\Core\Model\ArticuloProveedor', 'EditProveedorArticulo', 'products', 'fa-cubes');
+        $this->addListView('FacturaScripts\Core\Model\FacturaProveedor', 'ListFacturaProveedor', 'invoices', 'fa-files-o');
+        $this->addListView('FacturaScripts\Core\Model\AlbaranProveedor', 'ListAlbaranProveedor', 'delivery-notes', 'fa-files-o');
+        $this->addListView('FacturaScripts\Core\Model\PedidoProveedor', 'ListPedidoProveedor', 'orders', 'fa-files-o');
     }
 
     /**
-     * Devuele el campo $fieldName del cliente
-     *
-     * @param string $fieldName
-     *
-     * @return mixed
-     */
-    private function getProviderFieldValue($fieldName)
-    {
-        $model = $this->views['EditProveedor']->getModel();
-        return $model->{$fieldName};
-    }
-
-    /**
-     * Procedimiento encargado de cargar los datos a visualizar
+     * Load view data
      *
      * @param string $keyView
      * @param ExtendedController\EditView $view
      */
     protected function loadData($keyView, $view)
     {
+        $codproveedor = $this->request->get('code');
+
         switch ($keyView) {
             case 'EditProveedor':
-                $value = $this->request->get('code');
-                $view->loadData($value);
+                $view->loadData($codproveedor);
                 break;
 
             case 'EditDireccionProveedor':
-                $where = [new DataBase\DataBaseWhere('codproveedor', $this->getProviderFieldValue('codproveedor'))];
-                $view->loadData($where);
-                break;
-
             case 'EditCuentaBancoProveedor':
-                $where = [new DataBase\DataBaseWhere('codproveedor', $this->getProviderFieldValue('codproveedor'))];
-                $view->loadData($where);
-                break;
-
             case 'EditProveedorArticulo':
-                $where = [new DataBase\DataBaseWhere('codproveedor', $this->getProviderFieldValue('codproveedor'))];
+            case 'ListFacturaProveedor':
+            case 'ListAlbaranProveedor':
+            case 'ListPedidoProveedor':
+            case 'ListPresupuestoProveedor':
+                $where = [new DataBase\DataBaseWhere('codproveedor', $codproveedor)];
                 $view->loadData($where);
                 break;
         }
     }
 
     /**
-     * Devuelve los datos básicos de la página
+     * Returns basic page attributes
      *
      * @return array
      */

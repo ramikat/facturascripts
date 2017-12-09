@@ -19,8 +19,9 @@
 
     function deleteRecord(formName) {
         bootbox.confirm({
-            title: "{{ i18n.trans('confirm-delete') }}",
+            title: "{{ i18n.trans('confirm-delete')|raw }}",
             message: "{{ i18n.trans('are-you-sure') }}",
+            closeButton: false,
             buttons: {
                 cancel: {
                     label: "<i class='fa fa-times'></i> {{ i18n.trans('cancel') }}"
@@ -71,6 +72,7 @@
 {% from 'Macro/BaseController.html' import columnsForEditView as columnsForEditView %}
 {% from 'Macro/BaseController.html' import rowHeaderForEditView as rowHeaderForEditView %}
 {% from 'Macro/BaseController.html' import rowFooterForEditView as rowFooterForEditView %}
+{% from 'Macro/BaseController.html' import modalFormFromColumns as modalFormFromColumns %}
 
 {# -- Main Body -- #}
 <div class="container-fluid">
@@ -78,7 +80,7 @@
 
     {# -- Header Row -- #}
     <div id="header" class="row">
-        <div class="col-3 d-print-none">
+        <div class="col-6 d-print-none">
             <div class="btn-group" aria-label="Button group with navigation actions">
                 <a href="{{ list_url }}" class="btn btn-sm btn-outline-secondary">
                     <i class="fa fa-arrow-left" aria-hidden="true"></i>
@@ -89,11 +91,10 @@
                 </a>
             </div>
 
-            {# -- Añadimos opciones de impresión y exportación -- #}
+            {# -- Adds print and export options  -- #}
             {{ exportData(fsc, i18n, 'edit') }}
         </div>
-
-        <div class="col-6 text-center">
+        <div class="col-6 text-right">
             <div class="page-header">
                 <h2>
                     <i class="fa {{ fsc.getPageData()['icon'] }}" aria-hidden="true"></i> {{ title }}
@@ -102,7 +103,7 @@
         </div>
     </div>
 
-    <p>&nbsp;</p>
+    <br/>
 
     {# -- Data Row -- #}
     <div id="data" class="row">
@@ -111,7 +112,7 @@
                 {% for indexView, view in fsc.views %}
                     {% set active = (indexView == fsc.active) ? ' active' : '' %}
                     <a class="nav-link{{ active }}" id="{{ indexView }}-tab" data-toggle="pill" href="#{{ indexView }}" role="tab" aria-controls="{{ indexView }}" aria-expanded="true">
-                        <i class="fa {{ fsc.icons[indexView] }}" aria-hidden="true"></i>
+                        <i class="fa {{ fsc.icons[indexView] }} fa-fw" aria-hidden="true"></i>
                         &nbsp;{{ view.title }}
                     </a>
                 {% endfor %}
@@ -122,27 +123,28 @@
                     <div class="tab-pane fade{{ active }}" id="{{ indexView }}" role="tabpanel" aria-labelledby="{{ indexView }}-tab">
                         {% set viewType = fsc.viewClass(view) %}
                         {% if viewType == 'ListView' %}
-                        {{ columnsForListView(_context, view) }}
+                            {{ columnsForListView(_context, view) }}
                         {% else %}
-                        <br/>
+                            <br/>
                         {% endif %}
-                        
+
                         {% if viewType == 'EditView' %}
-                        <!-- Statistical buttons bar -->
-                        {{ rowHeaderForEditView(_context, view) }}
-                        <!-- Main Form -->
-                        {% set model = view.getModel() %}
-                        {{ columnsForEditView(_context, view, model, TRUE) }}
+                            <!-- Statistical buttons bar -->
+                            {{ rowHeaderForEditView(_context, view) }}
+                            <!-- Main Form -->
+                            {% set model = view.getModel() %}
+                            {{ columnsForEditView(_context, view, model, TRUE) }}
                         {% endif %}
-                        
+
                         {% if viewType == 'EditListView' %}
-                        {{ columnsForEditListView(_context, view) }}
+                            {{ columnsForEditListView(_context, view) }}
                         {% endif %}
-                        
+
                         {% if viewType == 'HtmlView' %}
-                        <div>{% include view.fileName ignore missing %}</div>
-                        {% elseif viewType in ['EditView','EditListView'] %}
-                        {{ rowFooterForEditView(_context, view) }}
+                            <div>{% include view.fileName ignore missing %}</div>
+                        {% else %}
+                            {{ rowFooterForEditView(_context, view) }}
+                            {{ modalFormFromColumns(_context, view) }}
                         {% endif %}
                     </div>
                 {% endfor %}

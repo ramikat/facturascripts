@@ -19,19 +19,21 @@
 
 namespace FacturaScripts\Core\App;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Description of App
+ * AppAPI is the class used for API.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 class AppAPI extends App
 {
+
     /**
-     * Ejecuta la API.
+     * Runs the API.
      *
-     * @return boolean
+     * @return bool
      */
     public function run()
     {
@@ -53,14 +55,14 @@ class AppAPI extends App
     }
 
     /**
-     * Selecciona la versión de API si está soportada
+     * Selects the API version if it is supported
      *
      * @return bool
      */
     private function selectVersion()
     {
         $version = $this->request->get('v', '');
-        if ($version == '3') {
+        if ($version === '3') {
             return $this->selectResource();
         }
 
@@ -70,7 +72,7 @@ class AppAPI extends App
     }
 
     /**
-     * Selecciona recurso
+     * Selects the resource
      *
      * @return bool
      */
@@ -79,7 +81,7 @@ class AppAPI extends App
         $map = $this->getResourcesMap();
 
         $resourceName = $this->request->get('resource', '');
-        if ($resourceName == '') {
+        if ($resourceName === '') {
             $this->exposeResources($map);
             return true;
         }
@@ -87,7 +89,7 @@ class AppAPI extends App
         $modelName = "FacturaScripts\\Dinamic\\Model\\" . $map[$resourceName];
         $cod = $this->request->get('cod', '');
 
-        if ($cod == '') {
+        if ($cod === '') {
             return $this->processResource($modelName);
         }
 
@@ -95,7 +97,43 @@ class AppAPI extends App
     }
 
     /**
-     * Procesa recurso, permitiendo hacer POST/PUT/DELETE/GET ALL
+     * This method is equivalent to $this->request->get($key, $default),
+     * but always return an array, as expected for some parameters like operation, filter or sort.
+     *
+     * @param string $key
+     * @param string $default
+     *
+     * @return array
+     */
+    private function getRequestArray($key, $default = '')
+    {
+        $array = $this->request->get($key, $default);
+        return is_array($array) ? $array : []; /// if is string has bad format
+    }
+
+    /**
+     * Returns the where clauses.
+     *
+     * @param array $filter
+     * @param array $operation
+     * @param string $defaultOperation
+     *
+     * @return DataBaseWhere[]
+     */
+    private function getWhereValues($filter, $operation, $defaultOperation = 'AND')
+    {
+        $where = [];
+        foreach ($filter as $key => $value) {
+            if (!isset($operation[$key])) {
+                $operation[$key] = $defaultOperation;
+            }
+            $where[] = new DataBaseWhere($key, $value, 'LIKE', $operation[$key]);
+        }
+        return $where;
+    }
+
+    /**
+     * Process the resource, allowing POST/PUT/DELETE/GET ALL actions
      *
      * @param string $modelName
      *
@@ -105,10 +143,12 @@ class AppAPI extends App
     {
         try {
             $model = new $modelName();
-            $where = [];
-            $order = [];
             $offset = (int) $this->request->get('offset', 0);
             $limit = (int) $this->request->get('limit', 50);
+            $operation = $this->getRequestArray('operation');
+            $filter = $this->getRequestArray('filter');
+            $order = $this->getRequestArray('sort');
+            $where = $this->getWhereValues($filter, $operation);
 
             switch ($this->request->getMethod()) {
                 case 'POST':
@@ -138,7 +178,7 @@ class AppAPI extends App
     }
 
     /**
-     * Procesa recurso con parametro
+     * Process resource with parameters
      *
      * @param string $modelName
      * @param string $cod
@@ -179,7 +219,7 @@ class AppAPI extends App
     }
 
     /**
-     * Obtiene mapa de recursos
+     * Load resource map
      *
      * @return array
      */
@@ -187,13 +227,13 @@ class AppAPI extends App
     {
         $resources = [];
         foreach (scandir(FS_FOLDER . '/Dinamic/Model', SCANDIR_SORT_ASCENDING) as $fName) {
-            if (substr($fName, -4) == '.php') {
+            if (substr($fName, -4) === '.php') {
                 $modelName = substr($fName, 0, -4);
 
-                /// convertimos en plural
-                if (substr($modelName, -1) == 's') {
+                /// Conversion to plural
+                if (substr($modelName, -1) === 's') {
                     $plural = strtolower($modelName);
-                } elseif (substr($modelName, -3) == 'ser' || substr($modelName, -4) == 'tion') {
+                } elseif (substr($modelName, -3) === 'ser' || substr($modelName, -4) === 'tion') {
                     $plural = strtolower($modelName) . 's';
                 } elseif (in_array(substr($modelName, -1), ['a', 'e', 'i', 'o', 'u', 'k'])) {
                     $plural = strtolower($modelName) . 's';
@@ -209,7 +249,7 @@ class AppAPI extends App
     }
 
     /**
-     * Expone recurso
+     * Expose resource
      *
      * @param array $map
      */

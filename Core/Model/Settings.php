@@ -27,8 +27,8 @@ class Settings
 {
 
     use Base\ModelTrait {
-        clear as clearTrait;
-        loadFromData as loadFromDataTrait;
+        clear as traitClear;
+        loadFromData as traitLoadFromData;
     }
 
     /**
@@ -53,14 +53,14 @@ class Settings
     public $icon;
 
     /**
-     * Conjunto de valores de configuración
+     * Set of configuration values
      *
      * @var array
      */
     public $properties;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -70,7 +70,7 @@ class Settings
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -80,16 +80,16 @@ class Settings
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
-        $this->clearTrait();
+        $this->traitClear();
         $this->properties = [];
     }
 
     /**
-     * Comprueba un array de datos para que tenga la estructura correcta del modelo
+     * Check that a data array have correct struct of model
      *
      * @param array $data
      */
@@ -107,13 +107,13 @@ class Settings
     }
 
     /**
-     * Carga los datos desde un array
+     * Load data from array
      *
      * @param array $data
      */
     public function loadFromData($data)
     {
-        $this->loadFromDataTrait($data, ['properties', 'action']);
+        $this->traitLoadFromData($data, ['properties', 'action']);
         $this->properties = isset($data['properties']) ? json_decode($data['properties'], true) : [];
     }
 
@@ -122,46 +122,18 @@ class Settings
      *
      * @return bool
      */
-    public function saveUpdate()
+    public function save()
     {
-        $properties = json_encode($this->properties);
+        $this->properties = json_encode($this->properties);
 
-        $sql = 'UPDATE ' . $this->tableName() . ' SET '
-            . ' properties = ' . $this->var2str($properties)
-            . ' WHERE ' . $this->primaryColumn() . ' = ' . $this->var2str($this->name) . ';';
+        if ($this->test()) {
+            if ($this->exists()) {
+                return $this->saveUpdate();
+            }
 
-        return $this->dataBase->exec($sql);
-    }
+            return $this->saveInsert();
+        }
 
-    /**
-     * Crea la consulta necesaria para crear configuración base en la base de datos.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        $description1 = $this->i18n->trans('description-general-settings');
-        $values1 = [
-            'decimals' => 2, 'product_decimals' => 2, 'decimal_separator' => ',', 'thousands_separator' => '.',
-            'dateshort' => 'dd-mm-yy', 'datelong' => 'dd mmm yyyy', 'datemaxtoday' => 3
-        ];
-        $properties1 = json_encode($values1);
-
-        $sqlBase = 'INSERT INTO ' . $this->tableName() . ' (name, icon, description, properties) VALUES ';
-        $sql1 = $sqlBase . "('default', 'fa-globe', " . $this->var2str($description1) . ',' . $this->var2str($properties1) . ');';
-
-        $description2 = $this->i18n->trans('description-pdf-template-settings');
-        $values2 = [
-            'ppdf_plantilla' => '2', 'ppdf_pcolor' => '#1296D7', 'ppdf_scolor' => '#FFFFFF', 'ppdf_tcolor' => '#F1F1F1',
-            'ppdf_fsize' => 9, 'ppdf_font' => 'dejavusans', 'ppdf_margin_top' => 0, 'ppdf_mostrar_empresa' => 'h1',
-            'ppdf_numero2' => '1', 'ppdf_multidivisa' => '0', 'ppdf_referencias' => '1', 'ppdf_descuentos' => '1',
-            'ppdf_numlinea' => '0', 'ppdf_lf_alb' => '0', 'ppdf_lf_ped' => '0', 'ppdf_pie_f_y' => 270, 'ppdf_lalb_ped' => '0',
-            'ppdf_pie_alb' => '', 'ppdf_pie_alb_y' => 270, 'ppdf_lped_pre' => '0', 'ppdf_pie_ped' => '', 'ppdf_pie_ped_y' => 270,
-            'ppdf_lpre_wooc' => '0', 'ppdf_pie_pre' => '', 'ppdf_pie_pre_y' => 270
-        ];
-        $properties2 = json_encode($values2);
-
-        $sql2 = $sqlBase . "('plantillaspdf', 'fa-file-pdf-o', " . $this->var2str($description2) . ',' . $this->var2str($properties2) . ');';
-        return $sql1 . $sql2;
+        return false;
     }
 }

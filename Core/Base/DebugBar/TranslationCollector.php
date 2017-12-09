@@ -25,7 +25,7 @@ use DebugBar\DataCollector\Renderable;
 use FacturaScripts\Core\Base\Translator;
 
 /**
- * Clase para "recopilar" las traducciones.
+ * This class collects the translations
  *
  * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @source Based on: https://github.com/spiroski/laravel-debugbar-translations
@@ -33,14 +33,14 @@ use FacturaScripts\Core\Base\Translator;
 class TranslationCollector extends DataCollector implements Renderable, AssetProvider
 {
     /**
-     * Array con las traducciones
+     * Array containing the translations
      *
      * @var array
      */
     protected $translations;
 
     /**
-     * Motor de traducción.
+     * Translation engine
      *
      * @var Translator
      */
@@ -90,7 +90,7 @@ class TranslationCollector extends DataCollector implements Renderable, AssetPro
     }
 
     /**
-     * Devuelve los assets necesarios
+     * Returns the needed assets
      *
      * @return array
      */
@@ -110,10 +110,10 @@ class TranslationCollector extends DataCollector implements Renderable, AssetPro
     private function addTranslations()
     {
         foreach (static::$i18n->getUsedStrings() as $key => $value) {
-            $this->translations[] = array(
+            $this->translations[] = [
                 'key' => $key,
                 'value' => $value
-            );
+            ];
         }
     }
 

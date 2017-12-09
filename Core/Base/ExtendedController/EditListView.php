@@ -16,47 +16,51 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Base\ExtendedController;
 
-use FacturaScripts\Core\Base;
-use Symfony\Component\HttpFoundation\Response;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExportManager;
 
 /**
- * Definición de vista para uso en ExtendedControllers
+ * View definition for its use in ExtendedControllers
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
 class EditListView extends BaseView
 {
+
     /**
-     * Cursor con los datos del modelo a mostrar
+     * Cursor with the display model's data
      *
      * @var array
      */
     private $cursor;
 
     /**
-     * Almacena el offset para el cursor
+     * Stores the offset for the cursor
+     *
      * @var int
      */
     private $offset;
 
     /**
-     * Almacena el order para el cursor
+     * Stores the order for the cursor
+     *
      * @var array
      */
     private $order;
 
     /**
-     * Almacena los parámetros del where del cursor
+     * Store the parameters for the cursor's WHERE clause
+     *
      * @var array
      */
     private $where;
 
     /**
      * Constructor e inicializador de la clase
+     * Clos constructor and initialization
      *
      * @param string $title
      * @param string $modelName
@@ -71,12 +75,12 @@ class EditListView extends BaseView
         $this->offset = 0;
         $this->where = [];
 
-        // Carga configuración de la vista para el usuario
+        // Load the view configuration for the user
         $this->pageOption->getForUser($viewName, $userNick);
     }
 
     /**
-     * Devuelve la lista de datos leidos en formato Model
+     * Returns the list of read data in the Model format
      *
      * @return array
      */
@@ -86,8 +90,10 @@ class EditListView extends BaseView
     }
 
     /**
-     * Lista de columnas y su configuración
+     * Column list and its configuration
+     *
      * (Array of ColumnItem)
+     *
      * @return array
      */
     public function getColumns()
@@ -95,6 +101,9 @@ class EditListView extends BaseView
         return $this->pageOption->columns;
     }
 
+    /**
+     * Devuelve True si tiene menos de 5 columnas, sino False.
+     */
     public function isBasicEditList()
     {
         $isBasic = count($this->pageOption->columns) === 1; // Only one group
@@ -107,7 +116,7 @@ class EditListView extends BaseView
     }
 
     /**
-     * Establece el estado de edición de una columna
+     * Establishes the column's edit state
      *
      * @param string $columnName
      * @param boolean $disabled
@@ -121,8 +130,8 @@ class EditListView extends BaseView
     }
 
     /**
-     * Carga los datos en la propiedad cursor, según el filtro where indicado.
-     * Añade un registro/modelo en blanco al final de los datos cargados.
+     * Load the data in the cursor property, according to the where filter specified.
+     * Adds an empty row/model at the end of the loaded data.
      *
      * @param array $where
      * @param int $offset
@@ -135,13 +144,13 @@ class EditListView extends BaseView
             $this->cursor = $this->model->all($where, $this->order, $offset, $limit);
         }
 
-        // nos guardamos los valores where y offset para la exportación
+        // We save the values where and offset for the export
         $this->offset = $offset;
         $this->where = $where;
     }
 
     /**
-     * Prepara los campos para un modelo vacío
+     * Prepares the fields for an empty model
      *
      * @return mixed
      */
@@ -150,7 +159,7 @@ class EditListView extends BaseView
         $class = $this->model->modelName();
         $result = new $class();
 
-        foreach (Base\DataBase\DataBaseWhere::getFieldsFilter($this->where) as $field => $value) {
+        foreach (DataBaseWhere::getFieldsFilter($this->where) as $field => $value) {
             $result->{$field} = $value;
         }
 
@@ -158,16 +167,14 @@ class EditListView extends BaseView
     }
 
     /**
-     * Método para la exportación de los datos de la vista
+     * Method to export the view data
      *
-     * @param Base\ExportManager $exportManager
-     * @param Response $response
-     * @param string $action
-     *
-     * @return mixed
+     * @param ExportManager $exportManager
      */
-    public function export(&$exportManager, &$response, $action)
+    public function export(&$exportManager)
     {
-        return $exportManager->generateList($response, $action, $this->model, $this->where, $this->order, $this->offset, $this->getColumns());
+        if ($this->count > 0) {
+            $exportManager->generateListModelPage($this->model, $this->where, $this->order, $this->offset, $this->getColumns(), $this->title);
+        }
     }
 }

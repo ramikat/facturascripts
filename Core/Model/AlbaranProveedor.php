@@ -106,7 +106,7 @@ class AlbaranProveedor
     public function getLineas()
     {
         $lineaModel = new LineaAlbaranProveedor();
-        return $lineaModel->all(new DataBaseWhere('idalbaran', $this->idalbaran));
+        return $lineaModel->all([new DataBaseWhere('idalbaran', $this->idalbaran)]);
     }
 
     /**
@@ -136,7 +136,7 @@ class AlbaranProveedor
      */
     public function delete()
     {
-        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE idalbaran = ' . $this->var2str($this->idalbaran) . ';';
+        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE idalbaran = ' . $this->dataBase->var2str($this->idalbaran) . ';';
         if ($this->dataBase->exec($sql)) {
             if ($this->idfactura) {
                 /**

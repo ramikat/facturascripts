@@ -19,9 +19,10 @@
 namespace FacturaScripts\Core\Base\ExtendedController;
 
 use FacturaScripts\Core\Base;
+use FacturaScripts\Core\Lib\ExportManager;
 
 /**
- * Controlador para edición de datos mediante panel vertical
+ * Controller to edit data through the vertical panel
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
@@ -30,21 +31,21 @@ abstract class PanelController extends Base\Controller
 {
 
     /**
-     * Indica cual es la vista activa
+     * Indicates the active view
      *
      * @var string
      */
     public $active;
 
     /**
-     * Objeto para exportar datos
+     * Export data object
      *
-     * @var Base\ExportManager
+     * @var ExportManager
      */
     public $exportManager;
 
     /**
-     * Lista de iconos para cada una de las vistas
+     * List of icons for each of the views
      *
      * @var array
      */
@@ -52,24 +53,24 @@ abstract class PanelController extends Base\Controller
 
     /**
      * Tabs position in page: left, bottom.
-     * @var string 
+     * @var string
      */
     public $tabsPosition;
 
     /**
-     * Lista de vistas mostradas por el controlador
+     * List of views displayed by the controller
      *
      * @var BaseView[]
      */
     public $views;
 
     /**
-     * Procedimiento encargado de insertar las vistas a visualizar
+     * Inserts the views to display
      */
     abstract protected function createViews();
 
     /**
-     * Procedimiento encargado de cargar los datos a visualizar
+     * Loads the data to display
      *
      * @param string $keyView
      * @param BaseView $view
@@ -77,25 +78,30 @@ abstract class PanelController extends Base\Controller
     abstract protected function loadData($keyView, $view);
 
     /**
-     * Inicia todos los objetos y propiedades.
+     * Starts all the objects and properties
      *
      * @param Base\Cache $cache
      * @param Base\Translator $i18n
      * @param Base\MiniLog    $miniLog
-     * @param string     $className
+     * @param string          $className
      */
     public function __construct(&$cache, &$i18n, &$miniLog, $className)
     {
         parent::__construct($cache, $i18n, $miniLog, $className);
 
+        $this->exportManager = new ExportManager();
         $this->setTemplate('Master/PanelController');
         $this->active = $this->request->get('active', '');
-        $this->exportManager = new Base\ExportManager();
-        $this->icons = [];
         $this->tabsPosition = 'left';
+        $this->icons = [];
         $this->views = [];
     }
 
+    /**
+     * Asigna la posición de la pestaña.
+     *
+     * @param string $position
+     */
     public function setTabsPosition($position)
     {
         $this->tabsPosition = $position;
@@ -104,7 +110,7 @@ abstract class PanelController extends Base\Controller
             case 'bottom':
                 $this->setTemplate('Master/PanelControllerBottom');
                 break;
-            
+
             case 'top':
                 $this->setTemplate('Master/PanelControllerTop');
                 break;
@@ -117,7 +123,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Ejecuta la lógica privada del controlador.
+     * Exeutes the controller's private logic
      *
      * @param mixed $response
      * @param mixed $user
@@ -126,39 +132,56 @@ abstract class PanelController extends Base\Controller
     {
         parent::privateCore($response, $user);
 
-        // Creamos las vistas a visualizar
+        // Create the views to display
         $this->createViews();
 
-        // Guardamos si hay operaciones por realizar
+        // Get any operations that have to be performed
         $view = empty($this->active) ? null : $this->views[$this->active];
         $action = empty($view) ? '' : $this->request->get('action', '');
 
-        // Operaciones sobre los datos antes de leerlos
+        // Run operations on the data before reading it
         $this->execPreviousAction($view, $action);
 
-        // Lanzamos la carga de datos para cada una de las vistas
+        // Load the model data for each view
         foreach ($this->views as $keyView => $dataView) {
             $this->loadData($keyView, $dataView);
         }
 
-        // Operaciones generales con los datos cargados
+        // General operations with the loaded data
         $this->execAfterAction($view, $action);
+    }
+
+    /**
+     * Returns a field value for the loaded data model
+     *
+     * @param mixed $model
+     * @param string $fieldName
+     * @return mixed
+     */
+    public function getFieldValue($model, $fieldName)
+    {
+        if (isset($model->{$fieldName})) {
+            return $model->{$fieldName};
+        }
+
+        return null;
     }
 
     /**
      * Devuelve el valor para un campo del modelo de datos de la vista
      *
-     * @param mixed $model
-     * @param string $field
+     * @param string $viewName
+     * @param string $fieldName
      * @return mixed
      */
-    public function getFieldValue($model, $field)
+    public function getViewModelValue($viewName, $fieldName)
     {
-        return $model->{$field};
+        $model = $this->views[$viewName]->getModel();
+        return $this->getFieldValue($model, $fieldName);
     }
 
     /**
-     * Devuelve la url para el tipo indicado
+     * Returns the url for a specified type
      *
      * @param string $type
      * @return string
@@ -170,12 +193,12 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Ejecuta las acciones que alteran los datos antes de leerlos
+     * Run the actions that alter data before reading it
      *
      * @param BaseView $view
      * @param string $action
      */
-    private function execPreviousAction($view, $action)
+    protected function execPreviousAction($view, $action)
     {
         switch ($action) {
             case 'save':
@@ -191,28 +214,27 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Ejecuta las acciones del controlador
+     * Run the controller actions
      *
      * @param EditView $view
      * @param string $action
      */
-    private function execAfterAction($view, $action)
+    protected function execAfterAction($view, $action)
     {
         switch ($action) {
-            case 'insert':
-                $this->insertAction($view);
-                break;
-
             case 'export':
                 $this->setTemplate(false);
-                $document = $view->export($this->exportManager, $this->response, $this->request->get('option'));
-                $this->response->setContent($document);
+                $this->exportManager->newDoc($this->response, $this->request->get('option'));
+                foreach ($this->views as $view) {
+                    $view->export($this->exportManager);
+                }
+                $this->exportManager->show($this->response);
                 break;
         }
     }
 
     /**
-     * Ejecuta la modificación de los datos
+     * Run the data edits
      *
      * @param BaseView $view
      * @return boolean
@@ -227,17 +249,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Prepara la inserción de un nuevo registro
-     *
-     * @param EditView $view
-     */
-    protected function insertAction($view)
-    {
-        
-    }
-
-    /**
-     * Acción de borrado de datos
+     * Action to delete data
      *
      * @param BaseView $view
      * @return boolean
@@ -253,7 +265,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Añade una vista al controlador y carga sus datos.
+     * Adds a view to the controller and loads its data
      *
      * @param string $keyView
      * @param BaseView $view
@@ -270,7 +282,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Añade una vista tipo EditList al controlador.
+     * Adds a EditList type view to the controller
      *
      * @param string $modelName
      * @param string $viewName
@@ -284,7 +296,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Añade una vista tipo List al controlador.
+     * Adds a List type view to the controller
      *
      * @param string $modelName
      * @param string $viewName
@@ -298,7 +310,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Añade una vista tipo Edit al controlador.
+     * Adds a Edit type view to the controller
      *
      * @param string $modelName
      * @param string $viewName
@@ -312,7 +324,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Añade una vista tipo Html al controlador.
+     * Adds a HTML type view to the controller
      *
      * @param string $fileName
      * @param string $modelName
@@ -327,7 +339,7 @@ abstract class PanelController extends Base\Controller
     }
 
     /**
-     * Devuelve la clase de la vista
+     * Returns the view class
      *
      * @param string $view
      * @return string

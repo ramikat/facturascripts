@@ -17,8 +17,7 @@
  */
 
 /**
- * Estilo personalizado para tener en la pestaña Database de
- * PHP Debug Bar las líneas enumeradas
+ * Customized style to have numbered lines in PHP Debug Bar's Database tab
  */
 (function ($) {
 
@@ -101,7 +100,8 @@
 
             var filters = [], self = this;
 
-            this.$list = new PhpDebugBar.Widgets.ListWidget({itemRenderer: function (li, stmt) {
+            this.$list = new PhpDebugBar.Widgets.ListWidget({
+                itemRenderer: function (li, stmt) {
                     $("<code />").addClass(csscls("sql")).html(PhpDebugBar.Widgets.highlight(stmt.sql, "sql")).appendTo(li);
                     if (stmt.duration_str) {
                         $("<span title=\"Duration\" />").addClass(csscls("duration")).text(stmt.duration_str).appendTo(li);
@@ -121,13 +121,13 @@
                         if ($.inArray(stmt.connection, filters) == -1) {
                             filters.push(stmt.connection);
                             $("<a />")
-                                    .addClass(csscls("filter"))
-                                    .text(stmt.connection)
-                                    .attr("rel", stmt.connection)
-                                    .on("click", function () {
-                                        self.onFilterClick(this);
-                                    })
-                                    .appendTo(self.$toolbar);
+                                .addClass(csscls("filter"))
+                                .text(stmt.connection)
+                                .attr("rel", stmt.connection)
+                                .on("click", function () {
+                                    self.onFilterClick(this);
+                                })
+                                .appendTo(self.$toolbar);
                             if (filters.length > 1) {
                                 self.$toolbar.show();
                                 self.$list.$el.css("margin-bottom", "20px");
@@ -143,7 +143,7 @@
                         for (var key in stmt.params) {
                             if (typeof stmt.params[key] !== "function") {
                                 table.append("<tr><td class=\"" + csscls("name") + "\">" + key + "</td><td class=\"" + csscls("value") +
-                                        "\">" + stmt.params[key] + "</td></tr>");
+                                    "\">" + stmt.params[key] + "</td></tr>");
                             }
                         }
                         li.css("cursor", "pointer").click(function () {
@@ -154,7 +154,8 @@
                             }
                         });
                     }
-                }});
+                }
+            });
             this.$list.$el.appendTo(this.$el);
 
             this.bindAttr("data", function (data) {
@@ -176,7 +177,7 @@
                         unique++;
                         for (var i = 0; i < sql[stmt].keys.length; i++) {
                             this.$list.$el.find("." + csscls("list-item")).eq(sql[stmt].keys[i])
-                                    .addClass(csscls("sql-duplicate")).addClass(csscls("sql-duplicate-" + unique));
+                                .addClass(csscls("sql-duplicate")).addClass(csscls("sql-duplicate-" + unique));
                         }
                     }
                 }
@@ -213,7 +214,8 @@
         render: function () {
             this.$status = $('<div />').addClass(csscls('status')).appendTo(this.$el);
 
-            this.$list = new PhpDebugBar.Widgets.ListWidget({itemRenderer: function (li, translation) {
+            this.$list = new PhpDebugBar.Widgets.ListWidget({
+                itemRenderer: function (li, translation) {
                     var text = translation.key + " => " + translation.value;
                     if (translation.key == translation.value) {
                         var $line = $('<span/>').addClass(csscls('name')).addClass('text-danger').text(text);
@@ -222,7 +224,8 @@
                     }
 
                     $line.appendTo(li);
-                }});
+                }
+            });
             this.$list.$el.appendTo(this.$el);
 
             this.bindAttr('data', function (data) {

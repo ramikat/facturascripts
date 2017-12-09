@@ -18,43 +18,62 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base;
+use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\ExtendedController;
 
 /**
- * Controlador para la edición de un registro del modelo Fabricante
+ * Controller to edit a single item from the SubCuenta model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author PC REDNET S.L. <luismi@pcrednet.com>
  */
-class EditSubcuenta extends ExtendedController\EditController
+class EditSubcuenta extends ExtendedController\PanelController
 {
 
     /**
-     * EditFabricante constructor.
-     *
-     * @param Base\Cache $cache
-     * @param Base\Translator $i18n
-     * @param Base\MiniLog $miniLog
-     * @param string $className
+     * Load views
      */
-    public function __construct(&$cache, &$i18n, &$miniLog, $className)
+    protected function createViews()
     {
-        parent::__construct($cache, $i18n, $miniLog, $className);
-
-        // Establecemos el modelo de datos
-        $this->modelName = 'FacturaScripts\Core\Model\Subcuenta';
+        $this->addEditView('FacturaScripts\Core\Model\Subcuenta', 'EditSubcuenta', 'subaccount');
+        $this->addListView('FacturaScripts\Core\Model\Asiento', 'ListAsiento', 'accounting-entries', 'fa-balance-scale');
+        $this->setTabsPosition('bottom');
     }
 
     /**
-     * Devuelve los datos básicos de la página
+     * Load view data procedure
+     *
+     * @param string $keyView
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($keyView, $view)
+    {
+        $value = $this->request->get('code');
+
+        switch ($keyView) {
+            case 'EditSubcuenta':
+                $view->loadData($value);
+                break;
+
+            case 'ListAsiento':
+                /// TODO: cargar los asientos relacionados (a través de la tabla co_partidas).
+                $inSQL = 'SELECT idasiento FROM co_partidas WHERE idsubcuenta = ' . $this->dataBase->var2str($value);
+                $where = [new DataBase\DataBaseWhere('idasiento', $inSQL, 'IN')];
+                $view->loadData($where);
+                break;
+        }
+    }
+
+    /**
+     * Returns basic page attributes
      *
      * @return array
      */
     public function getPageData()
     {
         $pagedata = parent::getPageData();
-        $pagedata['title'] = 'subaccounts';
+        $pagedata['title'] = 'subaccount';
         $pagedata['menu'] = 'accounting';
         $pagedata['icon'] = 'fa-th-list';
         $pagedata['showonmenu'] = false;

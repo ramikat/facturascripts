@@ -3,7 +3,7 @@
     Document   : facturasprov.xml
     Author     : Carlos Garcia Gomez
     Description:
-        Estructura de la tabla facturasprov.
+        Structure for the facturasprov table.
 -->
 <table>
     <column>
@@ -80,6 +80,10 @@
         <type>time without time zone</type>
         <null>NO</null>
         <default>now()</default>
+    </column>
+    <column>
+        <name>femail</name>
+        <type>date</type>
     </column>
     <column>
         <name>idasiento</name>
@@ -192,6 +196,11 @@
         <name>numdocs</name>
         <type>integer</type>
         <default>0</default>
+    </column>
+    <column>
+        <name>idempresa</name>
+        <type>integer</type>
+        <null>YES</null>
     </column>
     <constraint>
         <name>ca_facturasprov_series2</name>

@@ -16,47 +16,59 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
- * Description of EditAgente
+ * Controller to edit a single item from the Agente model
  *
  * @author Raul
- * Clase edit Agente basada en la funcionalidad de Editcliente
+ *  Edit Agente class based upon Editcliente's functionality
  */
-class EditAgente extends ExtendedController\EditController
+class EditAgente extends ExtendedController\PanelController
 {
+
     /**
-     * EditAgente constructor.
-     *
-     * @param Base\Cache $cache
-     * @param Base\Translator $i18n
-     * @param Base\MiniLog $miniLog
-     * @param string $className
+     * Load Views
      */
-    public function __construct(&$cache, &$i18n, &$miniLog, $className)
+    protected function createViews()
     {
-        parent::__construct($cache, $i18n, $miniLog, $className);
-        $this->modelName = 'FacturaScripts\Core\Model\Agente';
+        $this->addEditView('FacturaScripts\Core\Model\Agente', 'EditAgente', 'agent');
+        $this->addListView('FacturaScripts\Core\Model\FacturaCliente', 'EditAgenteFacturas', 'invoices', 'fa-files-o');
+        $this->addListView('FacturaScripts\Core\Model\AlbaranCliente', 'EditAgenteAlbaranes', 'delivery-notes', 'fa-files-o');
+        $this->addListView('FacturaScripts\Core\Model\PedidoCliente', 'EditAgentePedidos', 'orders', 'fa-files-o');
+        $this->addListView('FacturaScripts\Core\Model\PresupuestoCliente', 'EditAgentePresupuestos', 'estimations', 'fa-files-o');
     }
 
     /**
-     * Devuelve el texto para el pie del panel de datos
+     * Load view data procedure
      *
-     * @return string
+     * @param string $keyView
+     * @param ExtendedController\EditView $view
      */
-    public function getPanelFooter()
+    protected function loadData($keyView, $view)
     {
-        $model = $this->getModel();
-        return $this->i18n->trans('discharge-date', [$model->f_alta]);
+        $code = $this->request->get('code');
+
+        switch ($keyView) {
+            case 'EditAgente':
+                $view->loadData($code);
+                break;
+
+            case 'EditAgentePresupuestos':
+            case 'EditAgentePedidos':
+            case 'EditAgenteAlbaranes':
+            case 'EditAgenteFacturas':
+                $where = [new DataBaseWhere('codagente', $code)];
+                $view->loadData($where);
+                break;
+        }
     }
 
     /**
-     * Devuelve los datos básicos de la página
+     * Returns basic page attributes
      *
      * @return array
      */

@@ -19,11 +19,10 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Model;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Lib\EmailTools;
 
 /**
- * Description of EditSettings
+ * Controller to edit main settings
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
@@ -32,8 +31,22 @@ class EditSettings extends ExtendedController\PanelController
 
     const KEYSETTINGS = 'Settings';
 
+    protected function execAfterAction($view, $action)
+    {
+        if ($action === 'testmail') {
+            $emailTools = new EmailTools();
+            if ($emailTools->test()) {
+                $this->miniLog->info($this->i18n->trans('mail-test-ok'));
+            } else {
+                $this->miniLog->error($this->i18n->trans('mail-test-error'));
+            }
+        } else {
+            parent::execAfterAction($view, $action);
+        }
+    }
+
     /**
-     * Devuelve los datos básicos de la página
+     * Returns basic page attributes
      *
      * @return array
      */
@@ -43,13 +56,12 @@ class EditSettings extends ExtendedController\PanelController
         $pagedata['title'] = 'app-preferences';
         $pagedata['icon'] = 'fa-cogs';
         $pagedata['menu'] = 'admin';
-        $pagedata['orden'] = '999';
 
         return $pagedata;
     }
 
     /**
-     * Devuelve la url para el tipo indicado
+     * Returns the url for a specified $type
      *
      * @param string $type
      * @return string
@@ -71,7 +83,7 @@ class EditSettings extends ExtendedController\PanelController
     }
 
     /**
-     * Devuelve el valor para la propiedad de configuración
+     * Returns the configuration property value for a specified $field
      *
      * @param mixed $model
      * @param string $field
@@ -80,27 +92,19 @@ class EditSettings extends ExtendedController\PanelController
     public function getFieldValue($model, $field)
     {
         $properties = parent::getFieldValue($model, 'properties');
-        if (array_key_exists($field, $properties)) {
+        if (is_array($properties) && array_key_exists($field, $properties)) {
             return $properties[$field];
         }
 
-        return $model->{$field};
+        if (isset($model->{$field})) {
+            return $model->{$field};
+        }
+
+        return null;
     }
 
     /**
-     * Devuelve el id de la vista con el valor de la constante KEYSSETTINGS
-     * como prefijo
-     *
-     * @param string $key
-     * @return string
-     */
-    private function getViewNameFromKey($key)
-    {
-        return self::KEYSETTINGS . ucfirst($key);
-    }
-
-    /**
-     * Devuelve el id de la vista
+     * Returns the view id for a specified $viewName
      *
      * @param string $viewName
      * @return string
@@ -111,22 +115,15 @@ class EditSettings extends ExtendedController\PanelController
     }
 
     /**
-     * Procedimiento para insertar vistas en el controlador
+     * Load views
      */
     protected function createViews()
     {
         $modelName = 'FacturaScripts\Core\Model\Settings';
-        $title = 'general';
         $icon = $this->getPageData()['icon'];
-        $this->addEditView($modelName, $this->getViewNameFromKey('Default'), $title, $icon);
-
-        $model = new Model\Settings();
-        $where = [new DataBase\DataBaseWhere('name', 'default', '<>')];
-        $rows = $model->all($where, ['name' => 'ASC'], 0, 0);
-        foreach ($rows as $setting) {
-            $title = $setting->name;
-            $viewName = $this->getViewNameFromKey($setting->name);
-            $this->addEditView($modelName, $viewName, $title, $setting->icon);
+        foreach ($this->allSettingsXMLViews() as $name) {
+            $title = substr($name, 8);
+            $this->addEditView($modelName, $name, $title, $icon);
         }
 
         $title2 = 'about';
@@ -134,7 +131,7 @@ class EditSettings extends ExtendedController\PanelController
     }
 
     /**
-     * Procedimiento para cargar los datos de cada una de las vistas
+     * Load view data
      *
      * @param string $keyView
      * @param ExtendedController\EditView $view
@@ -147,5 +144,23 @@ class EditSettings extends ExtendedController\PanelController
 
         $code = $this->getKeyFromViewName($keyView);
         $view->loadData($code);
+
+        $model = $view->getModel();
+        if ($model->name === null) {
+            $model->name = substr(strtolower($keyView), 8);
+            $model->save();
+        }
+    }
+
+    private function allSettingsXMLViews()
+    {
+        $names = [];
+        foreach (scandir(FS_FOLDER . '/Dinamic/XMLView', SCANDIR_SORT_ASCENDING) as $fileName) {
+            if ($fileName != '.' && $fileName != '..' && substr($fileName, 0, 8) == self::KEYSETTINGS) {
+                $names[] = substr($fileName, 0, -4);
+            }
+        }
+
+        return $names;
     }
 }

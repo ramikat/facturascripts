@@ -20,14 +20,14 @@
 namespace FacturaScripts\Core\Base\Cache;
 
 /**
- * Description of AdaptorInterface
+ * Adaptor Interface.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 interface AdaptorInterface
 {
     /**
-     * Obtiene el contenido de la $key
+     * Gets the $key contents
      *
      * @param string $key
      *
@@ -36,7 +36,7 @@ interface AdaptorInterface
     public function get($key);
 
     /**
-     * Asigna $content a la $key del adaptador
+     * Assign $content to the adaptor $key
      *
      * @param string $key
      * @param mixed $content
@@ -46,7 +46,7 @@ interface AdaptorInterface
     public function set($key, $content);
 
     /**
-     * Borra la $key del adaptador
+     * Erases $key from the adaptor
      *
      * @param string $key
      *
@@ -55,7 +55,7 @@ interface AdaptorInterface
     public function delete($key);
 
     /**
-     * Limpia el adaptador
+     * Cleans the adaptor
      *
      * @return mixed
      */

@@ -50,13 +50,18 @@ class FacturaProveedor
     {
         return 'idfactura';
     }
-    
+
+    /**
+     * Crea la consulta necesaria para crear un nuevo agente en la base de datos.
+     *
+     * @return string
+     */
     public function install()
     {
         new Serie();
         new Ejercicio();
         new Asiento();
-        
+
         return '';
     }
 
@@ -139,7 +144,7 @@ class FacturaProveedor
     public function getLineas()
     {
         $lineaModel = new LineaFacturaProveedor();
-        return $lineaModel->all(new DataBaseWhere('idfactura', $this->idfactura));
+        return $lineaModel->all([new DataBaseWhere('idfactura', $this->idfactura)]);
     }
 
     /**
@@ -205,8 +210,8 @@ class FacturaProveedor
 
         /// desvincular albaranes asociados y eliminar factura
         $sql = 'UPDATE albaranesprov SET idfactura = NULL, ptefactura = TRUE'
-            . ' WHERE idfactura = ' . $this->var2str($this->idfactura) . ';'
-            . 'DELETE FROM ' . $this->tableName() . ' WHERE idfactura = ' . $this->var2str($this->idfactura) . ';';
+            . ' WHERE idfactura = ' . $this->dataBase->var2str($this->idfactura) . ';'
+            . 'DELETE FROM ' . static::tableName() . ' WHERE idfactura = ' . $this->dataBase->var2str($this->idfactura) . ';';
 
         if ($bloquear) {
             return false;
