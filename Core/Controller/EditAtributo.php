@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
  * Controller to edit a single item from the Atributo model
@@ -31,14 +32,13 @@ use FacturaScripts\Core\Base\DataBase;
  */
 class EditAtributo extends ExtendedController\PanelController
 {
-
     /**
      * Load views
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Atributo', 'EditAtributo', 'attribute');
-        $this->addEditListView('FacturaScripts\Core\Model\AtributoValor', 'EditAtributoValor', 'attribute values', 'fa-road');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Atributo', 'EditAtributo', 'attribute');
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\AtributoValor', 'EditAtributoValor', 'attribute values', 'fa-road');
     }
 
     /**
@@ -49,16 +49,16 @@ class EditAtributo extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $codatributo = $this->request->get('code');
-
         switch ($keyView) {
             case 'EditAtributo':
-                $view->loadData($codatributo);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'EditAtributoValor':
-                $where = [new DataBase\DataBaseWhere('codatributo', $codatributo)];
-                $view->loadData($where);
+                $codatributo = $this->getViewModelValue('EditAtributo', 'codatributo');
+                $where = [new DataBaseWhere('codatributo', $codatributo)];
+                $view->loadData(false, $where);
                 break;
         }
     }

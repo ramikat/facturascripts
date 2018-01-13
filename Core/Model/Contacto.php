@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -29,168 +29,147 @@ class Contacto
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var string
      */
     public $codcontacto;
 
     /**
-     * NIF del contacto
+     * Contact CIF/NIF.
      *
      * @var string
      */
-    public $nif;
+    public $cifnif;
 
     /**
-     * True si es una persona física, sino False
+     * True if it is a physical person, but False.
      *
      * @var bool
      */
     public $personafisica;
 
     /**
-     * Nombre del contacto
+     * Contact name.
      *
      * @var string
      */
     public $nombre;
+    
+    /**
+     * Last name.
+     * 
+     * @var string
+     */
+    public $apellidos;
 
     /**
-     * Empresa del contacto
+     * Contact company.
      *
      * @var string
      */
     public $empresa;
 
     /**
-     * Cargo del contacto
+     * Contact charge.
      *
      * @var string
      */
     public $cargo;
 
     /**
-     * Email de contacto.
+     * Contact email.
      *
      * @var string
      */
     public $email;
 
     /**
-     * Teléfono de la persona.
+     * Phone 1 of the person.
      *
      * @var string
      */
     public $telefono1;
 
     /**
-     * Teléfono de la persona.
+     * Phone 2 of the person.
      *
      * @var string
      */
     public $telefono2;
 
     /**
-     * Dirección del contacto.
+     * Address of the contact.
      *
      * @var string
      */
     public $direccion;
 
     /**
-     * Código postal del contacto.
+     * Postal code of the contact.
      *
      * @var string
      */
     public $codpostal;
 
     /**
-     * Ciudad del contacto.
+     * Contact city.
      *
      * @var string
      */
     public $ciudad;
 
     /**
-     * Provincia del contacto.
+     * Contact province.
      *
      * @var string
      */
     public $provincia;
 
     /**
-     * País del contacto.
+     * Contact country.
      *
      * @var string
      */
     public $codpais;
 
     /**
-     * True si admite marketing, sino False
+     * True if it supports marketing, but False.
      *
      * @var bool
      */
     public $admitemarketing;
 
     /**
-     * Observaciones del contacto.
+     * Contact's observations.
      *
      * @var string
      */
     public $observaciones;
 
     /**
-     * Empleado asociado ha este contacto. Modelo agente.
+     * Associated employee has this contact. Agent model.
      *
      * @var string
      */
     public $codagente;
 
     /**
-     * Fecha de alta del contacto
+     * Contact's date of registration.
      *
      * @var string
      */
     public $fechaalta;
 
     /**
-     * Fecha de la última comunicación
+     * Date of the last communication.
      *
      * @var string
      */
     public $ultima_comunicacion;
 
     /**
-     * Fuente del contacto
-     *
-     * @var string
-     */
-    public $fuente;
-
-    /**
-     * Estado del contacto
-     *
-     * @var string
-     */
-    public $estado;
-
-    /**
-     * Potencial cliente
-     *
-     * @var int
-     */
-    public $potencial;
-
-    /**
-     * Grupo al que pertenece el cliente.
-     *
-     * @var string
-     */
-    public $codgrupo;
-
-    /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -200,7 +179,7 @@ class Contacto
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -210,49 +189,18 @@ class Contacto
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
-        $this->codcontacto = null;
-        $this->nif = '';
         $this->personafisica = true;
-        $this->nombre = '';
-        $this->empresa = null;
-        $this->cargo = null;
-        $this->email = null;
-        $this->telefono1 = null;
-        $this->telefono2 = null;
-        $this->direccion = null;
-        $this->codpostal = null;
-        $this->ciudad = null;
-        $this->provincia = null;
-        $this->codpais = null;
         $this->admitemarketing = true;
-        $this->codagente = null;
-        $this->observaciones = '';
         $this->fechaalta = date('d-m-Y');
         $this->ultima_comunicacion = date('d-m-Y');
-        $this->fuente = null;
-        $this->estado = 'nuevo';
-        $this->potencial = 0;
-        $this->codgrupo = null;
     }
 
     /**
-     * Devuelve un listado de los estados del contacto
-     *
-     * @return array
-     */
-    public function estados()
-    {
-        return [
-            'nuevo', 'potencial', 'cliente', 'no interesado',
-        ];
-    }
-
-    /**
-     * Devuelve una versión resumida de las observaciones
+     * Returns a summarized version of the observations.
      *
      * @return string
      */

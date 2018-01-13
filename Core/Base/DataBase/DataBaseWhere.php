@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Base\DataBase;
 
 use FacturaScripts\Core\Base\DataBase;
@@ -116,6 +115,7 @@ class DataBaseWhere
                 break;
 
             case 'IS':
+            case 'IS NOT':
                 $result = $this->value;
                 break;
 
@@ -131,6 +131,10 @@ class DataBaseWhere
                     }
                 }
                 $result .= ')';
+                break;
+
+            case 'REGEXP':
+                $result = "'" . $this->dataBase->escapeString((string) $this->value) . "'";
                 break;
 
             default:
@@ -182,7 +186,11 @@ class DataBaseWhere
      */
     private function getValue()
     {
-        return in_array($this->operator, ['LIKE', 'IS', 'IN']) ? $this->getValueFromOperator() : $this->getValueFromType();
+        if ($this->value === null) {
+            return 'NULL';
+        }
+
+        return in_array($this->operator, ['LIKE', 'IS', 'IS NOT', 'IN', 'REGEXP'], false) ? $this->getValueFromOperator() : $this->getValueFromType();
     }
 
     /**
@@ -202,11 +210,11 @@ class DataBaseWhere
             if ($this->operator === 'LIKE') {
                 $field = 'LOWER(' . $field . ')';
             }
-            $result .= $union . $field . ' ' . $this->operator . ' ' . $value;
+            $result .= $union . $field . ' ' . $this->dataBase->getOperator($this->operator) . ' ' . $value;
             $union = ' OR ';
         }
 
-        if ($result != '') {
+        if ($result !== '') {
             if (count($fields) > 1) {
                 $result = '(' . $result . ')';
             }
@@ -231,11 +239,13 @@ class DataBaseWhere
         $result = '';
         $join = false;
         foreach ($whereItems as $item) {
-            $result .= $item->getSQLWhereItem($join);
-            $join = true;
+            if (isset($item)) {
+                $result .= $item->getSQLWhereItem($join);
+                $join = true;
+            }
         }
 
-        if ($result != '') {
+        if ($result !== '') {
             $result = ' WHERE ' . $result;
         }
 

@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,7 +21,7 @@ namespace FacturaScripts\Core\Model;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
- * Un proveedor. Puede estar relacionado con varias direcciones o subcuentas.
+ * A supplier. It can be related to several addresses or sub-accounts.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -31,12 +31,11 @@ class Proveedor extends Base\Persona
     use Base\ModelTrait {
         __construct as private traitConstruct;
         clear as private traitClear;
-        url as private traitURL;
     }
 
     /**
-     * True -> el proveedor es un acreedor, es decir, no le compramos mercancia,
-     * le compramos servicios, etc.
+     * True -> the supplier is a creditor, that is, we do not buy him merchandise,
+     * we buy services, etc.
      *
      * @var bool
      */
@@ -54,7 +53,7 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -64,7 +63,7 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -74,7 +73,7 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
@@ -82,12 +81,13 @@ class Proveedor extends Base\Persona
         parent::clear();
 
         $this->acreedor = false;
+        $this->regimeniva = 'general';
     }
 
     /**
-     * Devuelve el primer proveedor que tenga ese cifnif.
-     * Si el cifnif está en blanco y se proporciona una razón social, se devuelve
-     * el primer proveedor con esa razón social.
+     * Returns the first provider that has that cifnif.
+     * If the cifnif is blank and a business name is provided, it is returned
+     * the first provider with that company name.
      *
      * @param string $cifnif
      * @param string $razon
@@ -98,14 +98,15 @@ class Proveedor extends Base\Persona
     {
         if ($cifnif === '' && $razon !== '') {
             $razon = mb_strtolower(self::noHtml($razon), 'UTF8');
-            $sql = 'SELECT * FROM ' . $this->tableName() . " WHERE cifnif = ''"
-                . ' AND lower(razonsocial) = ' . $this->dataBase->var2str($razon) . ';';
+            $sql = 'SELECT * FROM ' . static::tableName() . " WHERE cifnif = ''"
+                . ' AND lower(razonsocial) = ' . self::$dataBase->var2str($razon) . ';';
         } else {
             $cifnif = mb_strtolower($cifnif, 'UTF8');
-            $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE lower(cifnif) = ' . $this->dataBase->var2str($cifnif) . ';';
+            $sql = 'SELECT * FROM ' . static::tableName()
+                . ' WHERE lower(cifnif) = ' . self::$dataBase->var2str($cifnif) . ';';
         }
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return new self($data[0]);
         }
@@ -114,7 +115,7 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve las direcciones asociadas al proveedor.
+     * Returns the addresses associated with the provider.
      *
      * @return DireccionProveedor[]
      */
@@ -126,7 +127,7 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve las subcuentas asociadas al proveedor, una para cada ejercicio.
+     * Returns the subaccounts associated with the provider, one for each fiscal year.
      *
      * @return Subcuenta[]
      */
@@ -145,8 +146,8 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve la subcuenta asignada al proveedor para el ejercicio $codeje,
-     * si no hay una subcuenta asignada, intenta crearla. Si falla devuelve False.
+     * Returns the sub-account assigned to the provider for the year $codeje,
+     * If there is not an assigned subaccount, try to create it. If it fails, it returns False.
      *
      * @param string $codeje
      *
@@ -193,24 +194,24 @@ class Proveedor extends Base\Persona
                     return $subcuenta;
                 }
 
-                $this->miniLog->alert($this->i18n->trans('cant-assing-subaccount-supplier', [$this->codproveedor]));
+                self::$miniLog->alert(self::$i18n->trans('cant-assing-subaccount-supplier', ['%supplierCode%' => $this->codproveedor]));
 
                 return false;
             }
 
-            $this->miniLog->alert($this->i18n->trans('cant-create-subaccount-supplier', [$this->codproveedor]));
+            self::$miniLog->alert(self::$i18n->trans('cant-create-subaccount-supplier', ['%supplierCode%' => $this->codproveedor]));
 
             return false;
         }
 
-        $this->miniLog->alert($this->i18n->trans('account-not-found'));
-        $this->miniLog->alert($this->i18n->trans('accounting-plan-imported?'));
+        self::$miniLog->alert(self::$i18n->trans('account-not-found'));
+        self::$miniLog->alert(self::$i18n->trans('accounting-plan-imported?'));
 
         return false;
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
@@ -219,7 +220,7 @@ class Proveedor extends Base\Persona
         $status = false;
 
         if ($this->codproveedor === null) {
-            $this->codproveedor = $this->getNewCodigo();
+            $this->codproveedor = (string) $this->newCode();
         } else {
             $this->codproveedor = trim($this->codproveedor);
         }
@@ -230,11 +231,11 @@ class Proveedor extends Base\Persona
         $this->observaciones = self::noHtml($this->observaciones);
 
         if (!preg_match('/^[A-Z0-9]{1,6}$/i', $this->codproveedor)) {
-            $this->miniLog->alert($this->i18n->trans('not-valid-supplier-code'));
+            self::$miniLog->alert(self::$i18n->trans('not-valid-supplier-code'));
         } elseif (empty($this->nombre) || strlen($this->nombre) > 100) {
-            $this->miniLog->alert($this->i18n->trans('not-valid-supplier-name'));
+            self::$miniLog->alert(self::$i18n->trans('not-valid-supplier-name'));
         } elseif (empty($this->razonsocial) || strlen($this->razonsocial) > 100) {
-            $this->miniLog->alert($this->i18n->trans('not-valid-supplier-business-name'));
+            self::$miniLog->alert(self::$i18n->trans('not-valid-supplier-business-name'));
         } else {
             $status = true;
         }
@@ -243,8 +244,8 @@ class Proveedor extends Base\Persona
     }
 
     /**
-     * Devuelve un array con las combinaciones que contienen $query en su nombre
-     * o razonsocial o codproveedor o cifnif o telefono1 o telefono2 o observaciones.
+     * Returns an array with combinations containing $query in its name
+     * or endorsement or co-supplier or cifnif or telefono1 or telefono2 or observations.
      *
      * @param string $query
      * @param int    $offset
@@ -256,7 +257,7 @@ class Proveedor extends Base\Persona
         $prolist = [];
         $query = mb_strtolower(self::noHtml($query), 'UTF8');
 
-        $consulta = 'SELECT * FROM ' . $this->tableName() . ' WHERE ';
+        $consulta = 'SELECT * FROM ' . static::tableName() . ' WHERE ';
         if (is_numeric($query)) {
             $consulta .= "nombre LIKE '%" . $query . "%' OR razonsocial LIKE '%" . $query . "%'"
                 . " OR codproveedor LIKE '%" . $query . "%' OR cifnif LIKE '%" . $query . "%'"
@@ -270,7 +271,7 @@ class Proveedor extends Base\Persona
         }
         $consulta .= ' ORDER BY lower(nombre) ASC';
 
-        $data = $this->dataBase->selectLimit($consulta, FS_ITEM_LIMIT, $offset);
+        $data = self::$dataBase->selectLimit($consulta, FS_ITEM_LIMIT, $offset);
         if (!empty($data)) {
             foreach ($data as $d) {
                 $prolist[] = new self($d);

@@ -18,8 +18,9 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Model;
 
 /**
  * Controller to edit a single item from the User model
@@ -36,47 +37,15 @@ class EditUser extends ExtendedController\PanelController
     protected function createViews()
     {
         /// Add all views
-        $this->addEditView('FacturaScripts\Core\Model\User', 'EditUser', 'user', 'fa-user');
-        $this->addEditListView('FacturaScripts\Core\Model\RolUser', 'EditRolUser', 'rol-user', 'fa-address-card-o');
-        $this->addListView('FacturaScripts\Core\Model\PageRule', 'ListPageRule', 'page-rule', 'fa fa-check-square');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\User', 'EditUser', 'user', 'fa-user');
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\RoleUser', 'EditRoleUser', 'roles', 'fa-address-card-o');
 
-        /// Load values option to Language select input
-        $columnLangCode = $this->views['EditUser']->columnForName('lang-code');
-        $langs = [];
-        foreach ($this->i18n->getAvailableLanguages() as $key => $value) {
-            $langs[] = ['value' => $key, 'title' => $value];
-        }
-        $columnLangCode->widget->setValuesFromArray($langs);
+        /// Load values for input selects
+        $this->loadHomepageValues();
+        $this->loadLanguageValues();
 
-        /// Disable columns
-        $this->views['EditRolUser']->disableColumn('nick', TRUE);
-        $this->views['ListPageRule']->disableColumn('nick', TRUE);
-    }
-
-    /**
-     * Load view data proedure
-     *
-     * @param string $keyView
-     * @param ExtendedController\EditView $view
-     */
-    protected function loadData($keyView, $view)
-    {
-        switch ($keyView) {
-            case 'EditUser':
-                $value = $this->request->get('code');
-                $view->loadData($value);
-                break;
-
-            case 'EditRolUser':
-                $where = [new DataBase\DataBaseWhere('nick', $this->getViewModelValue('EditUser', 'nick'))];
-                $view->loadData($where);
-                break;
-
-            case 'ListPageRule':
-                $where = [new DataBase\DataBaseWhere('nick', $this->getViewModelValue('EditUser', 'nick'))];
-                $view->loadData($where);
-                break;
-        }
+        /// Disable column
+        $this->views['EditRoleUser']->disableColumn('user', true);
     }
 
     /**
@@ -93,5 +62,88 @@ class EditUser extends ExtendedController\PanelController
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
+    }
+
+    /**
+     * Load view data proedure
+     *
+     * @param string $keyView
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($keyView, $view)
+    {
+        switch ($keyView) {
+            case 'EditUser':
+                $code = $this->request->get('code');
+                $view->loadData($code);
+                break;
+
+            case 'EditRoleUser':
+                $nick = $this->getViewModelValue('EditUser', 'nick');
+                $where = [new DataBaseWhere('nick', $nick)];
+                $view->loadData(false, $where);
+                break;
+        }
+    }
+
+    private function loadHomepageValues()
+    {
+        $user = new Model\User();
+        $code = $this->request->get('code');
+
+        $userPages = [
+            ['value' => '---null---', 'title' => '------']
+        ];
+        if ($user->loadFromCode($code)) {
+            $userPages = $this->getUserPages($user);
+        }
+
+        $columnHomepage = $this->views['EditUser']->columnForName('homepage');
+        $columnHomepage->widget->setValuesFromArray($userPages);
+    }
+
+    /**
+     * 
+     * @param Model\User $user
+     */
+    private function getUserPages($user)
+    {
+        $pageList = [];
+        if ($user->admin) {
+            $pageModel = new Model\Page();
+            foreach ($pageModel->all([], ['name' => 'ASC'], 0, 500) as $page) {
+                if (!$page->showonmenu) {
+                    continue;
+                }
+
+                $pageList[] = ['value' => $page->name, 'title' => $page->name];
+            }
+            return $pageList;
+        }
+
+        $roleUserModel = new Model\RoleUser();
+        foreach ($roleUserModel->all([new DataBaseWhere('nick', $user->nick)]) as $roleUser) {
+            foreach ($roleUser->getRoleAccess() as $roleAccess) {
+                $pageList[] = ['value' => $roleAccess->pagename, 'title' => $roleAccess->pagename];
+            }
+        }
+
+        return $pageList;
+    }
+
+    private function loadLanguageValues()
+    {
+        $columnLangCode = $this->views['EditUser']->columnForName('lang-code');
+        $langs = [];
+        foreach ($this->i18n->getAvailableLanguages() as $key => $value) {
+            $langs[] = ['value' => $key, 'title' => $value];
+        }
+
+        /// sorting
+        usort($langs, function ($objA, $objB) {
+            return strcmp($objA['title'], $objB['title']);
+        });
+
+        $columnLangCode->widget->setValuesFromArray($langs);
     }
 }

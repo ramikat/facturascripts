@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -27,102 +27,102 @@ trait LineaDocumentoCompra
 {
 
     use ModelTrait {
-        clear as private clearTrait;
+        clear as private traitClear;
     }
 
     /**
-     * Cantidad
+     * Quantity.
      *
      * @var float|int
      */
     public $cantidad;
 
     /**
-     * Código de la combinación seleccionada, en el caso de los artículos con atributos.
+     * Code of the selected combination, in the case of articles with attributes.
      *
      * @var string
      */
     public $codcombinacion;
 
     /**
-     * Código del impuesto relacionado.
+     * Code of the related tax.
      *
      * @var string
      */
     public $codimpuesto;
 
     /**
-     * Descripción de la línea.
+     * Description of the line.
      *
      * @var string
      */
     public $descripcion;
 
     /**
-     * % del impuesto relacionado.
+     * % of the related tax.
      *
      * @var float|int
      */
     public $iva;
 
     /**
-     * % de descuento.
+     * % off.
      *
      * @var float|int
      */
     public $dtopor;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $idlinea;
 
     /**
-     * % de IRPF de la línea.
+     * % of IRPF of the line.
      *
      * @var float|int
      */
     public $irpf;
 
     /**
-     * Importe neto de la línea, sin impuestos.
+     * Net amount of the line, without taxes.
      *
      * @var float|int
      */
     public $pvptotal;
 
     /**
-     * Importe neto sin descuentos.
+     * Net amount without discounts.
      *
      * @var float|int
      */
     public $pvpsindto;
 
     /**
-     * Precio del artículo, una unidad.
+     * Price of the item, one unit.
      *
      * @var float|int
      */
     public $pvpunitario;
 
     /**
-     * % de recargo de equivalencia de la línea.
+     * % surcharge of line equivalence.
      *
      * @var float|int
      */
     public $recargo;
 
     /**
-     * Referencia del artículo.
+     * Reference of the article.
      *
      * @var string
      */
     public $referencia;
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -132,28 +132,24 @@ trait LineaDocumentoCompra
     }
 
     /**
-     * Inicializa los valores de la línea.
+     * Initializes the values of the line.
      */
     private function clearLinea()
     {
-        $this->clearTrait();
+        $this->traitClear();
         $this->cantidad = 0.0;
-        $this->codcombinacion = null;
-        $this->codimpuesto = null;
         $this->descripcion = '';
         $this->dtopor = 0.0;
-        $this->idlinea = null;
         $this->irpf = 0.0;
         $this->iva = 0.0;
         $this->pvpsindto = 0.0;
         $this->pvptotal = 0.0;
         $this->pvpunitario = 0.0;
         $this->recargo = 0.0;
-        $this->referencia = null;
     }
 
     /**
-     * Devuelve el PVP con IVA
+     * Returns the retail price with VAT.
      *
      * @return float|int
      */
@@ -163,7 +159,7 @@ trait LineaDocumentoCompra
     }
 
     /**
-     * Devuelve el PVP total (con IVA, IRPF y recargo)
+     * Returns the retail price total (with VAT, IRPF and surcharge).
      *
      * @return float|int
      */
@@ -173,7 +169,7 @@ trait LineaDocumentoCompra
     }
 
     /**
-     * Devuelve el PVP total por producto (sin IRPF ni recargo)
+     * Returns the retail price total per product (without income tax or surcharge).
      *
      * @return float|int
      */
@@ -187,7 +183,7 @@ trait LineaDocumentoCompra
     }
 
     /**
-     * Devuelve la descripción
+     *Returns the description.
      *
      * @return string
      */
@@ -197,7 +193,7 @@ trait LineaDocumentoCompra
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns true if there are no errors in the values of the model properties.
      *
      * @return bool
      */
@@ -208,11 +204,13 @@ trait LineaDocumentoCompra
         $totalsindto = $this->pvpunitario * $this->cantidad;
 
         if (!static::floatcmp($this->pvptotal, $total, FS_NF0, true)) {
-            $this->miniLog->alert($this->i18n->trans('pvptotal-line-error', [$this->referencia, $total]));
+            $values = ['%reference%' => $this->referencia, '%total%' => $total];
+            self::$miniLog->alert(self::$i18n->trans('pvptotal-line-error', $values));
             return false;
         }
         if (!static::floatcmp($this->pvpsindto, $totalsindto, FS_NF0, true)) {
-            $this->miniLog->alert($this->i18n->trans('pvpsindto-line-error', [$this->referencia, $totalsindto]));
+            $values = ['%reference%' => $this->referencia, '%totalWithoutDiscount%' => $totalsindto];
+            self::$miniLog->alert(self::$i18n->trans('pvpsindto-line-error', $values));
             return false;
         }
 

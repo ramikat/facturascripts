@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Base\DataBase;
 
 use FacturaScripts\Core\Base\DataBase as db;
@@ -95,7 +94,7 @@ class DataBaseTools
         $sql2 = $this->compareConstraints($tableName, $xmlCons, $dbCons, true);
         if ($sql2 !== '') {
             if (!self::$dataBase->exec($sql2)) {
-                self::$miniLog->critical(self::$i18n->trans('check-table', [$tableName]));
+                self::$miniLog->critical(self::$i18n->trans('check-table', ['%tableName%' => $tableName]));
             }
 
             /// leemos de nuevo las restricciones
@@ -244,14 +243,14 @@ class DataBaseTools
         $xml = strtolower($xmlType);
 
         $result = (
-            (FS_DB_TYPE_CHECK) ||
+            FS_DB_TYPE_CHECK ||
             self::$dataBase->getEngine()->compareDataTypes($db0, $xml) ||
             ($xml === 'serial') ||
             (
-                strpos($db0, 'time') === 0 &&
-                strpos($xml, 'time') === 0
+            strpos($db0, 'time') === 0 &&
+            strpos($xml, 'time') === 0
             )
-        );
+            );
 
         return $result;
     }
@@ -284,10 +283,10 @@ class DataBaseTools
                     $this->checkXmlConstraints($constraints, $xml);
                 }
             } else {
-                self::$miniLog->critical(self::$i18n->trans('error-reading-file', [$filename]));
+                self::$miniLog->critical(self::$i18n->trans('error-reading-file', ['%fileName%' => $filename]));
             }
         } else {
-            self::$miniLog->critical(self::$i18n->trans('file-not-found', [$filename]));
+            self::$miniLog->critical(self::$i18n->trans('file-not-found', ['%fileName%' => $filename]));
         }
 
         return $return;
@@ -302,12 +301,12 @@ class DataBaseTools
      */
     private function getXmlTableLocation($tableName)
     {
-        $filename = FS_FOLDER . '/Dinamic/Table/' . $tableName . '.xml';
-        if (!file_exists($filename)) {
-            $filename = FS_FOLDER . '/Core/Table/' . $tableName . '.xml';
+        $fileName = FS_FOLDER . '/Dinamic/Table/' . $tableName . '.xml';
+        if (FS_DEBUG && !file_exists($fileName)) {
+            $fileName = FS_FOLDER . '/Core/Table/' . $tableName . '.xml';
         }
 
-        return $filename;
+        return $fileName;
     }
 
     /**

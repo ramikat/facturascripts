@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the Tarifa model
@@ -35,7 +36,7 @@ class EditTarifa extends ExtendedController\EditController
      */
     public function getModelClassName()
     {
-        return 'FacturaScripts\Core\Model\Tarifa';
+        return '\FacturaScripts\Dinamic\Model\Tarifa';
     }
 
     /**

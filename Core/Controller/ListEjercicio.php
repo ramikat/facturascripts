@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the Ejercicio model
@@ -50,7 +51,7 @@ class ListEjercicio extends ExtendedController\ListController
     protected function createViews()
     {
         $className = $this->getClassName();
-        $this->addView('FacturaScripts\Core\Model\Ejercicio', $className);
+        $this->addView('\FacturaScripts\Dinamic\Model\Ejercicio', $className);
         $this->addSearchFields($className, ['nombre', 'codejercicio']);
 
         $this->addOrderBy($className, 'fechainicio', 'start-date', 2);

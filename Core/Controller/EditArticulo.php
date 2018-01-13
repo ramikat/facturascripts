@@ -18,8 +18,8 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the EditArticulo model
@@ -35,11 +35,14 @@ class EditArticulo extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Articulo', 'EditArticulo', 'products', 'fa-cubes');
-        $this->addEditListView('FacturaScripts\Core\Model\Stock', 'EditStock', 'stock');
-        $this->addListView('FacturaScripts\Core\Model\ArticuloProveedor', 'ListArticuloProveedor', 'suppliers', 'fa-ship');
-        $this->addListView('FacturaScripts\Core\Model\ArticuloCombinacion', 'ListArticuloCombinacion', 'combinations', 'fa-sliders');
-        $this->addListView('FacturaScripts\Core\Model\ArticuloTraza', 'ListArticuloTraza', 'traceability', 'fa-barcode');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Articulo', 'EditArticulo', 'products', 'fa-cubes');
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\Stock', 'EditStock', 'stock');
+        $this->addListView('\FacturaScripts\Dinamic\Model\ArticuloProveedor', 'ListArticuloProveedor', 'suppliers', 'fa-ship');
+        $this->addListView('\FacturaScripts\Dinamic\Model\ArticuloCombinacion', 'ListArticuloCombinacion', 'combinations', 'fa-sliders');
+        $this->addListView('\FacturaScripts\Dinamic\Model\ArticuloTraza', 'ListArticuloTraza', 'traceability', 'fa-barcode');
+        
+        /// Disable column
+        $this->views['ListArticuloProveedor']->disableColumn('reference', true);
     }
 
     /**
@@ -62,18 +65,19 @@ class EditArticulo extends ExtendedController\PanelController
             unset($this->views['ListArticuloTraza']);
         }
 
-        $referencia = $this->request->get('code');
         switch ($keyView) {
             case 'EditArticulo':
-                $view->loadData($referencia);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'EditStock':
             case 'ListArticuloProveedor':
             case 'ListArticuloCombinacion':
             case 'ListArticuloTraza':
+                $referencia = $this->getViewModelValue('EditArticulo', 'referencia');
                 $where = [new DataBaseWhere('referencia', $referencia)];
-                $view->loadData($where);
+                $view->loadData(false, $where);
                 break;
         }
     }

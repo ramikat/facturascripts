@@ -16,9 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the Fabricante model
@@ -26,15 +28,38 @@ use FacturaScripts\Core\Base\ExtendedController;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class EditFabricante extends ExtendedController\EditController
+class EditFabricante extends ExtendedController\PanelController
 {
+    
+    /**
+     * Load views.
+     */
+    protected function createViews()
+    {
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Fabricante', 'EditFabricante', 'manufacturer');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Articulo', 'EditFabricanteListArticulos', 'products');
+    }
 
     /**
-     * Returns the model name
+     * Load data view procedure
+     *
+     * @param string $keyView
+     * @param ExtendedController\BaseView $view
      */
-    public function getModelClassName()
+    protected function loadData($keyView, $view)
     {
-        return 'FacturaScripts\Core\Model\Fabricante';
+        switch ($keyView) {
+            case 'EditFabricante':
+                $code = $this->request->get('code');
+                $view->loadData($code);
+                break;
+
+            case 'EditFabricanteListArticulos':
+                $codfabricante = $this->getViewModelValue('EditFabricante', 'codfabricante');
+                $where = [new DataBaseWhere('codfabricante', $codfabricante)];
+                $view->loadData(false, $where);
+                break;
+        }
     }
 
     /**

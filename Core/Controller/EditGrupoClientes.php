@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the GrupoClientes model
@@ -36,13 +37,13 @@ class EditGrupoClientes extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\GrupoClientes', 'EditGrupoClientes', 'customer-group');
-        $this->addListView('FacturaScripts\Core\Model\Cliente', 'ListCliente', 'customers', 'fa-users');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\GrupoClientes', 'EditGrupoClientes', 'customer-group');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Cliente', 'ListCliente', 'customers', 'fa-users');
         $this->setTabsPosition('bottom');
     }
 
     /**
-     * Procedimiento encargado de cargar los datos a visualizar
+     * Procedure responsible for loading the data to be displayed.
      *
      * @param string $keyView
      * @param ExtendedController\EditView $view
@@ -51,13 +52,14 @@ class EditGrupoClientes extends ExtendedController\PanelController
     {
         switch ($keyView) {
             case 'EditGrupoClientes':
-                $value = $this->request->get('code');
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'ListCliente':
-                $where = [new DataBase\DataBaseWhere('codgrupo', $this->request->get('code'))];
-                $view->loadData($where);
+                $codgrupo = $this->getViewModelValue('EditGrupoClientes', 'codgrupo');
+                $where = [new DataBaseWhere('codgrupo', $codgrupo)];
+                $view->loadData(false, $where);
                 break;
         }
     }

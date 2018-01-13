@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the PedidoCliente model
@@ -34,7 +35,7 @@ class ListPedidoCliente extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('FacturaScripts\Core\Model\PedidoCliente', 'ListPedidoCliente');
+        $this->addView('\FacturaScripts\Dinamic\Model\PedidoCliente', 'ListPedidoCliente');
         $this->addSearchFields('ListPedidoCliente', ['codigo', 'numero2', 'observaciones']);
 
         $this->addFilterDatePicker('ListPedidoCliente', 'date', 'date', 'fecha');
@@ -42,9 +43,10 @@ class ListPedidoCliente extends ExtendedController\ListController
         $this->addFilterSelect('ListPedidoCliente', 'codalmacen', 'almacenes', '', 'nombre');
         $this->addFilterSelect('ListPedidoCliente', 'codserie', 'series', '', 'descripcion');
         $this->addFilterSelect('ListPedidoCliente', 'codpago', 'formaspago', '', 'descripcion');
+        $this->addFilterAutocomplete('ListPedidoCliente', 'codcliente', 'clientes', '', 'nombre');
 
         $this->addOrderBy('ListPedidoCliente', 'codigo', 'code');
-        $this->addOrderBy('ListPedidoCliente', 'fecha', 'date');
+        $this->addOrderBy('ListPedidoCliente', 'fecha', 'date', 2);
         $this->addOrderBy('ListPedidoCliente', 'total', 'amount');
     }
 

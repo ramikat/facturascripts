@@ -52,7 +52,7 @@
                 </widget>
             </column>
             <column name="codbarras" title="barcode" numcolumns="2" order="130">
-                <widget type="text" fieldname="codbarras"/>
+                <widget type="text" fieldname="codbarras" icon="fa-barcode"/>
             </column>
             <column name="partnumber" numcolumns="2" order="140">
                 <widget type="text" fieldname="partnumber"/>
@@ -63,7 +63,7 @@
         </group>
         <group name="stock" numcolumns="4">
             <column name="stockfis" title="physical-stock" numcolumns="4" order="100">
-                <widget type="number" fieldname="stockfis"/>
+                <widget type="number" fieldname="stockfis" readonly="true"/>
             </column>
             <column name="stockmin" title="minimum-stock" numcolumns="4" order="100">
                 <widget type="number" fieldname="stockmin"/>

@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,8 +18,10 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+
 /**
- * Una regularización de IVA.
+ * A VAT regularization.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -29,56 +31,56 @@ class RegularizacionIva
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $idregiva;
 
     /**
-     * ID del asiento generado.
+     * ID of the generated seat.
      *
      * @var int
      */
     public $idasiento;
 
     /**
-     * Código de ejercicio
+     * Exercise code.
      *
      * @var string
      */
     public $codejercicio;
 
     /**
-     * Fecha de asiento
+     * Date of entry.
      *
      * @var string
      */
     public $fechaasiento;
 
     /**
-     * Fecha de fin
+     * End date.
      *
      * @var string
      */
     public $fechafin;
 
     /**
-     * Fecha de inicio
+     * Start date.
      *
      * @var string
      */
     public $fechainicio;
 
     /**
-     * Período de la regularización
+     * Period of regularization.
      *
      * @var
      */
     public $periodo;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -88,7 +90,7 @@ class RegularizacionIva
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -98,7 +100,7 @@ class RegularizacionIva
     }
 
     /**
-     * Devuelve las partidas por asiento
+     * Returns the items per seat.
      *
      * @return Partida[]|bool
      */
@@ -107,18 +109,18 @@ class RegularizacionIva
         if ($this->idasiento !== null) {
             $partida = new Partida();
 
-            return $partida->allFromAsiento($this->idasiento);
+            return $partida->all([new DataBaseWhere('idasiento', $this->idasiento)]);
         }
 
         return false;
     }
 
     /**
-     * Devuelve la regularización de IVA correspondiente a esa fecha,
-     * es decir, la regularización cuya fecha de inicio sea anterior
-     * a la fecha proporcionada y su fecha de fin sea posterior a la fecha
-     * proporcionada. Así puedes saber si el periodo sigue abierto para poder
-     * facturar.
+     * Returns the VAT regularization corresponding to that date,
+     * that is, the regularization whose start date is earlier
+     * to the date provided and its end date is after the date
+     * provided. So you can know if the period is still open to be able
+     * check in.
      *
      * @param string $fecha
      *
@@ -126,10 +128,10 @@ class RegularizacionIva
      */
     public function getFechaInside($fecha)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE fechainicio <= ' . $this->dataBase->var2str($fecha)
-            . ' AND fechafin >= ' . $this->dataBase->var2str($fecha) . ';';
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE fechainicio <= ' . self::$dataBase->var2str($fecha)
+            . ' AND fechafin >= ' . self::$dataBase->var2str($fecha) . ';';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return new self($data[0]);
         }
@@ -138,14 +140,15 @@ class RegularizacionIva
     }
 
     /**
-     * Elimina la regularización de iva de la base de datos.
+     * Deletes the regularization of VAT from the database.
      *
      * @return bool
      */
     public function delete()
     {
-        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE idregiva = ' . $this->dataBase->var2str($this->idregiva) . ';';
-        if ($this->dataBase->exec($sql)) {
+        $sql = 'DELETE FROM ' . static::tableName()
+            . ' WHERE idregiva = ' . self::$dataBase->var2str($this->idregiva) . ';';
+        if (self::$dataBase->exec($sql)) {
             /// si hay un asiento asociado lo eliminamos
             if ($this->idasiento !== null) {
                 $asientoModel = new Asiento();

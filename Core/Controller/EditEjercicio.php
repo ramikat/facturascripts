@@ -18,11 +18,9 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
-use FacturaScripts\Core\Model\GrupoEpigrafes;
-use FacturaScripts\Core\Model\Epigrafe;
-use FacturaScripts\Core\Model\Cuenta;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\Accounting\AccountingPlanImport;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the Familia model
@@ -39,11 +37,11 @@ class EditEjercicio extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Ejercicio', 'EditEjercicio', 'exercise');
-        $this->addEditListView('FacturaScripts\Core\Model\GrupoEpigrafes', 'EditEjercicioGrupoEpigrafes', 'Grupo epigrafe');
-        $this->addEditListView('FacturaScripts\Core\Model\Epigrafe', 'EditEjercicioEpigrafe', 'Epigrafes');
-        $this->addEditListView('FacturaScripts\Core\Model\Cuenta', 'EditEjercicioCuenta', 'account', 'fa-book');
-        $this->addEditListView('FacturaScripts\Core\Model\Subcuenta', 'EditEjercicioSubcuenta', 'subaccount');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Ejercicio', 'EditEjercicio', 'exercise');
+        $this->addListView('\FacturaScripts\Dinamic\Model\GrupoEpigrafes', 'ListGrupoEpigrafes', 'epigraphs-group');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Epigrafe', 'ListEpigrafe', 'epigraphs');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Cuenta', 'ListCuenta', 'accounts', 'fa-book');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Subcuenta', 'ListSubcuenta', 'subaccount');
     }
 
     /**
@@ -56,28 +54,17 @@ class EditEjercicio extends ExtendedController\PanelController
     {
         switch ($keyView) {
             case 'EditEjercicio':
-                $value = $this->request->get('code');
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
-            case 'EditEjercicioGrupoEpigrafes':
-                $where = [new DataBase\DataBaseWhere('codejercicio', $this->request->get('code'))];
-                $view->loadData($where);
-                break;
-
-            case 'EditEjercicioEpigrafe':
-                $where = [new DataBase\DataBaseWhere('codejercicio', $this->request->get('code'))];
-                $view->loadData($where);
-                break;
-
-            case 'EditEjercicioCuenta':
-                $where = [new DataBase\DataBaseWhere('codejercicio', $this->request->get('code'))];
-                $view->loadData($where);
-                break;
-
-            case 'EditEjercicioSubcuenta':
-                $where = [new DataBase\DataBaseWhere('codejercicio', $this->request->get('code'))];
-                $view->loadData($where);
+            case 'ListGrupoEpigrafes':
+            case 'ListEpigrafe':
+            case 'ListCuenta':
+            case 'ListSubcuenta':
+                $codejercicio = $this->getViewModelValue('EditEjercicio', 'codejercicio');
+                $where = [new DataBaseWhere('codejercicio', $codejercicio)];
+                $view->loadData(false, $where);
                 break;
         }
     }
@@ -96,5 +83,41 @@ class EditEjercicio extends ExtendedController\PanelController
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
+    }
+
+    protected function execAfterAction($view, $action)
+    {
+        switch ($action) {
+            case 'import-accounting':
+                $this->importAccountingPlan();
+                break;
+
+            default:
+                parent::execAfterAction($view, $action);
+        }
+    }
+
+    private function importAccountingPlan()
+    {
+        $accountingPlanImport = new AccountingPlanImport();
+        $codejercicio = $this->getViewModelValue('EditEjercicio', 'codejercicio');
+        $uploadFile = $this->request->files->get('accountingfile', false);
+        if ($uploadFile === false) {
+            $this->miniLog->alert($this->i18n->trans('file-not-found', ['%fileName%' => '']));
+            return false;
+        }
+
+        switch ($uploadFile->getMimeType()) {
+            case 'application/xml':
+                $accountingPlanImport->importXML($uploadFile->getPathname(), $codejercicio);
+                break;
+
+            case 'text/csv':
+                $accountingPlanImport->importCSV($uploadFile->getPathname(), $codejercicio);
+                break;
+
+            default:
+                $this->miniLog->error($this->i18n->trans('file-not-supported'));
+        }
     }
 }

@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase;
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Visual configuration of the FacturaScripts views,
@@ -33,6 +33,8 @@ class PageOption
     use Base\ModelTrait {
         clear as traitClear;
         loadFromData as traitLoadFromData;
+        saveInsert as traitSaveInsert;
+        saveUpdate as traitSaveUpdate;
     }
 
     /**
@@ -133,45 +135,34 @@ class PageOption
     }
 
     /**
-     * Load the column structure from the JSON
-     *
-     * @param \SimpleXMLElement $groups
-     * @param array $target
-     */
-    private function getJSONGroupsColumns($groups, &$target)
-    {
-        if (!empty($groups)) {
-            foreach ($groups as $item) {
-                $groupItem = ExtendedController\GroupItem::newFromJSON($item);
-                $target[$groupItem->name] = $groupItem;
-                unset($groupItem);
-            }
-        }
-    }
-
-    /**
      * Load the data from an array
      *
      * @param array $data
      */
-    public function loadFromData($data)
+    public function loadFromData(array $data = [], array $exclude = [])
     {
-        $this->traitLoadFromData($data, ['columns', 'modals', 'filters', 'rows']);
+        array_push($exclude, 'columns', 'modals', 'filters', 'rows', 'code', 'action');
+        $this->traitLoadFromData($data, $exclude);
 
-        $groups = json_decode($data['columns'], true);
-        $this->getJSONGroupsColumns($groups, $this->columns);
-
+        $columns = json_decode($data['columns'], true);
         $modals = json_decode($data['modals'], true);
-        $this->getJSONGroupsColumns($modals, $this->modals);
-
         $rows = json_decode($data['rows'], true);
-        if (!empty($rows)) {
-            foreach ($rows as $item) {
-                $rowItem = ExtendedController\RowItem::newFromJSON($item);
-                $this->rows[$rowItem->type] = $rowItem;
-                unset($rowItem);
-            }
-        }
+        ExtendedController\VisualItemLoadEngine::loadJSON($columns, $modals, $rows, $this);
+    }
+
+    /**
+     * Returns the values of the view configuration fields in JSON format
+     *
+     * @return array
+     */
+    private function getEncodeValues()
+    {
+        return [
+            'columns' => json_encode($this->columns),
+            'modals' => json_encode($this->modals),
+            'filters' => json_encode($this->filters),
+            'rows' => json_encode($this->rows)
+        ];
     }
 
     /**
@@ -181,18 +172,8 @@ class PageOption
      */
     private function saveUpdate()
     {
-        $columns = json_encode($this->columns);
-        $modals = json_encode($this->modals);
-        $filters = json_encode($this->filters);
-        $rows = json_encode($this->rows);
-
-        $sql = 'UPDATE ' . $this->tableName() . ' SET columns = ' . $this->dataBase->var2str($columns)
-            . ', modals = ' . $this->dataBase->var2str($modals)
-            . ', filters = ' . $this->dataBase->var2str($filters)
-            . ', rows = ' . $this->dataBase->var2str($rows)
-            . '  WHERE id = ' . $this->id . ';';
-
-        return $this->dataBase->exec($sql);
+        $values = $this->getEncodeValues();
+        return $this->traitSaveUpdate($values);
     }
 
     /**
@@ -202,108 +183,25 @@ class PageOption
      */
     private function saveInsert()
     {
-        $columns = json_encode($this->columns);
-        $modals = json_encode($this->modals);
-        $filters = json_encode($this->filters);
-        $rows = json_encode($this->rows);
-
-        $sql = 'INSERT INTO ' . $this->tableName()
-            . ' (id, name, nick, columns, modals, filters, rows) VALUES ('
-            . "nextval('fs_pages_options_id_seq')" . ','
-            . $this->dataBase->var2str($this->name) . ','
-            . $this->dataBase->var2str($this->nick) . ','
-            . $this->dataBase->var2str($columns) . ','
-            . $this->dataBase->var2str($modals) . ','
-            . $this->dataBase->var2str($filters) . ','
-            . $this->dataBase->var2str($rows)
-            . ');';
-
-        if ($this->dataBase->exec($sql)) {
-            $lastVal = $this->dataBase->lastval();
-            if ($lastVal === FALSE) {
-                return false;
-            }
-
-            $this->id = $lastVal;
-            return true;
-        }
-
-        return false;
+        $values = $this->getEncodeValues();
+        return $this->traitSaveInsert($values);
     }
 
     /**
-     * Load the column structure from the XML
-     *
-     * @param \SimpleXMLElement $columns
-     * @param array $target
-     */
-    private function getXMLGroupsColumns($columns, &$target)
-    {
-        // if group dont have elements
-        if ($columns->count() === 0) {
-            return;
-        }
-
-        // if have elements but dont have groups
-        if (!isset($columns->group)) {
-            $groupItem = ExtendedController\GroupItem::newFromXML($columns);
-            $target[$groupItem->name] = $groupItem;
-            unset($groupItem);
-            return;
-        }
-
-        // exists columns grouped
-        foreach ($columns->group as $group) {
-            $groupItem = ExtendedController\GroupItem::newFromXML($group);
-            $target[$groupItem->name] = $groupItem;
-            unset($groupItem);
-        }
-    }
-
-    /**
-     * Load the special conditions for the rows from XML file
-     *
-     * @param \SimpleXMLElement $rows
-     */
-    private function getXMLRows($rows)
-    {
-        if (!empty($rows)) {
-            foreach ($rows->row as $row) {
-                $rowItem = ExtendedController\RowItem::newFromXML($row);
-                $this->rows[$rowItem->type] = $rowItem;
-                unset($rowItem);
-            }
-        }
-    }
-
-    /**
-     * Add to the configuration of a controller
+     * Returns the where filter to locate the view configuration
      *
      * @param string $name
+     * @param string $nick
+     * @return Database\DataBaseWhere[]
      */
-    public function installXML($name)
+    private function getPageFilter($name, $nick)
     {
-        if ($this->name != $name) {
-            $this->miniLog->critical($this->i18n->trans('error-install-name-xmlview'));
-            return;
-        }
-
-        $file = "Core/XMLView/{$name}.xml";
-        /**
-         * This can be affected by a PHP bug #62577 (https://bugs.php.net/bug.php?id=62577)
-         * Reports 'simplexml_load_file(...)' calls, which may be affected by this PHP bug.
-         * $xml = simplexml_load_file($file);
-         */
-        $xml = @simplexml_load_string(file_get_contents($file));
-
-        if ($xml === false) {
-            $this->miniLog->critical($this->i18n->trans('error-processing-xmlview', [$file]));
-            return;
-        }
-
-        $this->getXMLGroupsColumns($xml->columns, $this->columns);
-        $this->getXMLGroupsColumns($xml->modals, $this->modals);
-        $this->getXMLRows($xml->rows);
+        return [
+            new DataBase\DataBaseWhere('nick', $nick),
+            new DataBase\DataBaseWhere('name', $name),
+            new DataBase\DataBaseWhere('nick', 'NULL', 'IS', 'OR'),
+            new DataBase\DataBaseWhere('name', $name)
+        ];
     }
 
     /**
@@ -314,40 +212,20 @@ class PageOption
      */
     public function getForUser($name, $nick)
     {
-        $where = [];
-        $where[] = new DataBase\DataBaseWhere('nick', $nick);
-        $where[] = new DataBase\DataBaseWhere('nick', 'NULL', 'IS', 'OR');
-        $where[] = new DataBase\DataBaseWhere('name', $name);
-
+        $where = $this->getPageFilter($name, $nick);
         $orderby = ['nick' => 'ASC'];
 
         // Load data from database, if not exist install xmlview
         if (!$this->loadFromCode('', $where, $orderby)) {
             $this->name = $name;
-            $this->columns = [];
-            $this->modals = [];
-            $this->filters = [];
-            $this->rows = [];
-            $this->installXML($name);
+
+            if (!ExtendedController\VisualItemLoadEngine::installXML($name, $this)) {
+                self::$miniLog->critical(self::$i18n->trans('error-processing-xmlview', ['%fileName%' => $name]));
+                return;
+            }
         }
 
-        // Apply values to dynamic Select widgets
-        $this->dynamicSelectValues($this->columns);
-
-        // Apply values to dynamic Select widgets for modals forms
-        if (!empty($this->modals)) {
-            $this->dynamicSelectValues($this->modals);
-        }
-    }
-
-    /**
-     * Load the list of values for a dynamic select type widget with
-     *  a database model or a range of values
-     */
-    private function dynamicSelectValues($items)
-    {
-        foreach ($items as $group) {
-            $group->applySpecialOperations();
-        }
+        /// Apply values to dynamic Select widgets
+        ExtendedController\VisualItemLoadEngine::applyDynamicSelectValues($this);
     }
 }

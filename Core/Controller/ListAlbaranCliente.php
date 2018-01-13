@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the AlbaranCliente model
@@ -34,7 +35,7 @@ class ListAlbaranCliente extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('FacturaScripts\Core\Model\AlbaranCliente', 'ListAlbaranCliente');
+        $this->addView('\FacturaScripts\Dinamic\Model\AlbaranCliente', 'ListAlbaranCliente');
         $this->addSearchFields('ListAlbaranCliente', ['codigo', 'numero2', 'nombrecliente', 'observaciones']);
 
         $this->addFilterDatePicker('ListAlbaranCliente', 'date', 'date', 'fecha');
@@ -42,10 +43,11 @@ class ListAlbaranCliente extends ExtendedController\ListController
         $this->addFilterSelect('ListAlbaranCliente', 'codalmacen', 'almacenes', '', 'nombre');
         $this->addFilterSelect('ListAlbaranCliente', 'codserie', 'series', '', 'descripcion');
         $this->addFilterSelect('ListAlbaranCliente', 'codpago', 'formaspago', '', 'descripcion');
+        $this->addFilterAutocomplete('ListAlbaranCliente', 'codcliente', 'clientes', '', 'nombre');
         $this->addFilterCheckbox('ListAlbaranCliente', 'invoice', 'invoice', 'ptefactura', true);
 
         $this->addOrderBy('ListAlbaranCliente', 'codigo', 'code');
-        $this->addOrderBy('ListAlbaranCliente', 'fecha', 'date');
+        $this->addOrderBy('ListAlbaranCliente', 'fecha', 'date', 2);
         $this->addOrderBy('ListAlbaranCliente', 'total', 'amount');
     }
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the FacturaCliente model
@@ -34,7 +35,7 @@ class ListFacturaCliente extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('FacturaScripts\Core\Model\FacturaCliente', 'ListFacturaCliente');
+        $this->addView('\FacturaScripts\Dinamic\Model\FacturaCliente', 'ListFacturaCliente');
         $this->addSearchFields('ListFacturaCliente', ['codigo', 'numero2', 'observaciones']);
 
         $this->addFilterDatePicker('ListFacturaCliente', 'date', 'date', 'fecha');
@@ -42,10 +43,11 @@ class ListFacturaCliente extends ExtendedController\ListController
         $this->addFilterSelect('ListFacturaCliente', 'codalmacen', 'almacenes', '', 'nombre');
         $this->addFilterSelect('ListFacturaCliente', 'codserie', 'series', '', 'codserie');
         $this->addFilterSelect('ListFacturaCliente', 'codpago', 'formaspago', '', 'codpago');
+        $this->addFilterAutocomplete('ListFacturaCliente', 'codcliente', 'clientes', '', 'nombre');
         $this->addFilterCheckbox('ListFacturaCliente', 'paid', 'paid', 'pagada');
 
         $this->addOrderBy('ListFacturaCliente', 'codigo', 'code');
-        $this->addOrderBy('ListFacturaCliente', 'fecha', 'date');
+        $this->addOrderBy('ListFacturaCliente', 'fecha', 'date', 2);
         $this->addOrderBy('ListFacturaCliente', 'total', 'amount');
     }
 

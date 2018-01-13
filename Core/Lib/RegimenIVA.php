@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Lib;
 
 /**
- * Description of RegimenIVA
+ * This class centralizes all common method for VAT Regime.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -31,7 +32,7 @@ class RegimenIVA
      *
      * @return string
      */
-    public function defaultValue()
+    public static function defaultValue()
     {
         return 'General';
     }
@@ -41,7 +42,7 @@ class RegimenIVA
      *
      * @return array
      */
-    public function all()
+    public static function all()
     {
         return ['General', 'Exento'];
     }

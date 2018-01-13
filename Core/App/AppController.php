@@ -24,8 +24,8 @@ use Exception;
 use FacturaScripts\Core\Base\DebugBar\DataBaseCollector;
 use FacturaScripts\Core\Base\DebugBar\TranslationCollector;
 use FacturaScripts\Core\Base\Controller;
+use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Base\MenuManager;
-use FacturaScripts\Core\Base\PluginManager;
 use FacturaScripts\Core\Model\User;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
@@ -62,6 +62,13 @@ class AppController extends App
     private $menuManager;
 
     /**
+     * Langcode to use in html.
+     * 
+     * @var string
+     */
+    private $langcode2;
+
+    /**
      * AppController constructor.
      *
      * @param string $folder
@@ -71,6 +78,7 @@ class AppController extends App
         parent::__construct($folder);
         $this->debugBar = new StandardDebugBar();
         $this->menuManager = new MenuManager();
+        $this->langcode2 = substr($this->request->cookies->get('fsLang', FS_LANG), 0, 2);
 
         if (FS_DEBUG) {
             $this->debugBar['time']->startMeasure('init', 'AppController::__construct()');
@@ -122,15 +130,14 @@ class AppController extends App
             return $user->homepage;
         }
 
-        $homePage = AppSettings::get('default', 'homepage', 'AdminHome');
-        return $this->request->cookies->get('fsHomepage', $homePage);
+        return AppSettings::get('default', 'homepage', 'Wizard');
     }
 
     /**
      * Load and process the $pageName controller.
      *
      * @param string $pageName
-     * @param User $user
+     * @param User|false $user
      */
     private function loadController($pageName, $user)
     {
@@ -145,18 +152,23 @@ class AppController extends App
 
         /// If we found a controller, load it
         if (class_exists($controllerName)) {
-            $this->miniLog->debug($this->i18n->trans('loading-controller', [$controllerName]));
+            $this->miniLog->debug($this->i18n->trans('loading-controller', ['%controllerName%' => $controllerName]));
             $this->menuManager->setUser($user);
+            $permissions = new ControllerPermissions($user, $pageName);
 
             try {
                 $this->controller = new $controllerName($this->cache, $this->i18n, $this->miniLog, $pageName);
                 if ($user === false) {
                     $this->controller->publicCore($this->response);
-                } else {
+                    $template = $this->controller->getTemplate();
+                } elseif ($permissions->allowAccess) {
                     $this->menuManager->selectPage($this->controller->getPageData());
-                    $this->controller->privateCore($this->response, $user);
+                    $this->controller->privateCore($this->response, $user, $permissions);
+                    $template = $this->controller->getTemplate();
+                } else {
+                    $template = 'Error/AccessDenied.html';
                 }
-                $template = $this->controller->getTemplate();
+
                 $httpStatus = Response::HTTP_OK;
             } catch (Exception $exc) {
                 $this->debugBar['exceptions']->addException($exc);
@@ -210,10 +222,12 @@ class AppController extends App
 
         /// HTML template variables
         $templateVars = [
+            'appSettings' => new AppSettings(),
             'controllerName' => $controllerName,
             'debugBarRender' => false,
             'fsc' => $this->controller,
             'i18n' => $this->i18n,
+            'langcode2' => $this->langcode2,
             'log' => $this->miniLog,
             'menuManager' => $this->menuManager,
             'sql' => $this->miniLog->read(['sql']),
@@ -248,22 +262,32 @@ class AppController extends App
 
     /**
      * Returns a TwigLoader object with the folders selecteds
+     * 
      * @return Twig_Loader_Filesystem
      */
     private function loadTwigFolders()
     {
-        if (FS_DEBUG) {
-            $twigLoader = new Twig_Loader_Filesystem(FS_FOLDER . '/Core/View');
-            foreach ($this->pluginManager->enabledPlugins() as $pluginName) {
-                if (file_exists(FS_FOLDER . '/Plugins/' . $pluginName . '/View')) {
-                    $twigLoader->prependPath(FS_FOLDER . '/Plugins/' . $pluginName . '/View');
-                }
+        /// Path for default namespace
+        $path = FS_DEBUG ? FS_FOLDER . '/Core/View' : FS_FOLDER . '/Dinamic/View';
+        $twigLoader = new Twig_Loader_Filesystem($path);
+
+        /// Core namespace
+        $twigLoader->addPath(FS_FOLDER . '/Core/View', 'Core');
+
+        foreach ($this->pluginManager->enabledPlugins() as $pluginName) {
+            $pluginPath = FS_FOLDER . '/Plugins/' . $pluginName . '/View';
+            if (!file_exists($pluginPath)) {
+                continue;
             }
 
-            return $twigLoader;
+            /// plugin namespace
+            $twigLoader->addPath($pluginPath, 'Plugin' . $pluginName);
+            if (FS_DEBUG) {
+                $twigLoader->prependPath($pluginPath);
+            }
         }
 
-        return new Twig_Loader_Filesystem(FS_FOLDER . '/Dinamic/View');
+        return $twigLoader;
     }
 
     /**
@@ -285,10 +309,9 @@ class AppController extends App
                     $expire = time() + FS_COOKIES_EXPIRE;
                     $this->response->headers->setCookie(new Cookie('fsNick', $user->nick, $expire));
                     $this->response->headers->setCookie(new Cookie('fsLogkey', $logKey, $expire));
-                    $this->response->headers->setCookie(new Cookie('fsHomepage', $user->homepage, $expire));
                     $this->response->headers->setCookie(new Cookie('fsLang', $user->langcode, $expire));
                     $this->response->headers->setCookie(new Cookie('fsCompany', $user->idempresa, $expire));
-                    $this->miniLog->debug($this->i18n->trans('login-ok', [$nick]));
+                    $this->miniLog->debug($this->i18n->trans('login-ok', ['%nick%' => $nick]));
                     return $user;
                 }
 
@@ -310,7 +333,7 @@ class AppController extends App
      *
      * @param User $user0
      *
-     * @return bool
+     * @return User|false
      */
     private function cookieAuth(&$user0)
     {
@@ -319,37 +342,28 @@ class AppController extends App
             $cookieUser = $user0->get($cookieNick);
             if ($cookieUser) {
                 if ($cookieUser->verifyLogkey($this->request->cookies->get('fsLogkey'))) {
-                    $this->miniLog->debug($this->i18n->trans('login-ok', [$cookieNick]));
+                    $this->miniLog->debug($this->i18n->trans('login-ok', ['%nick%' => $cookieNick]));
                     return $cookieUser;
                 }
 
                 $this->miniLog->alert($this->i18n->trans('login-cookie-fail'));
+                $this->response->headers->clearCookie('fsNick');
                 return false;
             }
 
             $this->miniLog->alert($this->i18n->trans('login-user-not-found'));
-            return false;
         }
 
         return false;
     }
 
     /**
-     * Log out the user
+     * Log out the user.
      */
     private function userLogout()
     {
         $this->response->headers->clearCookie('fsNick');
         $this->response->headers->clearCookie('fsLogkey');
         $this->miniLog->debug($this->i18n->trans('logout-ok'));
-    }
-
-    /**
-     * Load plugins
-     */
-    private function deployPlugins()
-    {
-        $pluginManager = new PluginManager();
-        $pluginManager->deploy();
     }
 }

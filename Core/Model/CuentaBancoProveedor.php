@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Model;
 
 /**
- * Una cuenta bancaria de un proveedor.
+ * A bank account of a provider.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -27,41 +27,41 @@ class CuentaBancoProveedor
 {
 
     use Base\ModelTrait {
-        save as private saveTrait;
+        save as private traitSave;
     }
 
     use Base\BankAccount;
 
     /**
-     * Clave primaria. Varchar(6).
+     * Primary key. Varchar(6).
      *
      * @var int
      */
     public $codcuenta;
 
     /**
-     * Código del proveedor.
+     * Supplier code.
      *
      * @var string
      */
     public $codproveedor;
 
     /**
-     * Descripción de la cuenta.
+     * Description of the account.
      *
      * @var string
      */
     public $descripcion;
 
     /**
-     * True si es la cuenta principal, sino False
+     * True if it is the main account, but False.
      *
      * @var bool
      */
     public $principal;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -71,7 +71,7 @@ class CuentaBancoProveedor
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -81,19 +81,16 @@ class CuentaBancoProveedor
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
-        $this->codcuenta = null;
-        $this->codproveedor = null;
-        $this->descripcion = null;
         $this->principal = true;
         $this->clearBankAccount();
     }
 
     /**
-     * Almacena los datos del modelo en la base de datos.
+     * Stores the model data in the database.
      *
      * @return bool
      */
@@ -108,12 +105,12 @@ class CuentaBancoProveedor
             }
 
             if ($allOK) {
-                /// si esta cuenta es la principal, desmarcamos las demás
-                $sql = 'UPDATE ' . $this->tableName()
+                /// If this account is the main one, we demarcate the others
+                $sql = 'UPDATE ' . static::tableName()
                     . ' SET principal = false'
-                    . ' WHERE codproveedor = ' . $this->dataBase->var2str($this->codproveedor)
-                    . ' AND codcuenta <> ' . $this->dataBase->var2str($this->codcuenta) . ';';
-                $allOK = $this->dataBase->exec($sql);
+                    . ' WHERE codproveedor = ' . self::$dataBase->var2str($this->codproveedor)
+                    . ' AND codcuenta <> ' . self::$dataBase->var2str($this->codcuenta) . ';';
+                $allOK = self::$dataBase->exec($sql);
             }
 
             return $allOK;
@@ -123,7 +120,7 @@ class CuentaBancoProveedor
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return boolean
      */
@@ -131,7 +128,7 @@ class CuentaBancoProveedor
     {
         $this->descripcion = self::noHtml($this->descripcion);
         if (!$this->testBankAccount()) {
-            ///$this->miniLog->alert($this->i18n->trans('error-incorrect-bank-details'));
+            self::$miniLog->alert(self::$i18n->trans('error-incorrect-bank-details'));
 
             return false;
         }

@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Base;
 
 /**
- * Description of DivisaTools
+ * DivisaTools give us some basic and common methods for currency numbers.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -27,19 +27,23 @@ class DivisaTools
 {
 
     /**
-     * Devuelve el valor de la divisa formateada
-     *
+     * Returns the value of the formatted currency.
+     * 
      * @param float $number
-     * @param int $decimals
-     *
+     * @param int|string $decimals
+     * @param bool $addSymbol
+     * 
      * @return string
      */
-    public function format($number, $decimals = FS_NF0)
+    public function format($number, $decimals = FS_NF0, $addSymbol = true)
     {
-        $symbol = '€';
         $txt = number_format($number, $decimals, FS_NF1, FS_NF2);
+        if (!$addSymbol) {
+            return $txt;
+        }
 
-        if (FS_POS_DIVISA == 'right') {
+        $symbol = '€';
+        if (FS_POS_DIVISA === 'right') {
             return $txt . ' ' . $symbol;
         }
 

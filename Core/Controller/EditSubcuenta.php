@@ -18,8 +18,8 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\DataBase;
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the SubCuenta model
@@ -36,8 +36,8 @@ class EditSubcuenta extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Subcuenta', 'EditSubcuenta', 'subaccount');
-        $this->addListView('FacturaScripts\Core\Model\Asiento', 'ListAsiento', 'accounting-entries', 'fa-balance-scale');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Subcuenta', 'EditSubcuenta', 'subaccount');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Asiento', 'ListAsiento', 'accounting-entries', 'fa-balance-scale');
         $this->setTabsPosition('bottom');
     }
 
@@ -49,18 +49,17 @@ class EditSubcuenta extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $value = $this->request->get('code');
-
         switch ($keyView) {
             case 'EditSubcuenta':
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'ListAsiento':
-                /// TODO: cargar los asientos relacionados (a través de la tabla co_partidas).
-                $inSQL = 'SELECT idasiento FROM co_partidas WHERE idsubcuenta = ' . $this->dataBase->var2str($value);
-                $where = [new DataBase\DataBaseWhere('idasiento', $inSQL, 'IN')];
-                $view->loadData($where);
+                $idsubcuenta = $this->getViewModelValue('EditSubcuenta', 'idsubcuenta');
+                $inSQL = 'SELECT idasiento FROM co_partidas WHERE idsubcuenta = ' . $this->dataBase->var2str($idsubcuenta);
+                $where = [new DataBaseWhere('idasiento', $inSQL, 'IN')];
+                $view->loadData(false, $where);
                 break;
         }
     }

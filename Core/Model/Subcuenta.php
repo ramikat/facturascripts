@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -22,7 +22,7 @@ use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
- * El cuarto nivel de un plan contable. Está relacionada con una única cuenta.
+ * The fourth level of an accounting plan. It is related to a single account.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -32,98 +32,105 @@ class Subcuenta
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $idsubcuenta;
 
     /**
-     * Código de subcuenta
+     * Identificacion de la empresa
      *
-     * @var float|int
+     * @var int
+     */
+    public $idempresa;
+
+    /**
+     * Sub-account code.
+     *
+     * @var string
      */
     public $codsubcuenta;
 
     /**
-     * ID de la cuenta a la que pertenece.
+     * ID of the account to which it belongs.
      *
      * @var int
      */
     public $idcuenta;
 
     /**
-     * Código de cuenta
+     * Account code.
      *
      * @var string
      */
     public $codcuenta;
 
     /**
-     * Código de ejercicio
+     * Exercise code.
      *
      * @var string
      */
     public $codejercicio;
 
     /**
-     * Código de divisa
+     * Currency code.
      *
      * @var string
      */
     public $coddivisa;
 
     /**
-     * Código de impuesto
+     * Tax code.
      *
      * @var string
      */
     public $codimpuesto;
 
     /**
-     * Descripción de la subcuenta.
+     * Description of the subaccount.
      *
      * @var string
      */
     public $descripcion;
 
     /**
-     * Importe del Haber
+     * Amount of credit.
      *
      * @var float|int
      */
     public $haber;
 
     /**
-     * Importe del Debe
+     * Amount of the debit.
      *
      * @var float|int
      */
     public $debe;
 
     /**
-     * Importe del Saldo
+     * Balance amount.
      *
      * @var float|int
      */
     public $saldo;
 
     /**
-     * Importe del Recargo
+     * Surcharge amount.
      *
      * @var float|int
      */
     public $recargo;
 
     /**
-     * Importe del Iva
+     * VAT amount.
      *
      * @var float|int
      */
     public $iva;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -133,7 +140,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -143,7 +150,9 @@ class Subcuenta
     }
 
     /**
-     * Crea la consulta necesaria para crear un nuevo agente en la base de datos.
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
      *
      * @return string
      */
@@ -151,12 +160,12 @@ class Subcuenta
     {
         new Ejercicio();
         new Cuenta();
-        
+
         return '';
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
@@ -176,7 +185,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve la tasa de conversión para la divisa
+     * Returns the conversion rate for the currency.
      *
      * @return int
      */
@@ -194,7 +203,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve la cuenta
+     * Return the account.
      *
      * @return bool|mixed
      */
@@ -206,7 +215,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve el ejercicio
+     * Returns the exercise.
      *
      * @return bool|mixed
      */
@@ -218,7 +227,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve todas las partidas de una subcuenta con offset
+     * Returns all the items in a sub-account with offset.
      *
      * @param int $offset
      *
@@ -232,7 +241,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve todas las partidas de una subcuenta
+     * Returns all the items in a sub-account.
      *
      * @return array
      */
@@ -244,7 +253,7 @@ class Subcuenta
     }
 
     /**
-     * Cuenta las partidas de una subcuenta
+     * Counts the items of a sub-account.
      *
      * @return int
      */
@@ -256,7 +265,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve los totales de una subcuenta
+     * Returns the totals of a sub-account.
      *
      * @return array
      */
@@ -268,7 +277,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve todas las subcuentas por código, código de ejercicio
+     * Returns all sub-accounts by code, exercise code.
      *
      * @param string $cod
      * @param string $codejercicio
@@ -283,9 +292,9 @@ class Subcuenta
         }
 
         if ($crear) {
-            /// buscamos la subcuenta equivalente en otro ejercicio
+            /// we look for the equivalent subaccount in another year
             foreach ($this->all([new DataBaseWhere('codsubcuenta', $cod)], ['idsubcuenta' => 'DESC']) as $oldSc) {
-                /// buscamos la cuenta equivalente es ESTE ejercicio
+                /// we look for the equivalent account is THIS exercise
                 $cuentaModel = new Cuenta();
                 $newC = $cuentaModel->getByCodigo($oldSc->codcuenta, $codejercicio);
                 if ($newC) {
@@ -306,12 +315,12 @@ class Subcuenta
                     return false;
                 }
 
-                $this->miniLog->alert($this->i18n->trans('equivalent-account-not-found', [$oldSc->codcuenta, $codejercicio, 'index.php?page=ContabilidadEjercicio&cod=' . $codejercicio]));
+                self::$miniLog->alert(self::$i18n->trans('equivalent-account-not-found', ['%accountCode%' => $oldSc->codcuenta, '%exerciseCode%' => $codejercicio, '%link%' => 'index.php?page=ContabilidadEjercicio&cod=' . $codejercicio]));
 
                 return false;
             }
 
-            $this->miniLog->alert($this->i18n->trans('equivalent-subaccount-not-found', [$cod]));
+            self::$miniLog->alert(self::$i18n->trans('equivalent-subaccount-not-found', ['%subAccountCode%' => $cod]));
 
             return false;
         }
@@ -320,8 +329,8 @@ class Subcuenta
     }
 
     /**
-     * Devuelve la primera subcuenta del ejercicio $codeje cuya cuenta madre
-     * está marcada como cuenta especial $id.
+     * Returns the first subaccount of the exercise $codeje whose parent account
+           * is marked as special account $id.
      *
      * @param int    $idcuesp
      * @param string $codeje
@@ -331,10 +340,10 @@ class Subcuenta
     public function getCuentaesp($idcuesp, $codeje)
     {
         $sql = 'SELECT * FROM co_subcuentas WHERE idcuenta IN '
-            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . $this->dataBase->var2str($idcuesp)
-            . ' AND codejercicio = ' . $this->dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
+            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp)
+            . ' AND codejercicio = ' . self::$dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return new self($data[0]);
         }
@@ -343,7 +352,7 @@ class Subcuenta
     }
 
     /**
-     * Devuelve si una subcuenta tiene saldo o no
+     * Returns if a sub-account has a balance or not.
      *
      * @return bool
      */
@@ -353,38 +362,29 @@ class Subcuenta
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
     public function test()
     {
         $this->descripcion = self::noHtml($this->descripcion);
-
-        $limpiarCache = false;
         $totales = $this->getTotales();
 
         if (abs($this->debe - $totales['debe']) > .001) {
             $this->debe = $totales['debe'];
-            $limpiarCache = true;
         }
 
         if (abs($this->haber - $totales['haber']) > .001) {
             $this->haber = $totales['haber'];
-            $limpiarCache = true;
         }
 
         if (abs($this->saldo - $totales['saldo']) > .001) {
             $this->saldo = $totales['saldo'];
-            $limpiarCache = true;
-        }
-
-        if ($limpiarCache) {
-            $this->cleanCache();
         }
 
         if (strlen($this->codcuenta) === 0 || strlen($this->codejercicio) === 0) {
-            $this->miniLog->alert($this->i18n->trans('account-data-missing'));
+            self::$miniLog->alert(self::$i18n->trans('account-data-missing'));
             return false;
         }
 
@@ -394,15 +394,15 @@ class Subcuenta
         ];
 
         $count = new Cuenta();
-        if ($count->loadFromCode(NULL, $where) === FALSE) {
-            $this->miniLog->alert($this->i18n->trans('account-data-error'));
+        if ($count->loadFromCode(null, $where) === false) {
+            self::$miniLog->alert(self::$i18n->trans('account-data-error'));
             return false;
         }
 
         $this->idcuenta = $count->idcuenta;
 
         if (strlen($this->codsubcuenta) === 0 || strlen($this->descripcion) === 0) {
-            $this->miniLog->alert($this->i18n->trans('missing-data-subaccount'));
+            self::$miniLog->alert(self::$i18n->trans('missing-data-subaccount'));
             return false;
         }
 
@@ -410,8 +410,8 @@ class Subcuenta
     }
 
     /**
-     * Devuelve las subcuentas del ejercicio $codeje cuya cuenta madre
-     * está marcada como cuenta especial $id.
+     * Returns the sub-accounts of the fiscal year $codeje whose parent account
+           * is marked as special account $id.
      *
      * @param int    $idcuesp
      * @param string $codeje
@@ -422,10 +422,10 @@ class Subcuenta
     {
         $cuentas = [];
         $sql = 'SELECT * FROM co_subcuentas WHERE idcuenta IN '
-            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . $this->dataBase->var2str($idcuesp)
-            . ' AND codejercicio = ' . $this->dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
+            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp)
+            . ' AND codejercicio = ' . self::$dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $d) {
                 $cuentas[] = new self($d);
@@ -436,8 +436,8 @@ class Subcuenta
     }
 
     /**
-     * Devuelve un array con las combinaciones que contienen $query en su codsubcuenta
-     * o descripcion.
+     * Returns an array with the combinations containing $query in its codsubcuenta
+           * or description.
      *
      * @param string $query
      *
@@ -452,7 +452,7 @@ class Subcuenta
             . " OR lower(descripcion) LIKE '%" . $query . "%'"
             . ' ORDER BY codejercicio DESC, codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $s) {
                 $sublist[] = new self($s);
@@ -463,8 +463,8 @@ class Subcuenta
     }
 
     /**
-     * Devuelve los resultados de la búsuqeda $query sobre las subcuentas del
-     * ejercicio $codejercicio
+     * Returns the results of the $ query search on the subaccounts of the
+           * exercise $codejercicio
      *
      * @param string $codejercicio
      * @param string $query
@@ -473,22 +473,23 @@ class Subcuenta
      */
     public function searchByEjercicio($codejercicio, $query)
     {
-        $query = $this->dataBase->escapeString(mb_strtolower(trim($query), 'UTF8'));
+        $query = self::$dataBase->escapeString(mb_strtolower(trim($query), 'UTF8'));
 
-        $sublist = $this->cache->get('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query);
+        $sublist = self::$cache->get('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query);
         if (count($sublist) < 1) {
-            $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE codejercicio = ' . $this->dataBase->var2str($codejercicio)
+            $sql = 'SELECT * FROM ' . static::tableName()
+                . ' WHERE codejercicio = ' . self::$dataBase->var2str($codejercicio)
                 . " AND (codsubcuenta LIKE '" . $query . "%' OR codsubcuenta LIKE '%" . $query . "'"
                 . " OR lower(descripcion) LIKE '%" . $query . "%') ORDER BY codcuenta ASC;";
 
-            $data = $this->dataBase->select($sql);
+            $data = self::$dataBase->select($sql);
             if (!empty($data)) {
                 foreach ($data as $s) {
                     $sublist[] = new self($s);
                 }
             }
 
-            $this->cache->set('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query, $sublist);
+            self::$cache->set('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query, $sublist);
         }
 
         return $sublist;

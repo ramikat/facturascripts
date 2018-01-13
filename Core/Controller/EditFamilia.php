@@ -16,10 +16,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
+
 /**
  * Controller to edit a single item from the Familia model
  *
@@ -35,9 +37,9 @@ class EditFamilia extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Familia', 'EditFamilia', 'family');
-        $this->addListView('FacturaScripts\Core\Model\Familia', 'ListFamilia', 'families-children', 'fa-level-down');
-        $this->addListView('FacturaScripts\Core\Model\Articulo', 'ListArticulo', 'products', 'fa-cubes');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Familia', 'EditFamilia', 'family');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Familia', 'ListFamilia', 'families-children', 'fa-level-down');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Articulo', 'ListArticulo', 'products', 'fa-cubes');
     }
 
     /**
@@ -48,22 +50,23 @@ class EditFamilia extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $value = $this->request->get('code');
-
         switch ($keyView) {
             case 'EditFamilia':
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
-            
+
             case 'ListArticulo':
-                $where = [new DataBase\DataBaseWhere('codfamilia', $value)];
-                $view->loadData($where);
+                $codfamilia = $this->getViewModelValue('EditFamilia', 'codfamilia');
+                $where = [new DataBaseWhere('codfamilia', $codfamilia)];
+                $view->loadData(false, $where);
                 break;
-            
+
             case 'ListFamilia':
-               $where = [new DataBase\DataBaseWhere('madre', $value)];
-               $view->loadData($where);
-               break;
+                $codfamilia = $this->getViewModelValue('EditFamilia', 'codfamilia');
+                $where = [new DataBaseWhere('madre', $codfamilia)];
+                $view->loadData(false, $where);
+                break;
         }
     }
 

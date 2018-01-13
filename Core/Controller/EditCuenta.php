@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the Cuenta model
@@ -36,8 +37,8 @@ class EditCuenta extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Cuenta', 'EditCuenta', 'account');
-        $this->addListView('FacturaScripts\Core\Model\Subcuenta', 'ListSubcuenta', 'subaccounts');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Cuenta', 'EditCuenta', 'account');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Subcuenta', 'ListSubcuenta', 'subaccounts');
         $this->setTabsPosition('bottom');
     }
 
@@ -49,16 +50,16 @@ class EditCuenta extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $value = $this->request->get('code');
-        
         switch ($keyView) {
             case 'EditCuenta':
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'ListSubcuenta':
-                $where = [new DataBase\DataBaseWhere('idcuenta', $value)];
-                $view->loadData($where);
+                $idcuenta = $this->getViewModelValue('EditCuenta', 'idcuenta');
+                $where = [new DataBaseWhere('idcuenta', $idcuenta)];
+                $view->loadData(false, $where);
                 break;
         }
     }

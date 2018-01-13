@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,8 +21,8 @@ namespace FacturaScripts\Core\Model;
 use FacturaScripts\Core\App\AppSettings;
 
 /**
- * La línea de un asiento.
- * Se relaciona con un asiento y una subcuenta.
+ * The line of a seat.
+ * It is related to a seat and a sub-account.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -32,203 +32,203 @@ class Partida
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $idpartida;
 
     /**
-     * ID del asiento relacionado.
+     * Related seat ID.
      *
      * @var int
      */
     public $idasiento;
 
     /**
-     * ID de la subcuenta relacionada.
+     * Related sub-account ID.
      *
      * @var int
      */
     public $idsubcuenta;
 
     /**
-     * Código, que no ID, de la subcuenta relacionada.
+     * Code, not ID, of the related sub-account.
      *
      * @var string
      */
     public $codsubcuenta;
 
     /**
-     * Identificador del concepto
+     * Identifier of the concept.
      *
      * @var int
      */
     public $idconcepto;
 
     /**
-     * Concepto
+     * Concept.
      *
      * @var string
      */
     public $concepto;
 
     /**
-     * Identificador de la contrapartida
+     * Identifier of the counterpart.
      *
      * @var int
      */
     public $idcontrapartida;
 
     /**
-     * Código de la contrapartida
+     * Counterparty code.
      *
      * @var string
      */
     public $codcontrapartida;
 
     /**
-     * True si está punteada, sino False
+     * True if it is dotted, but False.
      *
      * @var bool
      */
     public $punteada;
 
     /**
-     * Valor de la tasa de conversión
+     * Value of the conversion rate.
      *
      * @var float|int
      */
     public $tasaconv;
 
     /**
-     * Código de la divisa
+     * Currency code.
      *
      * @var string
      */
     public $coddivisa;
 
     /**
-     * Haber de la partida
+     * Have of the departure.
      *
      * @var float|int
      */
     public $haberme;
 
     /**
-     * Debe de la partida
+     * Must of the departure.
      *
      * @var float|int
      */
     public $debeme;
 
     /**
-     * Importe del recargo
+     * Amount of the surcharge.
      *
      * @var float|int
      */
     public $recargo;
 
     /**
-     * Importe del iva
+     * Amount of the VAT.
      *
      * @var float|int
      */
     public $iva;
 
     /**
-     * Importe de la base imponible
+     * Amount of the tax base.
      *
      * @var float|int
      */
     public $baseimponible;
 
     /**
-     * Factura de la partida
+     * Invoice of the departure.
      *
      * @var
      */
     public $factura;
 
     /**
-     * Código de serie
+     * Serie code.
      *
      * @var string
      */
     public $codserie;
 
     /**
-     * Tipo de documento
+     * Document type.
      *
      * @var
      */
     public $tipodocumento;
 
     /**
-     * Documento de la partida
+     * Document of departure.
      *
      * @var string
      */
     public $documento;
 
     /**
-     * CIF/NIF de la partida
+     * CIF / NIF of the item.
      *
      * @var string
      */
     public $cifnif;
 
     /**
-     * Haber de la partida
+     * Have of the departure.
      *
      * @var float|int
      */
     public $haber;
 
     /**
-     * Debe de la partida
+     * Must of the departure.
      *
      * @var float|int
      */
     public $debe;
 
     /**
-     * Número de la partida
+     * Number of the departure.
      *
      * @var int
      */
     public $numero;
 
     /**
-     * Fecha
+     * Date.
      *
      * @var string
      */
     public $fecha;
 
     /**
-     * Saldo de la partida
+     * Balance of the departure.
      *
      * @var float|int
      */
     public $saldo;
 
     /**
-     * Suma del debe
+     * Sum of the debit.
      *
      * @var float|int
      */
     public $sum_debe;
 
     /**
-     * Suma del haber
+     * Sum of the credit.
      *
      * @var float|int
      */
     public $sum_haber;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -238,7 +238,7 @@ class Partida
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -247,6 +247,13 @@ class Partida
         return 'idpartida';
     }
 
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
+     */
     public function install()
     {
         new Asiento();
@@ -256,18 +263,11 @@ class Partida
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
-        $this->idpartida = null;
-        $this->idasiento = null;
-        $this->idsubcuenta = null;
-        $this->codsubcuenta = null;
-        $this->idconcepto = null;
         $this->concepto = '';
-        $this->idcontrapartida = null;
-        $this->codcontrapartida = null;
         $this->punteada = false;
         $this->tasaconv = 1.0;
         $this->coddivisa = AppSettings::get('default', 'coddivisa');
@@ -276,14 +276,9 @@ class Partida
         $this->recargo = 0.0;
         $this->iva = 0.0;
         $this->baseimponible = 0.0;
-        $this->factura = null;
-        $this->codserie = null;
-        $this->tipodocumento = null;
-        $this->documento = null;
-        $this->cifnif = null;
         $this->debe = 0.0;
         $this->haber = 0.0;
-        $this->numero = 0.0;
+        $this->numero = 0;
         $this->fecha = date('d-m-Y');
         $this->saldo = 0.0;
         $this->sum_debe = 0.0;
@@ -291,7 +286,7 @@ class Partida
     }
 
     /**
-     * Devuelve la subcuenta de la partida
+     * Returns the sub-account of the departure.
      *
      * @return bool|mixed
      */
@@ -303,7 +298,7 @@ class Partida
     }
 
     /**
-     * Devuelve la url de la subcuenta de la partida
+     * Returns the url of the sub-account of the departure.
      *
      * @return string
      */
@@ -318,7 +313,7 @@ class Partida
     }
 
     /**
-     * Devuelve la subcuenta de la contrapartida
+     * Returns the counterpart's subaccount.
      *
      * @return bool|mixed
      */
@@ -333,7 +328,7 @@ class Partida
     }
 
     /**
-     * Devuelve la url de la subcuenta de la contrapartida
+     * Returns the url of the counterpart's subaccount.
      *
      * @return string
      */
@@ -348,7 +343,7 @@ class Partida
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
@@ -362,14 +357,15 @@ class Partida
     }
 
     /**
-     * Elimina los datos del registro de la base de datos
+     * Deletes the data from the database record.
      *
      * @return bool
      */
     public function delete()
     {
-        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE idpartida = ' . $this->dataBase->var2str($this->idpartida) . ';';
-        if ($this->dataBase->exec($sql)) {
+        $sql = 'DELETE FROM ' . static::tableName()
+            . ' WHERE idpartida = ' . self::$dataBase->var2str($this->idpartida) . ';';
+        if (self::$dataBase->exec($sql)) {
             $subc = $this->getSubcuenta();
             if ($subc) {
                 $subc->save(); /// guardamos la subcuenta para actualizar su saldo
@@ -382,7 +378,7 @@ class Partida
     }
 
     /**
-     * Devuelve todas las partidas de la subcuenta desde el offset
+     * Returns all items in the sub-account from the offset.
      *
      * @param int $idsubc
      * @param int $offset
@@ -393,10 +389,10 @@ class Partida
     {
         $plist = [];
         $sql = 'SELECT a.numero,a.fecha,p.idpartida,p.debe,p.haber FROM co_asientos a, co_partidas p'
-            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . $this->dataBase->var2str($idsubc)
+            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . self::$dataBase->var2str($idsubc)
             . ' ORDER BY a.numero ASC, p.idpartida ASC;';
 
-        $ordenadas = $this->dataBase->select($sql);
+        $ordenadas = self::$dataBase->select($sql);
         if (!empty($ordenadas)) {
             $partida = new self();
             $i = 0;
@@ -426,7 +422,7 @@ class Partida
     }
 
     /**
-     * Devuelve todas las partidas de la subcuenta
+     * Returns all the items in the subaccount.
      *
      * @param int $idsubc
      *
@@ -436,7 +432,7 @@ class Partida
     {
         $plist = [];
         $sql = 'SELECT a.numero,a.fecha,p.idpartida FROM co_asientos a, co_partidas p'
-            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . $this->dataBase->var2str($idsubc)
+            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . self::$dataBase->var2str($idsubc)
             . ' ORDER BY a.numero ASC, p.idpartida ASC';
 
         $saldo = 0;
@@ -445,7 +441,7 @@ class Partida
 
         $partida = new self();
         $offset = 0;
-        $data = $this->dataBase->selectLimit($sql, 100, $offset);
+        $data = self::$dataBase->selectLimit($sql, 100, $offset);
         while (!empty($data)) {
             foreach ($data as $po) {
                 $aux = $partida->get($po['idpartida']);
@@ -464,14 +460,14 @@ class Partida
                 ++$offset;
             }
 
-            $data = $this->dataBase->selectLimit($sql, 100, $offset);
+            $data = self::$dataBase->selectLimit($sql, 100, $offset);
         }
 
         return $plist;
     }
 
     /**
-     * Devuelve todas las partidas del ejercici con offset
+     * Returns all the games of the exercise with offset.
      *
      * @param string $eje
      * @param int    $offset
@@ -483,11 +479,11 @@ class Partida
     {
         $sql = 'SELECT a.numero,a.fecha,s.codsubcuenta,s.descripcion,p.concepto,p.debe,p.haber'
             . ' FROM co_asientos a, co_subcuentas s, co_partidas p'
-            . ' WHERE a.codejercicio = ' . $this->dataBase->var2str($eje)
+            . ' WHERE a.codejercicio = ' . self::$dataBase->var2str($eje)
             . ' AND p.idasiento = a.idasiento AND p.idsubcuenta = s.idsubcuenta'
             . ' ORDER BY a.numero ASC, p.codsubcuenta ASC';
 
-        $data = $this->dataBase->selectLimit($sql, $limit, $offset);
+        $data = self::$dataBase->selectLimit($sql, $limit, $offset);
         if (!empty($data)) {
             return $data;
         }
@@ -496,7 +492,7 @@ class Partida
     }
 
     /**
-     * Cuenta las partidas de la subcuenta
+     * Counts the sub-account items.
      *
      * @param int $idsubc
      *
@@ -505,10 +501,10 @@ class Partida
     public function countFromSubcuenta($idsubc)
     {
         $sql = 'SELECT a.numero,a.fecha,p.idpartida FROM co_asientos a, co_partidas p'
-            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . $this->dataBase->var2str($idsubc)
+            . ' WHERE a.idasiento = p.idasiento AND p.idsubcuenta = ' . self::$dataBase->var2str($idsubc)
             . ' ORDER BY a.numero ASC, p.idpartida ASC;';
 
-        $ordenadas = $this->dataBase->select($sql);
+        $ordenadas = self::$dataBase->select($sql);
         if (!empty($ordenadas)) {
             return count($ordenadas);
         }
@@ -517,7 +513,7 @@ class Partida
     }
 
     /**
-     * Devuelve los totales de la partida de la subcuenta
+     * Returns the totals of the sub-account item.
      *
      * @param int $idsubc
      *
@@ -526,13 +522,13 @@ class Partida
     public function totalesFromSubcuenta($idsubc)
     {
         $sql = 'SELECT COALESCE(SUM(debe), 0) as debe,COALESCE(SUM(haber), 0) as haber'
-            . ' FROM ' . $this->tableName() . ' WHERE idsubcuenta = ' . $this->dataBase->var2str($idsubc) . ';';
+            . ' FROM ' . static::tableName() . ' WHERE idsubcuenta = ' . self::$dataBase->var2str($idsubc) . ';';
 
         return $this->getTotalesFromSQL($sql);
     }
 
     /**
-     * Devuelve los totales del ejercicio de la partida
+     * Returns the totals of the fiscal year of the game.
      *
      * @param string $cod
      *
@@ -542,13 +538,13 @@ class Partida
     {
         $sql = 'SELECT COALESCE(SUM(p.debe), 0) as debe,COALESCE(SUM(p.haber), 0) as haber'
             . ' FROM co_partidas p, co_asientos a'
-            . ' WHERE p.idasiento = a.idasiento AND a.codejercicio = ' . $this->dataBase->var2str($cod) . ';';
+            . ' WHERE p.idasiento = a.idasiento AND a.codejercicio = ' . self::$dataBase->var2str($cod) . ';';
 
         return $this->getTotalesFromSQL($sql);
     }
 
     /**
-     * Realiza la consulta recibida y reparte los totales en debe, haber y saldo
+     * Make the received query and distribute the totals in debit, credit and balance.
      *
      * @param string $sql
      *
@@ -557,7 +553,7 @@ class Partida
     public function getTotalesFromSQL($sql)
     {
         $totales = ['debe' => 0, 'haber' => 0, 'saldo' => 0];
-        $resultados = $this->dataBase->select($sql);
+        $resultados = self::$dataBase->select($sql);
         if (!empty($resultados)) {
             $totales['debe'] = (float) $resultados[0]['debe'];
             $totales['haber'] = (float) $resultados[0]['haber'];
@@ -568,7 +564,7 @@ class Partida
     }
 
     /**
-     * Devuelve los totales de las subcuentas de las partidas entre fechas
+     * Returns the totals of the sub-accounts of the items between dates.
      *
      * @param int          $idsubc
      * @param string       $fechaini
@@ -582,18 +578,20 @@ class Partida
         $totales = ['debe' => 0, 'haber' => 0, 'saldo' => 0];
 
         if ($excluir) {
-            $sql = 'SELECT COALESCE(SUM(p.debe), 0) AS debe,
-            COALESCE(SUM(p.haber), 0) AS haber FROM co_partidas p, co_asientos a
-            WHERE p.idasiento = a.idasiento AND p.idsubcuenta = ' . $this->dataBase->var2str($idsubc) . '
-               AND a.fecha BETWEEN ' . $this->dataBase->var2str($fechaini) . ' AND ' . $this->dataBase->var2str($fechafin) . "
-               AND p.idasiento NOT IN ('" . implode("','", $excluir) . "');";
-            $resultados = $this->dataBase->select($sql);
+            $sql = 'SELECT COALESCE(SUM(p.debe), 0) AS debe, COALESCE(SUM(p.haber), 0) AS haber'
+                . ' FROM co_partidas p, co_asientos a'
+                . ' WHERE p.idasiento = a.idasiento AND p.idsubcuenta = ' . self::$dataBase->var2str($idsubc)
+                . ' AND a.fecha BETWEEN ' . self::$dataBase->var2str($fechaini)
+                . ' AND ' . self::$dataBase->var2str($fechafin)
+                . " AND p.idasiento NOT IN ('" . implode("','", $excluir) . "');";
+            $resultados = self::$dataBase->select($sql);
         } else {
-            $sql = 'SELECT COALESCE(SUM(p.debe), 0) AS debe,
-            COALESCE(SUM(p.haber), 0) AS haber FROM co_partidas p, co_asientos a
-            WHERE p.idasiento = a.idasiento AND p.idsubcuenta = ' . $this->dataBase->var2str($idsubc) . '
-               AND a.fecha BETWEEN ' . $this->dataBase->var2str($fechaini) . ' AND ' . $this->dataBase->var2str($fechafin) . ';';
-            $resultados = $this->dataBase->select($sql);
+            $sql = 'SELECT COALESCE(SUM(p.debe), 0) AS debe, COALESCE(SUM(p.haber), 0) AS haber'
+                . ' FROM co_partidas p, co_asientos a'
+                . ' WHERE p.idasiento = a.idasiento AND p.idsubcuenta = ' . self::$dataBase->var2str($idsubc)
+                . ' AND a.fecha BETWEEN ' . self::$dataBase->var2str($fechaini)
+                . ' AND ' . self::$dataBase->var2str($fechafin) . ';';
+            $resultados = self::$dataBase->select($sql);
         }
 
         if (!empty($resultados)) {

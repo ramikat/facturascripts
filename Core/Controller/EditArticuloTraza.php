@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controlador para la edición de un registro del modelo ArticuloTraza
@@ -29,15 +30,15 @@ class EditArticuloTraza extends ExtendedController\EditController
 {
 
     /**
-     * Devuelve el nombre del modelo
+     * Returns the model name
      */
     public function getModelClassName()
     {
-        return 'FacturaScripts\Core\Model\ArticuloTraza';
+        return '\FacturaScripts\Dinamic\Model\ArticuloTraza';
     }
 
     /**
-     * Devuelve los datos básicos de la página
+     * Returns basic page attributes
      *
      * @return array
      */

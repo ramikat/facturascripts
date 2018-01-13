@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -68,8 +68,10 @@ class AccountingGenerator
      *
      * @return int
      */
-    public function asientos($max = 50)
+    public function asientos($max = 25)
     {
+        $subcuentas = $this->randomModel("\FacturaScripts\Dinamic\Model\Subcuenta");
+
         for ($num = 0; $num < $max; ++$num) {
             shuffle($this->ejercicios);
 
@@ -78,9 +80,31 @@ class AccountingGenerator
             $asiento->concepto = $this->tools->descripcion();
             $asiento->fecha = date('d-m-Y', strtotime($this->ejercicios[0]->fechainicio . ' +' . mt_rand(1, 360) . ' days'));
             $asiento->importe = $this->tools->precio(-999, 150, 99999);
-            if (!$asiento->save()) {
-                break;
+            if ($asiento->save()) {
+                shuffle($subcuentas);
+                $max2 = mt_rand(1, 20) * 2;
+                $debe = true;
+
+                for ($num2 = 0; $num2 < $max2; ++$num2) {
+                    $partida = new Model\Partida();
+                    $partida->idasiento = $asiento->idasiento;
+                    $partida->idsubcuenta = $subcuentas[$num2]->idsubcuenta;
+                    $partida->codsubcuenta = $subcuentas[$num2]->codsubcuenta;
+                    $partida->concepto = $asiento->concepto;
+                    if($debe) {
+                        $partida->debe = $asiento->importe;
+                    } else {
+                        $partida->haber = $asiento->importe;
+                    }
+                    
+                    if($partida->save()) {
+                        $debe = !$debe;
+                    }
+                }
+                continue;
             }
+            
+            break;
         }
 
         return $num;
@@ -95,7 +119,7 @@ class AccountingGenerator
      */
     public function cuentas($max = 50)
     {
-        $epigrafes = $this->randomModel("\FacturaScripts\Core\Model\Epigrafe");
+        $epigrafes = $this->randomModel("\FacturaScripts\Dinamic\Model\Epigrafe");
         for ($num = 0; $num < $max && count($epigrafes) > 0; ++$num) {
             $cuenta = new Model\Cuenta();
             $cuenta->codcuenta = $epigrafes[0]->codepigrafe . mt_rand(0, 99);
@@ -122,7 +146,7 @@ class AccountingGenerator
      */
     public function epigrafes($max = 50)
     {
-        $grupos = $this->randomModel("\FacturaScripts\Core\Model\GrupoEpigrafes");
+        $grupos = $this->randomModel("\FacturaScripts\Dinamic\Model\GrupoEpigrafes");
         for ($num = 0; $num < $max && count($grupos) > 0; ++$num) {
             $epigrafe = new Model\Epigrafe();
             $epigrafe->codejercicio = $grupos[0]->codejercicio;
@@ -154,7 +178,7 @@ class AccountingGenerator
 
             $grupo = new Model\GrupoEpigrafes();
             $grupo->codejercicio = $this->ejercicios[0]->codejercicio;
-            $grupo->codgrupo = mt_rand(1, 99);
+            $grupo->codgrupo = (string) mt_rand(1, 99);
             $grupo->descripcion = $this->tools->descripcion();
             if (!$grupo->save()) {
                 break;
@@ -172,7 +196,7 @@ class AccountingGenerator
      *
      * @return array
      */
-    protected function randomModel($modelName = "\FacturaScripts\Core\Model\Cuenta")
+    protected function randomModel($modelName = "\FacturaScripts\Dinamic\Model\Cuenta")
     {
         $model = new $modelName();
         $data = $model->all();
@@ -193,7 +217,7 @@ class AccountingGenerator
      */
     public function subcuentas($max = 50)
     {
-        $cuentas = $this->randomModel("\FacturaScripts\Core\Model\Cuenta");
+        $cuentas = $this->randomModel("\FacturaScripts\Dinamic\Model\Cuenta");
         for ($num = 0; $num < $max; ++$num) {
             $subcuenta = new Model\Subcuenta();
             $subcuenta->codcuenta = $cuentas[0]->codcuenta;

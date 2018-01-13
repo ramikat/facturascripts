@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  *  Controller to list the items in the AlbaranProveedor model
@@ -34,7 +35,7 @@ class ListAlbaranProveedor extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('FacturaScripts\Core\Model\AlbaranProveedor', 'ListAlbaranProveedor');
+        $this->addView('\FacturaScripts\Dinamic\Model\AlbaranProveedor', 'ListAlbaranProveedor');
         $this->addSearchFields('ListAlbaranProveedor', ['codigo', 'numproveedor', 'observaciones']);
 
         $this->addFilterDatePicker('ListAlbaranProveedor', 'date', 'date', 'fecha');
@@ -42,10 +43,11 @@ class ListAlbaranProveedor extends ExtendedController\ListController
         $this->addFilterSelect('ListAlbaranProveedor', 'codalmacen', 'almacenes', '', 'nombre');
         $this->addFilterSelect('ListAlbaranProveedor', 'codserie', 'series', '', 'descripcion');
         $this->addFilterSelect('ListAlbaranProveedor', 'codpago', 'formaspago', '', 'descripcion');
+        $this->addFilterAutocomplete('ListAlbaranProveedor', 'codproveedor', 'proveedores', '', 'nombre');
         $this->addFilterCheckbox('ListAlbaranProveedor', 'invoice', 'invoice', 'ptefactura', true);
 
         $this->addOrderBy('ListAlbaranProveedor', 'codigo', 'code');
-        $this->addOrderBy('ListAlbaranProveedor', 'fecha', 'date');
+        $this->addOrderBy('ListAlbaranProveedor', 'fecha', 'date', 2);
         $this->addOrderBy('ListAlbaranProveedor', 'total', 'amount');
     }
 

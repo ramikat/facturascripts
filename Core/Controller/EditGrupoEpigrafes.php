@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the GrupoEpigrafes model
@@ -36,8 +37,8 @@ class EditGrupoEpigrafes extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\GrupoEpigrafes', 'EditGrupoEpigrafes', 'epigraphs-group');
-        $this->addListView('FacturaScripts\Core\Model\Epigrafe', 'ListEpigrafe', 'epigraphs', 'fa-book');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\GrupoEpigrafes', 'EditGrupoEpigrafes', 'epigraphs-group');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Epigrafe', 'ListEpigrafe', 'epigraphs', 'fa-book');
         $this->setTabsPosition('bottom');
     }
 
@@ -51,15 +52,15 @@ class EditGrupoEpigrafes extends ExtendedController\PanelController
     {
         switch ($keyView) {
             case 'EditGrupoEpigrafes':
-                $value = $this->request->get('code');
-                $view->loadData($value);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'ListEpigrafe':
                 $idgrupo = $this->getViewModelValue('EditGrupoEpigrafes', 'idgrupo');
                 if (!empty($idgrupo)) {
-                    $where = [new DataBase\DataBaseWhere('idgrupo', $idgrupo)];
-                    $view->loadData($where);
+                    $where = [new DataBaseWhere('idgrupo', $idgrupo)];
+                    $view->loadData(false, $where);
                 }
                 break;
         }

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,12 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\Controller;
+use FacturaScripts\Core\Base\ControllerPermissions;
+use FacturaScripts\Core\Lib\Accounting;
+use FacturaScripts\Core\Lib\ExportManager;
 use FacturaScripts\Core\Model\Ejercicio;
+use FacturaScripts\Core\Model\User;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Description of AccountingReports
@@ -30,32 +35,103 @@ class AccountingReports extends Controller
 {
 
     /**
+     * List of exercices.
      *
-     * @var Ejercicio[] 
+     * @var Ejercicio[]
      */
     public $ejercicios;
 
-    public function privateCore(&$response, $user)
+    /**
+     * Object to manager data export.
+     *
+     * @var ExportManager
+     */
+    public $exportManager;
+
+    /**
+     * Runs the controller's private logic.
+     *
+     * @param Response $response
+     * @param User $user
+     * @param ControllerPermissions $permissions
+     */
+    public function privateCore(&$response, $user, $permissions)
     {
-        parent::privateCore($response, $user);
+        parent::privateCore($response, $user, $permissions);
 
         $ejercicioModel = new Ejercicio();
         $this->ejercicios = $ejercicioModel->all([], ['fechainicio' => 'DESC']);
+        $this->exportManager = new ExportManager();
 
         $action = $this->request->get('action', '');
-        $this->execAction($action);
-    }
-
-    private function execAction($action)
-    {
-        switch ($action) {
-            case 'libro-mayor':
-                $this->setTemplate(false);
-                /// TODO: generate libro mayor from data form
-                break;
+        if ($action !== '') {
+            $this->execAction($action);
         }
     }
 
+    /**
+     * Execute main actions.
+     *
+     * @param $action
+     */
+    private function execAction($action)
+    {
+        $data = [];
+        $dateFrom = $this->request->get('date-from');
+        $dateTo = $this->request->get('date-to');
+        $format = $this->request->get('format');
+
+        switch ($action) {
+            case 'libro-mayor':
+                $this->setTemplate(false);
+                $ledger = new Accounting\Ledger();
+                $data = $ledger->generate($dateFrom, $dateTo);
+                break;
+
+            case 'sumas-saldos':
+                $balanceAmmount = new Accounting\BalanceAmmounts();
+                $data = $balanceAmmount->generate($dateFrom, $dateTo);
+                break;
+
+            case 'situacion':
+                $balanceSheet = new Accounting\BalanceSheet($dateFrom, $dateTo);
+                $data = $balanceSheet->generate($dateFrom, $dateTo);
+                break;
+
+            case 'pyg':
+                $proffitAndLoss = new Accounting\ProffitAndLoss($dateFrom, $dateTo);
+                $data = $proffitAndLoss->generate($dateFrom, $dateTo);
+                break;
+        }
+
+        if (empty($data)) {
+            $this->miniLog->info($this->i18n->trans('no-data'));
+            return;
+        }
+        $this->setTemplate(false);
+        $this->exportData($data, $format);
+    }
+
+    /**
+     * Return list of accounting documents
+     *
+     * @return array
+     */
+    public function getReports()
+    {
+        return [
+            'libro-mayor' => 'ledger',
+            'sumas-saldos' => 'balance-ammounts',
+            'situacion' => 'balance-sheet',
+            'pyg' => 'profit-and-loss-balance'
+        ];
+    }
+
+    /**
+     * Return the basic data for this page.
+     *
+     * @return array
+     */
     public function getPageData()
     {
         $pageData = parent::getPageData();
@@ -64,5 +140,20 @@ class AccountingReports extends Controller
         $pageData['icon'] = 'fa-balance-scale';
 
         return $pageData;
+    }
+
+    /**
+     * Exports data to PDF.
+     *
+     * @param array $data
+     * @param string $format
+     */
+    private function exportData(&$data, $format)
+    {
+        $headers = empty($data) ? [] : array_keys($data[0]);
+
+        $this->exportManager->newDoc($this->response, $format);
+        $this->exportManager->generateTablePage($headers, $data);
+        $this->exportManager->show($this->response);
     }
 }

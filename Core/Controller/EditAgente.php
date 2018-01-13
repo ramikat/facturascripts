@@ -18,8 +18,8 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to edit a single item from the Agente model
@@ -35,11 +35,11 @@ class EditAgente extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Agente', 'EditAgente', 'agent');
-        $this->addListView('FacturaScripts\Core\Model\FacturaCliente', 'EditAgenteFacturas', 'invoices', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\AlbaranCliente', 'EditAgenteAlbaranes', 'delivery-notes', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\PedidoCliente', 'EditAgentePedidos', 'orders', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\PresupuestoCliente', 'EditAgentePresupuestos', 'estimations', 'fa-files-o');
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Agente', 'EditAgente', 'agent');
+        $this->addListView('\FacturaScripts\Dinamic\Model\FacturaCliente', 'EditAgenteFacturas', 'invoices', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\AlbaranCliente', 'EditAgenteAlbaranes', 'delivery-notes', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\PedidoCliente', 'EditAgentePedidos', 'orders', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\PresupuestoCliente', 'EditAgentePresupuestos', 'estimations', 'fa-files-o');
     }
 
     /**
@@ -50,10 +50,9 @@ class EditAgente extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $code = $this->request->get('code');
-
         switch ($keyView) {
             case 'EditAgente':
+                $code = $this->request->get('code');
                 $view->loadData($code);
                 break;
 
@@ -61,8 +60,9 @@ class EditAgente extends ExtendedController\PanelController
             case 'EditAgentePedidos':
             case 'EditAgenteAlbaranes':
             case 'EditAgenteFacturas':
-                $where = [new DataBaseWhere('codagente', $code)];
-                $view->loadData($where);
+                $codagente = $this->getViewModelValue('EditAgente', 'codagente');
+                $where = [new DataBaseWhere('codagente', $codagente)];
+                $view->loadData(false, $where);
                 break;
         }
     }

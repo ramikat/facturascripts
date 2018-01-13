@@ -12,7 +12,7 @@ que acelera el aprendizaje y adaptación a **Facturascripts**.
 
 Para el uso de este controlador es necesario crear las vistas en formato
 XML, tal y como se describe en el documento
-`XMLViews <https://github.com/ArtexTrading/facturascripts/blob/master/Documentation/XMLViews_ES.md>`__,
+`XMLViews <XMLViews>`__,
 incluido en la documentación de **Facturascripts**.
 
 Cómo usar el controlador
@@ -87,7 +87,7 @@ Existen dos métodos que nos permiten personalizar los datos a visualizar en la 
         }
 
 También podemos personalizar la vista mediante la inclusión en el fichero XML del grupo *<rows>*
-y crear *<row type=“”>* de las clases **header**, para definir una lista de botones estadísticos y
+y crear *<row type=“”>* de las clases **statistics**, para definir una lista de botones estadísticos y
 relacionales con otros modelos, y **footer**, para añadir información adicional a visualizar al
 usuario justo después de la ficha de datos.
 
@@ -96,7 +96,7 @@ Ejemplos:
 .. code:: xml
 
         <rows>
-            <row type="header">
+            <row type="statistics">
                 <option icon="fa-files-o" label="Alb. Pdtes:" calculateby="nombre_function" onclick="#url"></option>
                 <option icon="fa-files-o" label="Pdte Cobro:" calculateby="nombre_function" onclick="#url"></option>
             </row>

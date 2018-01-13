@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the Asiento model
@@ -33,8 +34,8 @@ class ListAsiento extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('FacturaScripts\Core\Model\Asiento', 'ListAsiento');
-        $this->addSearchFields('ListAsiento', ['numero', 'concepto']);
+        $this->addView('\FacturaScripts\Dinamic\Model\Asiento', 'ListAsiento');
+        $this->addSearchFields('ListAsiento', ['CAST(numero AS CHAR(10))','concepto']);
 
         $this->addFilterDatePicker('ListAsiento', 'date', 'date', 'fecha');
         $this->addFilterNumber('ListAsiento', 'amount', 'amount', 'importe');
@@ -57,5 +58,20 @@ class ListAsiento extends ExtendedController\ListController
         $pagedata['menu'] = 'accounting';
 
         return $pagedata;
+    }
+
+    protected function execPreviousAction($action)
+    {
+        switch ($action) {
+            case 'renumber':
+                $model = $this->views['ListAsiento']->getModel();
+                if ($model->renumber()) {
+                    $this->miniLog->notice($this->i18n->trans('renumber-accounting-ok'));
+                }
+                break;
+
+            default:
+                parent::execPreviousAction($action);
+        }
     }
 }

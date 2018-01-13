@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -29,28 +29,28 @@ class ClientePropiedad
     use Base\ModelTrait;
 
     /**
-     * Nombre del cliente
+     * Customer name.
      *
      * @var string
      */
     public $name;
 
     /**
-     * Código del cliente
+     * Customer code.
      *
      * @var string
      */
     public $codcliente;
 
     /**
-     * Nombre de la propiedad del cliente
+     * Name of the client's property.
      *
      * @var string
      */
     public $text;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -60,7 +60,7 @@ class ClientePropiedad
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -70,20 +70,20 @@ class ClientePropiedad
     }
 
     /**
-     * Elimina la propidad del cliente de la base de datos.
+     * Remove the client property from the database.
      *
      * @return bool
      */
     public function delete()
     {
-        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE name = ' .
-            $this->dataBase->var2str($this->name) . ' AND codcliente = ' . $this->dataBase->var2str($this->codcliente) . ';';
+        $sql = 'DELETE FROM ' . static::tableName() . ' WHERE name = ' .
+            self::$dataBase->var2str($this->name) . ' AND codcliente = ' . self::$dataBase->var2str($this->codcliente) . ';';
 
-        return $this->dataBase->exec($sql);
+        return self::$dataBase->exec($sql);
     }
 
     /**
-     * Devuelve un array con los pares name => text para una codcliente dado.
+     * Returns an array with the name => text pairs for a given client.
      *
      * @param string $cod
      *
@@ -93,8 +93,8 @@ class ClientePropiedad
     {
         $vlist = [];
 
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE codcliente = ' . $this->dataBase->var2str($cod) . ';';
-        $data = $this->dataBase->select($sql);
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE codcliente = ' . self::$dataBase->var2str($cod) . ';';
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $d) {
                 $vlist[$d['name']] = $d['text'];
@@ -105,7 +105,7 @@ class ClientePropiedad
     }
 
     /**
-     * Guardar array de propiedades del cliente
+     * Save array of client properties.
      *
      * @param string $cod
      * @param array  $values
@@ -118,7 +118,7 @@ class ClientePropiedad
 
         foreach ($values as $key => $value) {
             $aux = new self();
-            $aux->name = $key;
+            $aux->name = (string) $key;
             $aux->codcliente = $cod;
             $aux->text = $value;
             if (!$aux->save()) {

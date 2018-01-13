@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of facturacion_base
+ * This file is part of FacturaScripts
  * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,11 +27,11 @@ class ArticuloProveedor
 {
 
     use Base\ModelTrait {
-        url as private traitURL;
+        url as private traitUrl;
     }
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
@@ -94,28 +94,28 @@ class ArticuloProveedor
     public $stock;
 
     /**
-     * TRUE -> el artículo no ofrece stock.
+     * True -> The item does not offer stock.
      *
      * @var bool
      */
     public $nostock;
 
     /**
-     * Código de barras del artículo
+     * Barcode of the article.
      *
      * @var string
      */
     public $codbarras;
 
     /**
-     * Part Number
+     * Part Number.
      *
      * @var string
      */
     public $partnumber;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -125,7 +125,7 @@ class ArticuloProveedor
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -135,20 +135,22 @@ class ArticuloProveedor
     }
 
     /**
-     * Crea la consulta necesaria para crear un nuevo agente en la base de datos.
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
      *
      * @return string
      */
     public function install()
     {
-        /// forzamos la comprobación de la tabla de proveedores
+        /// force the verification of the provider table
         new Proveedor();
 
         return '';
     }
 
     /**
-     * Resetea los valores de todas las propiedades modelo.
+     * Reset the values of all model properties.
      */
     public function clear()
     {
@@ -167,7 +169,7 @@ class ArticuloProveedor
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
@@ -180,7 +182,7 @@ class ArticuloProveedor
         }
 
         if ($this->refproveedor === null || empty($this->refproveedor) || strlen($this->refproveedor) > 25) {
-            $this->miniLog->alert($this->i18n->trans('supplier-reference-valid-length'));
+            self::$miniLog->alert(self::$i18n->trans('supplier-reference-valid-length'));
             return false;
         }
 
@@ -188,7 +190,7 @@ class ArticuloProveedor
     }
 
     /**
-     * Devuelve la url donde ver/modificar los datos
+     * Returns the url where to see/modify the data.
      *
      * @param string $type
      *
@@ -196,11 +198,11 @@ class ArticuloProveedor
      */
     public function url($type = 'auto')
     {
-        return $this->traitURL($type, 'ListArticulo&active=List');
+        return $this->traitUrl($type, 'ListArticulo&active=List');
     }
 
     /**
-     * Aplicamos correcciones a la tabla.
+     * Apply corrections to the table.
      */
     public function fixDb()
     {
@@ -209,7 +211,7 @@ class ArticuloProveedor
             'UPDATE articulosprov SET refproveedor = referencia WHERE refproveedor IS NULL;',
         ];
         foreach ($fixes as $sql) {
-            $this->dataBase->exec($sql);
+            self::$dataBase->exec($sql);
         }
     }
 }

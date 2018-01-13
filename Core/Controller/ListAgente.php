@@ -16,9 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
  * Controller to list the items in the Agentes model
@@ -50,11 +51,13 @@ class ListAgente extends ExtendedController\ListController
     protected function createViews()
     {
         $className = $this->getClassName();
-        $this->addView('FacturaScripts\Core\Model\Agente', $className);
+        $this->addView('\FacturaScripts\Dinamic\Model\Agente', $className);
         $this->addSearchFields($className, ['nombre', 'apellidos', 'codagente', 'email']);
 
         $this->addOrderBy($className, 'codagente', 'code');
         $this->addOrderBy($className, 'nombre||apellidos', 'name');
         $this->addOrderBy($className, 'provincia', 'province');
+        
+        $this->addFilterCheckbox($className, 'f_baja', 'suspended', 'f_baja', true, null);
     }
 }

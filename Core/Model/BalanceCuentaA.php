@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of facturacion_base
+ * This file is part of FacturaScripts
  * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,8 +18,10 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Lib\Import\CSVImport;
+
 /**
- * Detalle abreviado de un balance.
+ * Abbreviated detail of a balance.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -29,35 +31,35 @@ class BalanceCuentaA
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $id;
 
     /**
-     * Código del balance
+     * Balance code.
      *
      * @var string
      */
     public $codbalance;
 
     /**
-     * Código de la cuenta
+     * Account code.
      *
      * @var string
      */
     public $codcuenta;
 
     /**
-     * Descripción de la cuenta
+     * Description of the account.
      *
      * @var string
      */
     public $desccuenta;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -67,7 +69,7 @@ class BalanceCuentaA
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -75,9 +77,21 @@ class BalanceCuentaA
     {
         return 'id';
     }
+    
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     * 
+     * @return string
+     */
+    public function install()
+    {
+        return CSVImport::importTableSQL(static::tableName());
+    }
 
     /**
-     * Devuelve el saldo del balance de un ejercicio.
+     * Returns the balance of an exercise.
      *
      * @param ejercicio $ejercicio
      * @param bool      $desde
@@ -89,33 +103,33 @@ class BalanceCuentaA
     {
         $extra = '';
         if ($ejercicio->idasientopyg !== null) {
-            $extra = ' AND idasiento != ' . $this->dataBase->var2str($ejercicio->idasientopyg);
+            $extra = ' AND idasiento != ' . self::$dataBase->var2str($ejercicio->idasientopyg);
             if ($ejercicio->idasientocierre !== null) {
-                $extra = ' AND idasiento NOT IN (' . $this->dataBase->var2str($ejercicio->idasientocierre)
-                    . ', ' . $this->dataBase->var2str($ejercicio->idasientopyg) . ')';
+                $extra = ' AND idasiento NOT IN (' . self::$dataBase->var2str($ejercicio->idasientocierre)
+                    . ', ' . self::$dataBase->var2str($ejercicio->idasientopyg) . ')';
             }
         } elseif ($ejercicio->idasientocierre !== null) {
-            $extra = ' AND idasiento != ' . $this->dataBase->var2str($ejercicio->idasientocierre);
+            $extra = ' AND idasiento != ' . self::$dataBase->var2str($ejercicio->idasientocierre);
         }
 
         if ($desde && $hasta) {
             $extra .= ' AND idasiento IN (SELECT idasiento FROM co_asientos WHERE '
-                . 'fecha >= ' . $this->dataBase->var2str($desde) . ' AND '
-                . 'fecha <= ' . $this->dataBase->var2str($hasta) . ')';
+                . 'fecha >= ' . self::$dataBase->var2str($desde) . ' AND '
+                . 'fecha <= ' . self::$dataBase->var2str($hasta) . ')';
         }
 
         if ($this->codcuenta === '129') {
             $sql = "SELECT SUM(debe) AS debe, SUM(haber) AS haber FROM co_partidas
             WHERE idsubcuenta IN (SELECT idsubcuenta FROM co_subcuentas
               WHERE (codcuenta LIKE '6%' OR codcuenta LIKE '7%') 
-                AND codejercicio = " . $this->dataBase->var2str($ejercicio->codejercicio) . ')' . $extra . ';';
-            $data = $this->dataBase->select($sql);
+                AND codejercicio = " . self::$dataBase->var2str($ejercicio->codejercicio) . ')' . $extra . ';';
+            $data = self::$dataBase->select($sql);
         } else {
             $sql = "SELECT SUM(debe) AS debe, SUM(haber) AS haber FROM co_partidas
             WHERE idsubcuenta IN (SELECT idsubcuenta FROM co_subcuentas
                WHERE codcuenta LIKE '" . self::noHtml($this->codcuenta) . "%'"
-                . ' AND codejercicio = ' . $this->dataBase->var2str($ejercicio->codejercicio) . ')' . $extra . ';';
-            $data = $this->dataBase->select($sql);
+                . ' AND codejercicio = ' . self::$dataBase->var2str($ejercicio->codejercicio) . ')' . $extra . ';';
+            $data = self::$dataBase->select($sql);
         }
 
         if (!empty($data)) {
@@ -126,7 +140,7 @@ class BalanceCuentaA
     }
 
     /**
-     * Obtener todos los balances sde la cuenta por su código de balance
+     * Obtain all balances from the account by your balance code.
      *
      * @param string $cod
      *
@@ -135,10 +149,10 @@ class BalanceCuentaA
     public function allFromCodbalance($cod)
     {
         $balist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName()
-            . ' WHERE codbalance = ' . $this->dataBase->var2str($cod) . ' ORDER BY codcuenta ASC;';
+        $sql = 'SELECT * FROM ' . static::tableName()
+            . ' WHERE codbalance = ' . self::$dataBase->var2str($cod) . ' ORDER BY codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $b) {
                 $balist[] = new self($b);
@@ -149,7 +163,7 @@ class BalanceCuentaA
     }
 
     /**
-     * Buscar todos los balances sde la cuenta por su código de balance
+     * Search all balances of the account by its balance code.
      *
      * @param string $cod
      *
@@ -158,10 +172,10 @@ class BalanceCuentaA
     public function searchByCodbalance($cod)
     {
         $balist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName()
+        $sql = 'SELECT * FROM ' . static::tableName()
             . " WHERE codbalance LIKE '" . self::noHtml($cod) . "%' ORDER BY codcuenta ASC;";
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $b) {
                 $balist[] = new self($b);

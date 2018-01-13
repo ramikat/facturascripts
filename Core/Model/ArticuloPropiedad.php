@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -51,7 +51,7 @@ class ArticuloPropiedad
     public $text;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -61,7 +61,7 @@ class ArticuloPropiedad
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -81,8 +81,8 @@ class ArticuloPropiedad
     {
         $vlist = [];
 
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE referencia = ' . $this->dataBase->var2str($ref) . ';';
-        $data = $this->dataBase->select($sql);
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE referencia = ' . self::$dataBase->var2str($ref) . ';';
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $d) {
                 $vlist[$d['name']] = $d['text'];
@@ -106,7 +106,7 @@ class ArticuloPropiedad
 
         foreach ($values as $key => $value) {
             $aux = new self();
-            $aux->name = $key;
+            $aux->name = (string) $key;
             $aux->referencia = $ref;
             $aux->text = $value;
             if (!$aux->save()) {
@@ -128,9 +128,9 @@ class ArticuloPropiedad
      */
     public function simpleGet($ref, $name)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE referencia = ' . $this->dataBase->var2str($ref)
-            . ' AND name = ' . $this->dataBase->var2str($name) . ';';
-        $data = $this->dataBase->select($sql);
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE referencia = ' . self::$dataBase->var2str($ref)
+            . ' AND name = ' . self::$dataBase->var2str($name) . ';';
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return $data[0]['text'];
         }
@@ -148,9 +148,9 @@ class ArticuloPropiedad
      */
     public function simpleGetRef($name, $text)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE text = ' . $this->dataBase->var2str($text)
-            . ' AND name = ' . $this->dataBase->var2str($name) . ';';
-        $data = $this->dataBase->select($sql);
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE text = ' . self::$dataBase->var2str($text)
+            . ' AND name = ' . self::$dataBase->var2str($name) . ';';
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return $data[0]['referencia'];
         }
@@ -168,9 +168,9 @@ class ArticuloPropiedad
      */
     public function simpleDelete($ref, $name)
     {
-        $sql = 'DELETE FROM ' . $this->tableName() . ' WHERE referencia = ' . $this->dataBase->var2str($ref)
-            . ' AND name = ' . $this->dataBase->var2str($name) . ';';
+        $sql = 'DELETE FROM ' . static::tableName() . ' WHERE referencia = ' . self::$dataBase->var2str($ref)
+            . ' AND name = ' . self::$dataBase->var2str($name) . ';';
 
-        return $this->dataBase->exec($sql);
+        return self::$dataBase->exec($sql);
     }
 }

@@ -16,49 +16,50 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Base;
 
+use FacturaScripts\Core\Lib\MenuItem;
 use FacturaScripts\Core\Model;
 
 /**
- * Gestiona el uso del menú de Facturascripts
+ * Manage the use of the Facturascripts menu.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
 class MenuManager
 {
-
     /**
-     * Contiene la estructura del menú para el usuario.
+     * Contains the structure of the menu for the user.
      *
      * @var MenuItem[]
      */
     private static $menu;
 
     /**
-     * Es true si es el menú activo, sino false
+     * True if it is the active menu, but False
      *
      * @var bool
      */
     private static $menuActive;
 
     /**
-     * Controlador asociado a la página
+     * Controller associated with the page
      *
      * @var Model\Page
      */
     private static $pageModel;
 
     /**
-     * Usuario para quien se ha creado el menú.
+     * User for whom the menu has been created.
      *
      * @var Model\User|false
      */
     private static $user = false;
 
     /**
-     * Llamar solamente cuando se ha conectado a la base de datos.
+     * Call only when you have connected to the database.
      */
     public function init()
     {
@@ -72,7 +73,7 @@ class MenuManager
     }
 
     /**
-     * Asigna el usuario para cargar su menú.
+     * Assign the user to load their menu.
      *
      * @param Model\User|false $user
      */
@@ -83,21 +84,34 @@ class MenuManager
     }
 
     /**
-     * Devuelve si la página debe ser guardada
+     * Returns the user's menu, the set of pages to which he has access.
+     *
+     * @return array
+     */
+    public function getMenu()
+    {
+        return self::$menu;
+    }
+
+    /**
+     * Returns if the page should be saved.
      *
      * @param Model\Page $pageModel
-     * @param array      $pageData
+     * @param array $pageData
      *
      * @return bool
      */
     private function pageNeedSave($pageModel, $pageData)
     {
-        return ($pageModel->menu != $pageData['menu']) || ($pageModel->title != $pageData['title']) || ($pageModel->icon != $pageData['icon']) || ($pageModel->showonmenu != $pageData['showonmenu']);
+        return (
+            ($pageModel->menu !== $pageData['menu']) || ($pageModel->submenu !== $pageData['submenu']) ||
+            ($pageModel->title !== $pageData['title']) || ($pageModel->icon !== $pageData['icon']) ||
+            ($pageModel->showonmenu !== $pageData['showonmenu'])
+        );
     }
 
     /**
-     * Actualiza los datos en el modelo Model\Page en base los datos
-     * del getPageData() del controlador
+     * Update the data in the Model\Page model based on the data in the getPageData() of the controller.
      *
      * @param array $pageData
      */
@@ -125,14 +139,14 @@ class MenuManager
     }
 
     /**
-     * Asignar menú activo
+     * Set the active menu.
      *
      * @param Model\Page $pageModel
      */
     private function setActiveMenu($pageModel)
     {
         foreach (self::$menu as $key => $menuItem) {
-            if ($menuItem->name == $pageModel->menu) {
+            if ($menuItem->name === $pageModel->menu) {
                 self::$menu[$key]->active = true;
                 $this->setActiveMenuItem(self::$menu[$key]->menu, $pageModel);
                 break;
@@ -141,7 +155,7 @@ class MenuManager
     }
 
     /**
-     * Asignar elemento de menú activo
+     * Assign active menu item.
      *
      * @param MenuItem[] $menu
      * @param Model\Page $pageModel
@@ -149,15 +163,19 @@ class MenuManager
     private function setActiveMenuItem(&$menu, $pageModel)
     {
         foreach ($menu as $key => $menuItem) {
-            if ($menuItem->name == $pageModel->name) {
+            if ($menuItem->name === $pageModel->name) {
                 $menu[$key]->active = true;
+                break;
+            } elseif (!empty($pageModel->submenu) && !empty($menuItem->menu) && $menuItem->name === $pageModel->submenu) {
+                $menu[$key]->active = true;
+                $this->setActiveMenuItem($menu[$key]->menu, $pageModel);
                 break;
             }
         }
     }
 
     /**
-     * Carga la estructura de menú para el usuario
+     * Load the menu structure for the user.
      *
      * @return array
      */
@@ -169,15 +187,15 @@ class MenuManager
         $menuItem = null;
         $i18n = new Translator();
 
-        /// Cargamos la lista de paginas para el usuario
+        /// We load the list of pages for the user
         $pages = $this->loadPages();
         $sortMenu = [];
         foreach ($pages as $page) {
-            if ($page->menu == '') {
+            if ($page->menu === '') {
                 continue;
             }
 
-            /// Control de ruptura de menu
+            /// Menu break control
             if ($menuValue !== $page->menu) {
                 $menuValue = $page->menu;
                 $submenuValue = null;
@@ -186,11 +204,11 @@ class MenuManager
                 $sortMenu[$menuValue][] = $result[$menuValue]->title;
             }
 
-            /// Control de ruptura de submenu
+            /// Submenu break control
             if ($submenuValue !== $page->submenu) {
                 $submenuValue = $page->submenu;
                 $menuItem = &$result[$menuValue]->menu;
-                if ($submenuValue != null) {
+                if (!empty($submenuValue)) {
                     $menuItem[$submenuValue] = new MenuItem($submenuValue, $i18n->trans($submenuValue), '#');
                     $menuItem = &$menuItem[$submenuValue]->menu;
                 }
@@ -198,10 +216,10 @@ class MenuManager
             $menuItem[$page->name] = new MenuItem($page->name, $i18n->trans($page->title), $page->url(), $page->icon);
         }
 
-        // Reorder menu by title
+        /// Reorder menu by title
         array_multisort($sortMenu, SORT_ASC, $result);
 
-        // Reorder submenu by title
+        /// Reorder submenu by title
         foreach ($result as $posM => $menu) {
             $sortSubMenu = [];
             foreach ($menu->menu as $submenu) {
@@ -214,7 +232,7 @@ class MenuManager
     }
 
     /**
-     * Carga la lista de páginas para el usuario
+     * Load the list of pages for the user.
      *
      * @return Model\Page[]
      */
@@ -234,13 +252,11 @@ class MenuManager
         }
 
         $result = [];
-        $pageRuleModel = new Model\PageRule();
-        $pageRule_list = $pageRuleModel->all(['nick' => self::$user->nick]);
+        $userAccess = $this->getUserAccess(self::$user->nick);
         foreach ($pages as $page) {
-            foreach ($pageRule_list as $pageRule) {
-                if ($page->name == $pageRule->pagename) {
+            foreach ($userAccess as $pageRule) {
+                if ($page->name === $pageRule->pagename) {
                     $result[] = $page;
-                    // TODO: Delete the added page from the rule set
                     break;
                 }
             }
@@ -250,12 +266,23 @@ class MenuManager
     }
 
     /**
-     * Devuelve el menú del usuario, el conjunto de páginas a las que tiene acceso.
+     * Returns all access data from the user.
      *
-     * @return array
+     * @param string $nick
+     *
+     * @return Model\RoleAccess[]
      */
-    public function getMenu()
+    private function getUserAccess($nick)
     {
-        return self::$menu;
+        $access = [];
+        $roleUserModel = new Model\RoleUser();
+        $filter = [new DataBase\DataBaseWhere('nick', $nick)];
+        foreach ($roleUserModel->all($filter) as $roleUser) {
+            foreach ($roleUser->getRoleAccess() as $roleAccess) {
+                $access[] = $roleAccess;
+            }
+        }
+
+        return $access;
     }
 }

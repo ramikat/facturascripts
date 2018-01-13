@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Base\DataBase;
 
 use Exception;
@@ -144,7 +143,7 @@ class Postgresql implements DataBaseEngine
     {
         $error = pg_last_error($link);
 
-        return ($error != '') ? $error : $this->lastErrorMsg;
+        return ($error !== '') ? $error : $this->lastErrorMsg;
     }
 
     /**
@@ -225,10 +224,9 @@ class Postgresql implements DataBaseEngine
         try {
             $aux = @pg_query($link, $sql);
             if ($aux) {
+                $result = true;
                 if ($selectRows) {
                     $result = pg_fetch_all($aux);
-                } else {
-                    $result = true;
                 }
                 pg_free_result($aux);
             }
@@ -250,7 +248,8 @@ class Postgresql implements DataBaseEngine
      */
     public function select($link, $sql)
     {
-        return $this->runSql($link, $sql);
+        $results = $this->runSql($link, $sql);
+        return is_array($results) ? $results : [];
     }
 
     /**
@@ -319,7 +318,7 @@ class Postgresql implements DataBaseEngine
             . ' ORDER BY tablename ASC;';
 
         $aux = $this->select($link, $sql);
-        if (!empty($aux)) {
+        if (is_array($aux)) {
             foreach ($aux as $a) {
                 $tables[] = $a['tablename'];
             }
@@ -372,5 +371,21 @@ class Postgresql implements DataBaseEngine
     public function getSQL()
     {
         return $this->utilsSQL;
+    }
+
+    /**
+     * Indicates the operator for the database engine
+     *
+     * @param string $operator
+     */
+    public function getOperator($operator)
+    {
+        switch ($operator) {
+            case 'REGEXP':
+                return '~';
+
+            default:
+                return $operator;
+        }
     }
 }

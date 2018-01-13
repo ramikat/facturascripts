@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,8 +18,10 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+
 /**
- * Relaciona a un cliente con una subcuenta para cada ejercicio.
+ * Relate a customer with a sub-account for each exercise.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -29,42 +31,42 @@ class SubcuentaCliente
     use Base\ModelTrait;
 
     /**
-     * Clave primaria
+     * Primary key.
      *
      * @var int
      */
     public $id;
 
     /**
-     * ID de la subcuenta
+     * Sub account ID.
      *
      * @var int
      */
     public $idsubcuenta;
 
     /**
-     * Código del cliente
+     * Customer code.
      *
      * @var string
      */
     public $codcliente;
 
     /**
-     * Código de subcuenta
+     * Sub-account code.
      *
      * @var string
      */
     public $codsubcuenta;
 
     /**
-     * Código de ejercicio
+     * Exercise code.
      *
      * @var string
      */
     public $codejercicio;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -74,7 +76,7 @@ class SubcuentaCliente
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -83,15 +85,45 @@ class SubcuentaCliente
         return 'id';
     }
 
+    public function install()
+    {
+        new Subcuenta();
+
+        return '';
+    }
+
     /**
-     * Devuelve la subcuenta
+     * Returns the subaccount.
      *
-     * @return bool|mixed
+     * @return Subcuenta|bool
      */
     public function getSubcuenta()
     {
-        $subc = new Subcuenta();
-        $subc->loadFromCode($this->idsubcuenta);
-        return $subc;
+        $subcuentaModel = new Subcuenta();
+
+        return $subcuentaModel->get($this->idsubcuenta);
+    }
+
+    public function test()
+    {
+        $subcuentaModel = new Subcuenta();
+        if ($subcuentaModel->loadFromCode($this->idsubcuenta)) {
+            if ($subcuentaModel->codejercicio === $this->codejercicio) {
+                return true;
+            }
+        }
+
+        $where = [
+            new DataBaseWhere('codejercicio', $this->codejercicio),
+            new DataBaseWhere('codsubcuenta', $this->codsubcuenta),
+        ];
+        if ($subcuentaModel->loadFromCode(null, $where)) {
+            if ($subcuentaModel->codejercicio === $this->codejercicio) {
+                $this->idsubcuenta = $subcuentaModel->idsubcuenta;
+                return true;
+            }
+        }
+
+        return false;
     }
 }

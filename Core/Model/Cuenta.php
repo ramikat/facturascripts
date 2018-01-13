@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of facturacion_base
- * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,10 +18,12 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+
 /**
- * Elemento de tercer nivel del plan contable.
- * Está relacionada con un único ejercicio y epígrafe,
- * pero puede estar relacionada con muchas subcuentas.
+ * Element of the third level of the accounting plan.
+ * It is related to a single fiscal year and epigraph,
+ * but it can be related to many subaccounts.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -31,56 +33,63 @@ class Cuenta
     use Base\ModelTrait;
 
     /**
-     * Clave primaria.
+     * Primary key.
      *
      * @var int
      */
     public $idcuenta;
 
     /**
-     * Código de cuenta
+     * Identificacion de la empresa
+     *
+     * @var int
+     */
+    public $idempresa;
+
+    /**
+     * Account code.
      *
      * @var string
      */
     public $codcuenta;
 
     /**
-     * Código del ejercicio de esta cuenta.
+     * Code of the exercise of this account.
      *
      * @var string
      */
     public $codejercicio;
 
     /**
-     * Identificador del epígrafe
+     * Identifier of the epigraph.
      *
      * @var int
      */
     public $idepigrafe;
 
     /**
-     * Código del epígrafe
+     * Code of the epigraph.
      *
      * @var string
      */
     public $codepigrafe;
 
     /**
-     * Descripción de la cuenta.
+     * Description of the account.
      *
      * @var string
      */
     public $descripcion;
 
     /**
-     * Identificador de la cuenta especial
+     * Identifier of the special account.
      *
      * @var int
      */
     public $idcuentaesp;
 
     /**
-     * Devuelve el nombre de la tabla que usa este modelo.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
@@ -90,7 +99,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve el nombre de la columna que es clave primaria del modelo.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
@@ -100,22 +109,22 @@ class Cuenta
     }
 
     /**
-     * Esta función es llamada al crear la tabla del modelo. Devuelve el SQL
-     * que se ejecutará tras la creación de la tabla. útil para insertar valores
-     * por defecto.
+     * This function is called when creating the model table. Returns the SQL
+           * that will be executed after the creation of the table. Useful to insert values
+     * default.
      *
      * @return string
      */
     public function install()
     {
-        /// forzamos la creación de la tabla epigrafes
+        /// force the creation of the table epigrafes
         new Epigrafe();
 
         return '';
     }
 
     /**
-     * Devuelve todas las subucuentas de la cuenta
+     * Returns all sub-accounts in the account.
      *
      * @return Subcuenta[]
      */
@@ -123,11 +132,11 @@ class Cuenta
     {
         $subcuenta = new Subcuenta();
 
-        return $subcuenta->allFromCuenta($this->idcuenta);
+        return $subcuenta->all([new DataBaseWhere('idcuenta', $this->idcuenta)]);
     }
 
     /**
-     * Devuelve el ejercicio
+     * Returns the exercise.
      *
      * @return bool|mixed
      */
@@ -139,7 +148,7 @@ class Cuenta
     }
 
     /**
-     * Obtiene la primera cuenta seleccionada.
+     * You get the first selected account.
      *
      * @param string $cod
      * @param string $codejercicio
@@ -148,10 +157,10 @@ class Cuenta
      */
     public function getByCodigo($cod, $codejercicio)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE codcuenta = ' . $this->dataBase->var2str($cod) .
-            ' AND codejercicio = ' . $this->dataBase->var2str($codejercicio) . ';';
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE codcuenta = ' . self::$dataBase->var2str($cod) .
+            ' AND codejercicio = ' . self::$dataBase->var2str($codejercicio) . ';';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return new self($data[0]);
         }
@@ -160,7 +169,7 @@ class Cuenta
     }
 
     /**
-     * Obtiene la primera cuenta especial seleccionada.
+     * Gets the first selected special account.
      *
      * @param int    $idcuesp
      * @param string $codejercicio
@@ -169,10 +178,10 @@ class Cuenta
      */
     public function getCuentaesp($idcuesp, $codejercicio)
     {
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE idcuentaesp = ' . $this->dataBase->var2str($idcuesp) .
-            ' AND codejercicio = ' . $this->dataBase->var2str($codejercicio) . ' ORDER BY codcuenta ASC;';
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp) .
+            ' AND codejercicio = ' . self::$dataBase->var2str($codejercicio) . ' ORDER BY codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             return new self($data[0]);
         }
@@ -181,7 +190,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve true si no hay errores en los valores de las propiedades del modelo.
+     * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
@@ -192,13 +201,13 @@ class Cuenta
         if (strlen($this->codcuenta) > 0 && strlen($this->descripcion) > 0) {
             return true;
         }
-        $this->miniLog->alert($this->i18n->trans('account-data-missing'));
+        self::$miniLog->alert(self::$i18n->trans('account-data-missing'));
 
         return false;
     }
 
     /**
-     * Devuelve todas las cuentas del epígrafe
+     * Returns all the accounts of the epigraph.
      *
      * @param int $idepi
      *
@@ -207,10 +216,10 @@ class Cuenta
     public function fullFromEpigrafe($idepi)
     {
         $cuenlist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE idepigrafe = ' . $this->dataBase->var2str($idepi)
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE idepigrafe = ' . self::$dataBase->var2str($idepi)
             . ' ORDER BY codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $c) {
                 $cuenlist[] = new self($c);
@@ -221,7 +230,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve todas las cuentas del ejercicio para el offset indicado
+     * Returns all the accounts for the indicated offset.
      *
      * @param string $codejercicio
      * @param int    $offset
@@ -231,10 +240,10 @@ class Cuenta
     public function allFromEjercicio($codejercicio, $offset = 0)
     {
         $cuenlist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE codejercicio = ' . $this->dataBase->var2str($codejercicio) .
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE codejercicio = ' . self::$dataBase->var2str($codejercicio) .
             ' ORDER BY codcuenta ASC';
 
-        $data = $this->dataBase->selectLimit($sql, FS_ITEM_LIMIT, $offset);
+        $data = self::$dataBase->selectLimit($sql, FS_ITEM_LIMIT, $offset);
         if (!empty($data)) {
             foreach ($data as $c) {
                 $cuenlist[] = new self($c);
@@ -245,7 +254,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve todas las cuentas del ejercicio
+     * Returns all accounts for the year.
      *
      * @param string $codejercicio
      *
@@ -254,10 +263,10 @@ class Cuenta
     public function fullFromEjercicio($codejercicio)
     {
         $cuenlist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE codejercicio = ' . $this->dataBase->var2str($codejercicio)
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE codejercicio = ' . self::$dataBase->var2str($codejercicio)
             . ' ORDER BY codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $c) {
                 $cuenlist[] = new self($c);
@@ -268,7 +277,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve todas las cuentas especiales del ejercicio
+     * Returns all special accounts for the year.
      *
      * @param int    $idcuesp
      * @param string $codejercicio
@@ -278,10 +287,10 @@ class Cuenta
     public function allFromCuentaesp($idcuesp, $codejercicio)
     {
         $cuenlist = [];
-        $sql = 'SELECT * FROM ' . $this->tableName() . ' WHERE idcuentaesp = ' . $this->dataBase->var2str($idcuesp)
-            . ' AND codejercicio = ' . $this->dataBase->var2str($codejercicio) . ' ORDER BY codcuenta ASC;';
+        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp)
+            . ' AND codejercicio = ' . self::$dataBase->var2str($codejercicio) . ' ORDER BY codcuenta ASC;';
 
-        $data = $this->dataBase->select($sql);
+        $data = self::$dataBase->select($sql);
         if (!empty($data)) {
             foreach ($data as $cue) {
                 $cuenlist[] = new self($cue);
@@ -292,8 +301,8 @@ class Cuenta
     }
 
     /**
-     * Devuelve un array con las combinaciones que contienen $query en su descripción
-     * o que coincide con su código de cuenta.
+     * Returns an array with the combinations containing $ query in its description
+           * or that matches your account code.
      *
      * @param string $query
      * @param int    $offset
@@ -304,11 +313,11 @@ class Cuenta
     {
         $cuenlist = [];
         $query = mb_strtolower(self::noHtml($query), 'UTF8');
-        $sql = 'SELECT * FROM ' . $this->tableName() .
+        $sql = 'SELECT * FROM ' . static::tableName() .
             " WHERE codcuenta LIKE '" . $query . "%' OR lower(descripcion) LIKE '%" . $query . "%'" .
             ' ORDER BY codejercicio DESC, codcuenta ASC';
 
-        $data = $this->dataBase->selectLimit($sql, FS_ITEM_LIMIT, $offset);
+        $data = self::$dataBase->selectLimit($sql, FS_ITEM_LIMIT, $offset);
         if (!empty($data)) {
             foreach ($data as $c) {
                 $cuenlist[] = new self($c);
@@ -319,7 +328,7 @@ class Cuenta
     }
 
     /**
-     * Devuelve una nueva cuenta para el ejercicio
+     * Returns a new account for the exercise.
      *
      * @param int $sumaCodigo
      *
@@ -327,22 +336,23 @@ class Cuenta
      */
     public function newSubcuenta($sumaCodigo)
     {
-        $ejercicio = new Ejercicio();
-        $eje0 = $ejercicio->get($this->codejercicio);
-        if ($eje0) {
-            $codsubcuenta = (float) sprintf('%-0' . $eje0->longsubcuenta . 's', $this->codcuenta) + $sumaCodigo;
-            $subcuenta = new Subcuenta();
-            $subc0 = $subcuenta->getByCodigo($codsubcuenta, $this->codejercicio);
-            if ($subc0) {
-                return $subc0;
-            }
-            $subc0 = new Subcuenta();
-            $subc0->codcuenta = $this->codcuenta;
-            $subc0->idcuenta = $this->idcuenta;
-            $subc0->codejercicio = $this->codejercicio;
-            $subc0->codsubcuenta = $codsubcuenta;
+        $ejercicioModel = new Ejercicio();
+        $ejercicio = $ejercicioModel->get($this->codejercicio);
+        if ($ejercicio !== false) {
+            /// new codsubcuenta
+            $codsubcuenta = (string) (sprintf('%-0' . $ejercicio->longsubcuenta . 's', $this->codcuenta) + $sumaCodigo);
+            $subcuentaModel = new Subcuenta();
 
-            return $subc0;
+            $newSubcuenta = $subcuentaModel->getByCodigo($codsubcuenta, $this->codejercicio);
+            if ($newSubcuenta === flase) {
+                $newSubcuenta = new Subcuenta();
+                $newSubcuenta->codcuenta = $this->codcuenta;
+                $newSubcuenta->idcuenta = $this->idcuenta;
+                $newSubcuenta->codejercicio = $this->codejercicio;
+                $newSubcuenta->codsubcuenta = $codsubcuenta;
+            }
+
+            return $newSubcuenta;
         }
 
         return false;

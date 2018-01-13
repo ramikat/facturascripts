@@ -18,31 +18,57 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Base\ExtendedController;
-use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Model;
+use FacturaScripts\Core\Lib;
 
 /**
  * Controller to edit a single item from the Cliente model
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author Fco. Antonio Moreno Pérez <famphuelva@gmail.com>
  */
 class EditCliente extends ExtendedController\PanelController
 {
 
     /**
-     * Load views
+     * Create and configure main view
+     */
+    private function addMainView()
+    {
+        $this->addEditView('\FacturaScripts\Dinamic\Model\Cliente', 'EditCliente', 'customer');
+
+        /// Load values option to Fiscal ID select input
+        $columnFiscalID = $this->views['EditCliente']->columnForName('fiscal-id');
+        $columnFiscalID->widget->setValuesFromArray(Lib\IDFiscal::all());
+
+        /// Load values option to VAT Type select input
+        $columnVATType = $this->views['EditCliente']->columnForName('vat-type');
+        $columnVATType->widget->setValuesFromArray(Lib\RegimenIVA::all());
+    }
+
+    /**
+     * Create views
      */
     protected function createViews()
     {
-        $this->addEditView('FacturaScripts\Core\Model\Cliente', 'EditCliente', 'customer');
-        $this->addEditListView('FacturaScripts\Core\Model\DireccionCliente', 'EditDireccionCliente', 'addresses', 'fa-road');
-        $this->addEditListView('FacturaScripts\Core\Model\CuentaBancoCliente', 'EditCuentaBancoCliente', 'customer-banking-accounts', 'fa-bank');
-        $this->addListView('FacturaScripts\Core\Model\Cliente', 'ListCliente', 'same-group', 'fa-users');
-        $this->addListView('FacturaScripts\Core\Model\FacturaCliente', 'ListFacturaCliente', 'invoices', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\AlbaranCliente', 'ListAlbaranCliente', 'delivery-notes', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\PedidoCliente', 'ListPedidoCliente', 'orders', 'fa-files-o');
-        $this->addListView('FacturaScripts\Core\Model\PresupuestoCliente', 'ListPresupuestoCliente', 'estimations', 'fa-files-o');
+        $this->addMainView();
+
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\DireccionCliente', 'EditDireccionCliente', 'addresses', 'fa-road');
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\CuentaBancoCliente', 'EditCuentaBancoCliente', 'customer-banking-accounts', 'fa-bank');
+        $this->addEditListView('\FacturaScripts\Dinamic\Model\SubcuentaCliente', 'EditSubcuentaCliente', 'subaccount', 'fa-book');
+        $this->addListView('\FacturaScripts\Dinamic\Model\Cliente', 'ListCliente', 'same-group', 'fa-users');
+        $this->addListView('\FacturaScripts\Dinamic\Model\FacturaCliente', 'ListFacturaCliente', 'invoices', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\AlbaranCliente', 'ListAlbaranCliente', 'delivery-notes', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\PedidoCliente', 'ListPedidoCliente', 'orders', 'fa-files-o');
+        $this->addListView('\FacturaScripts\Dinamic\Model\PresupuestoCliente', 'ListPresupuestoCliente', 'estimations', 'fa-files-o');
+        
+        /// Disable columns
+        $this->views['ListFacturaCliente']->disableColumn('customer', true);
+        $this->views['ListAlbaranCliente']->disableColumn('customer', true);
+        $this->views['ListPedidoCliente']->disableColumn('customer', true);
+        $this->views['ListPresupuestoCliente']->disableColumn('customer', true);
     }
 
     /**
@@ -53,29 +79,30 @@ class EditCliente extends ExtendedController\PanelController
      */
     protected function loadData($keyView, $view)
     {
-        $codcliente = $this->request->get('code');
-        $codgrupo = $this->getViewModelValue('EditCliente', 'codgrupo');
-
         switch ($keyView) {
             case 'EditCliente':
-                $view->loadData($codcliente);
+                $code = $this->request->get('code');
+                $view->loadData($code);
                 break;
 
             case 'ListCliente':
+                $codgrupo = $this->getViewModelValue('EditCliente', 'codgrupo');
                 if (!empty($codgrupo)) {
-                    $where = [new DataBase\DataBaseWhere('codgrupo', $codgrupo)];
-                    $view->loadData($where);
+                    $where = [new DataBaseWhere('codgrupo', $codgrupo)];
+                    $view->loadData(false, $where);
                 }
                 break;
-
+                
             case 'EditDireccionCliente':
             case 'EditCuentaBancoCliente':
+            case 'EditSubcuentaCliente':
             case 'ListFacturaCliente':
             case 'ListAlbaranCliente':
             case 'ListPedidoCliente':
             case 'ListPresupuestoCliente':
-                $where = [new DataBase\DataBaseWhere('codcliente', $codcliente)];
-                $view->loadData($where);
+                $codcliente = $this->getViewModelValue('EditCliente', 'codcliente');
+                $where = [new DataBaseWhere('codcliente', $codcliente)];
+                $view->loadData(false, $where);
                 break;
         }
     }
@@ -90,13 +117,14 @@ class EditCliente extends ExtendedController\PanelController
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'customer';
         $pagedata['icon'] = 'fa-users';
+        $pagedata['menu'] = 'sales';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
     }
 
     /**
-     * Devuelve la suma del total de albaranes del cliente.
+     * Returns the sum of the customer's total delivery notes.
      *
      * @param ExtendedController\EditView $view
      *
@@ -105,15 +133,15 @@ class EditCliente extends ExtendedController\PanelController
     public function calcClientDeliveryNotes($view)
     {
         $where = [];
-        $where[] = new DataBase\DataBaseWhere('codcliente', $this->getViewModelValue('EditCliente', 'codcliente'));
-        $where[] = new DataBase\DataBaseWhere('ptefactura', TRUE);
+        $where[] = new DataBaseWhere('codcliente', $this->getViewModelValue('EditCliente', 'codcliente'));
+        $where[] = new DataBaseWhere('ptefactura', true);
 
         $totalModel = Model\TotalModel::all('albaranescli', $where, ['total' => 'SUM(total)'], '')[0];
         return $this->divisaTools->format($totalModel->totals['total'], 2);
     }
 
     /**
-     * Devuelve la suma del total de facturas pendientes del cliente.
+     * Returns the sum of the client's total outstanding invoices.
      *
      * @param ExtendedController\EditView $view
      *
@@ -122,8 +150,8 @@ class EditCliente extends ExtendedController\PanelController
     public function calcClientInvoicePending($view)
     {
         $where = [];
-        $where[] = new DataBase\DataBaseWhere('codcliente', $this->getViewModelValue('EditCliente', 'codcliente'));
-        $where[] = new DataBase\DataBaseWhere('estado', 'Pagado', '<>');
+        $where[] = new DataBaseWhere('codcliente', $this->getViewModelValue('EditCliente', 'codcliente'));
+        $where[] = new DataBaseWhere('estado', 'Pagado', '<>');
 
         $totalModel = Model\TotalModel::all('reciboscli', $where, ['total' => 'SUM(importe)'], '')[0];
         return $this->divisaTools->format($totalModel->totals['total'], 2);

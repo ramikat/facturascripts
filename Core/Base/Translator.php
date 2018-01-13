@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -22,54 +22,70 @@ use Symfony\Component\Translation\Loader\JsonFileLoader;
 use Symfony\Component\Translation\Translator as symfonyTranslator;
 
 /**
- * Description of Translator
+ * The Translator class manage all translations methods required for internationalization.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 class Translator
 {
 
+    const FALLBACK_LANG = 'en_EN';
+
     /**
-     * Idioma por defecto.
+     * Default language.
      *
      * @var string
      */
-    private static $lang;
+    private static $defaultLang;
 
     /**
-     * El traductor de symfony.
+     * Loaded languages.
+     *
+     * @var array
+     */
+    private static $languages;
+
+    /**
+     * List of strings without translation.
+     *
+     * @var array
+     */
+    private static $missingStrings;
+
+    /**
+     * The Symfony translator.
      *
      * @var symfonyTranslator
      */
     private static $translator;
 
     /**
-     * Lista de strings utilizadas.
+     * List of used strings.
      *
      * @var array
      */
     private static $usedStrings;
 
     /**
-     * Constructor del traductor
-     * Por defecto se usará y definirá en_EN si no está definido en config.php.
+     * Translator's constructor.
      *
      * @param string $lang
      */
     public function __construct($lang = FS_LANG)
     {
         if (self::$translator === null) {
-            self::$lang = $lang;
+            self::$defaultLang = $lang;
+            self::$missingStrings = [];
             self::$usedStrings = [];
-            self::$translator = new symfonyTranslator(self::$lang);
+            self::$translator = new symfonyTranslator($lang);
 
             self::$translator->addLoader('json', new JsonFileLoader());
-            $this->locateFiles();
+            $this->locateFiles($lang);
         }
     }
 
     /**
-     * Traduce el texto al idioma predeterminado.
+     * Translate the text into the default language.
      *
      * @param string $txt
      * @param array $parameters
@@ -78,33 +94,66 @@ class Translator
      */
     public function trans($txt, array $parameters = [])
     {
-        $catalogue = self::$translator->getCatalogue(self::$lang);
-        self::$usedStrings[$txt] = $catalogue->get($txt, 'messages');
+        if (empty($txt)) {
+            return '';
+        }
 
-        return self::$translator->trans($txt, $parameters);
+        return $this->customTrans(self::$defaultLang, $txt, $parameters);
     }
 
     /**
-     * Carga los archivos de traducción siguiendo el sistema de prioridades
-     * de FacturaScripts. En este caso hay que proporcionar al traductor las rutas
-     * en orden inverso.
+     * Translate the text into the selected language.
+     *
+     * @param string $lang
+     * @param string $txt
+     * @param array $parameters
+     *
+     * @return string
      */
-    private function locateFiles()
+    public function customTrans($lang, $txt, array $parameters = [])
     {
-        $file = FS_FOLDER . '/Core/Translation/' . self::$lang . '.json';
-        self::$translator->addResource('json', $file, self::$lang);
+        if(!in_array($lang, self::$languages)) {
+            $this->locateFiles($lang);
+        }
+
+        $catalogue = self::$translator->getCatalogue($lang);
+        if ($catalogue->has($txt)) {
+            self::$usedStrings[$txt] = $catalogue->get($txt);
+            return self::$translator->trans($txt, $parameters, null, $lang);
+        }
+
+        self::$missingStrings[$txt] = $txt;
+        if($lang === self::FALLBACK_LANG) {
+            return $txt;
+        }
+
+        return $this->customTrans(self::FALLBACK_LANG, $txt, $parameters);
+    }
+
+    /**
+     * Load the translation files following the priority system of FacturaScripts.
+     * In this case, the translator must be provided with the routes in reverse order.
+     *
+     * @param string $lang
+     */
+    private function locateFiles($lang)
+    {
+        self::$languages[] = $lang;
+
+        $file = FS_FOLDER . '/Core/Translation/' . $lang . '.json';
+        self::$translator->addResource('json', $file, $lang);
 
         $pluginManager = new PluginManager();
         foreach ($pluginManager->enabledPlugins() as $pluginName) {
-            $file = FS_FOLDER . '/Plugins/' . $pluginName . '/Translation/' . self::$lang . '.json';
+            $file = FS_FOLDER . '/Plugins/' . $pluginName . '/Translation/' . $lang . '.json';
             if (file_exists($file)) {
-                self::$translator->addResource('json', $file, self::$lang);
+                self::$translator->addResource('json', $file, $lang);
             }
         }
     }
 
     /**
-     * Devuelve un array con los idiomas con traducciones disponibles.
+     * Returns an array with the languages with available translations.
      *
      * @return array
      */
@@ -123,17 +172,27 @@ class Translator
     }
 
     /**
-     * Devuelve el código de idioma en uso
+     * Returns the language code in use.
      *
      * @return string
      */
     public function getLangCode()
     {
-        return self::$lang;
+        return self::$defaultLang;
     }
 
     /**
-     * Devuelve las strings utilizadas
+     * Returns the missing strings.
+     *
+     * @return array
+     */
+    public function getMissingStrings()
+    {
+        return self::$missingStrings;
+    }
+
+    /**
+     * Returns the strings used.
      *
      * @return array
      */
