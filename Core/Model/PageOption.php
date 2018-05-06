@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -27,15 +27,25 @@ use FacturaScripts\Core\Lib\ExtendedController;
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class PageOption
+class PageOption extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        clear as traitClear;
-        loadFromData as traitLoadFromData;
-        saveInsert as traitSaveInsert;
-        saveUpdate as traitSaveUpdate;
-    }
+    use Base\ModelTrait;
+
+    /**
+     * Definition of the columns. It is called columns but it always
+     * contains GroupItem, which contains the columns.
+     *
+     * @var array
+     */
+    public $columns;
+
+    /**
+     * Defining custom filters
+     *
+     * @var array
+     */
+    public $filters;
 
     /**
      * Identifier
@@ -43,6 +53,13 @@ class PageOption
      * @var int
      */
     public $id;
+
+    /**
+     * Definition of modal forms
+     *
+     * @var array
+     */
+    public $modals;
 
     /**
      * Name of the page (controller).
@@ -66,45 +83,41 @@ class PageOption
     public $rows;
 
     /**
-     * Definition of modal forms
-     *
-     * @var array
+     * Reset values of all model properties.
      */
-    public $modals;
-
-    /**
-     * Definition of the columns. It is called columns but it always
-     * contains GroupItem, which contains the columns.
-     *
-     * @var array
-     */
-    public $columns;
-
-    /**
-     * Defining custom filters
-     *
-     * @var array
-     */
-    public $filters;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public function tableName()
+    public function clear()
     {
-        return 'fs_pages_options';
+        parent::clear();
+        $this->columns = [];
+        $this->modals = [];
+        $this->filters = [];
+        $this->rows = [];
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
+     * Get the settings for the driver and user
      *
-     * @return string
+     * @param string $name
+     * @param string $nick
      */
-    public function primaryColumn()
+    public function getForUser(string $name, string $nick)
     {
-        return 'id';
+        $viewName = explode('-', $name)[0];
+        $where = $this->getPageFilter($viewName, $nick);
+        $orderby = ['nick' => 'ASC'];
+
+        // Load data from database, if not exist install xmlview
+        if (!$this->loadFromCode('', $where, $orderby)) {
+            $this->name = $viewName;
+
+            if (!ExtendedController\VisualItemLoadEngine::installXML($viewName, $this)) {
+                self::$miniLog->critical(self::$i18n->trans('error-processing-xmlview', ['%fileName%' => 'XMLView\\' . $viewName . '.xml']));
+                return;
+            }
+        }
+
+        /// Apply values to dynamic Select widgets
+        ExtendedController\VisualItemLoadEngine::applyDynamicSelectValues($this);
     }
 
     /**
@@ -123,31 +136,40 @@ class PageOption
     }
 
     /**
-     * Reset values of all model properties.
-     */
-    public function clear()
-    {
-        $this->traitClear();
-        $this->columns = [];
-        $this->modals = [];
-        $this->filters = [];
-        $this->rows = [];
-    }
-
-    /**
      * Load the data from an array
      *
      * @param array $data
+     * @param array $exclude
      */
     public function loadFromData(array $data = [], array $exclude = [])
     {
         array_push($exclude, 'columns', 'modals', 'filters', 'rows', 'code', 'action');
-        $this->traitLoadFromData($data, $exclude);
+        parent::loadFromData($data, $exclude);
 
         $columns = json_decode($data['columns'], true);
         $modals = json_decode($data['modals'], true);
         $rows = json_decode($data['rows'], true);
         ExtendedController\VisualItemLoadEngine::loadJSON($columns, $modals, $rows, $this);
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'id';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'pages_options';
     }
 
     /**
@@ -161,30 +183,8 @@ class PageOption
             'columns' => json_encode($this->columns),
             'modals' => json_encode($this->modals),
             'filters' => json_encode($this->filters),
-            'rows' => json_encode($this->rows)
+            'rows' => json_encode($this->rows),
         ];
-    }
-
-    /**
-     * Update the model data in the database.
-     *
-     * @return bool
-     */
-    private function saveUpdate()
-    {
-        $values = $this->getEncodeValues();
-        return $this->traitSaveUpdate($values);
-    }
-
-    /**
-     * Insert the model data in the database.
-     *
-     * @return bool
-     */
-    private function saveInsert()
-    {
-        $values = $this->getEncodeValues();
-        return $this->traitSaveInsert($values);
     }
 
     /**
@@ -192,40 +192,40 @@ class PageOption
      *
      * @param string $name
      * @param string $nick
+     *
      * @return Database\DataBaseWhere[]
      */
-    private function getPageFilter($name, $nick)
+    private function getPageFilter(string $name, string $nick)
     {
         return [
             new DataBase\DataBaseWhere('nick', $nick),
             new DataBase\DataBaseWhere('name', $name),
             new DataBase\DataBaseWhere('nick', 'NULL', 'IS', 'OR'),
-            new DataBase\DataBaseWhere('name', $name)
+            new DataBase\DataBaseWhere('name', $name),
         ];
     }
 
     /**
-     * Get the settings for the driver and user
+     * Insert the model data in the database.
      *
-     * @param string $name
-     * @param string $nick
+     * @param array $values
+     *
+     * @return bool
      */
-    public function getForUser($name, $nick)
+    protected function saveInsert(array $values = [])
     {
-        $where = $this->getPageFilter($name, $nick);
-        $orderby = ['nick' => 'ASC'];
+        return parent::saveInsert($this->getEncodeValues());
+    }
 
-        // Load data from database, if not exist install xmlview
-        if (!$this->loadFromCode('', $where, $orderby)) {
-            $this->name = $name;
-
-            if (!ExtendedController\VisualItemLoadEngine::installXML($name, $this)) {
-                self::$miniLog->critical(self::$i18n->trans('error-processing-xmlview', ['%fileName%' => $name]));
-                return;
-            }
-        }
-
-        /// Apply values to dynamic Select widgets
-        ExtendedController\VisualItemLoadEngine::applyDynamicSelectValues($this);
+    /**
+     * Update the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveUpdate(array $values = [])
+    {
+        return parent::saveUpdate($this->getEncodeValues());
     }
 }

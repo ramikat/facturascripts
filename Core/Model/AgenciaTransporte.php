@@ -1,8 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015         Pablo Peralta
- * Copyright (C) 2015-2017    Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018    Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -11,16 +10,13 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Model;
-
-use FacturaScripts\Core\Lib\Import\CSVImport;
 
 /**
  * Merchandise transport agency.
@@ -28,11 +24,17 @@ use FacturaScripts\Core\Lib\Import\CSVImport;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class AgenciaTransporte
+class AgenciaTransporte extends Base\ModelClass
 {
 
     use Base\ModelTrait;
-    use Base\ContactInformation;
+
+    /**
+     * Contains True if is enabled.
+     *
+     * @var bool
+     */
+    public $activo;
 
     /**
      * Primary key. Varchar(8).
@@ -49,11 +51,23 @@ class AgenciaTransporte
     public $nombre;
 
     /**
-     * Contains True if is enabled.
-     *
-     * @var bool
+     * Reset the values of all model properties.
      */
-    public $activo;
+    public function clear()
+    {
+        parent::clear();
+        $this->activo = true;
+    }
+
+    /**
+     * Returns the name of the column that is the primary key of the model.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codtrans';
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -63,39 +77,5 @@ class AgenciaTransporte
     public static function tableName()
     {
         return 'agenciastrans';
-    }
-
-    /**
-     * Returns the name of the column that is the primary key of the model.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codtrans';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->clearContactInformation();
-
-        $this->codtrans = null;
-        $this->nombre = null;
-        $this->activo = true;
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        return CSVImport::importTableSQL(static::tableName());
     }
 }

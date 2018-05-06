@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\Cache;
@@ -31,7 +31,6 @@ use FacturaScripts\Core\Base\Translator;
  */
 class APCAdapter implements AdaptorInterface
 {
-
     /**
      * Translator object
      *
@@ -69,8 +68,10 @@ class APCAdapter implements AdaptorInterface
         $this->minilog->debug($this->i18n->trans('apc-get-key-item', ['%item%' => $key]));
         if (apc_exists(FS_CACHE_PREFIX . $key)) {
             $result = apc_fetch(FS_CACHE_PREFIX . $key);
+
             return ($result === false) ? null : $result;
         }
+
         return null;
     }
 
@@ -78,15 +79,16 @@ class APCAdapter implements AdaptorInterface
      * Put content into the cache.
      *
      * @param string $key
-     * @param mixed $content the the content you want to store
-     * @param int $expire time to expire
+     * @param mixed  $content the the content you want to store
+     * @param int    $expire  time to expire
      *
      * @return bool whether if the operation was successful or not
      */
     public function set($key, $content, $expire = 5400)
     {
         $this->minilog->debug($this->i18n->trans('apc-set-key-item', ['%item%' => $key]));
-        return apc_store(FS_CACHE_PREFIX . $key, $content, $expire);
+
+        return (bool) apc_store(FS_CACHE_PREFIX . $key, $content, $expire);
     }
 
     /**
@@ -99,6 +101,7 @@ class APCAdapter implements AdaptorInterface
     public function delete($key)
     {
         $this->minilog->debug($this->i18n->trans('apc-delete-key-item', ['%item%' => $key]));
+
         return apc_delete(FS_CACHE_PREFIX . $key) || !apc_exists(FS_CACHE_PREFIX . $key);
     }
 
@@ -114,6 +117,7 @@ class APCAdapter implements AdaptorInterface
          * If cache_type is "user", the user cache will be cleared;
          * otherwise, the system cache (cached files) will be cleared.
          * On shared hostings, users only have perms to his own apache user.
+         *
          * @source: http://php.net/manual/function.apc-clear-cache.php
          */
         return apc_clear_cache('user');

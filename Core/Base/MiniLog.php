@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base;
@@ -47,7 +47,7 @@ class MiniLog
      * System is unusable.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function emergency($message, array $context = [])
     {
@@ -61,7 +61,7 @@ class MiniLog
      * trigger the SMS alerts and wake you up.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function alert($message, array $context = [])
     {
@@ -74,7 +74,7 @@ class MiniLog
      * Example: Application component unavailable, unexpected exception.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function critical($message, array $context = [])
     {
@@ -86,7 +86,7 @@ class MiniLog
      * be logged and monitored.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function error($message, array $context = [])
     {
@@ -100,7 +100,7 @@ class MiniLog
      * that are not necessarily wrong.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function warning($message, array $context = [])
     {
@@ -111,7 +111,7 @@ class MiniLog
      * Normal but significant events.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function notice($message, array $context = [])
     {
@@ -124,7 +124,7 @@ class MiniLog
      * Example: User logs in, SQL logs.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function info($message, array $context = [])
     {
@@ -135,7 +135,7 @@ class MiniLog
      * Detailed debug information.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function debug($message, array $context = [])
     {
@@ -146,7 +146,7 @@ class MiniLog
      * SQL history.
      *
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function sql($message, array $context = [])
     {
@@ -158,7 +158,7 @@ class MiniLog
      *
      * @param string $level
      * @param string $message
-     * @param array $context
+     * @param array  $context
      */
     public function log($level, $message, array $context = [])
     {

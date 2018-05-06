@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Initial description for the controller ListArticulo
@@ -30,13 +30,13 @@
         <column name="reference" order="100">
             <widget type="text" fieldname="referencia" icon="fa-barcode" required="true" />
         </column>
-        <column name="supplier" display="left" order="100">
+        <column name="supplier" order="100">
             <widget type="text" fieldname="codproveedor" onclick="EditProveedor" />
         </column>
         <column name="supplier-reference" order="110">
             <widget type="text" fieldname="refproveedor" icon="fa-barcode" required="true" />
         </column>
-        <column name="description" display="left" order="110">
+        <column name="description" order="110">
             <widget type="text" fieldname="descripcion" />
         </column>
         <column name="price" title="pvp" display="right" order="150">
@@ -48,7 +48,7 @@
             </widget>
         </column>
         <column name="stock" display="right" order="160">
-            <widget type="number" fieldname="stock">
+            <widget type="number" fieldname="stockfis">
                 <option color="red">&lt;0</option>
             </widget>
         </column>

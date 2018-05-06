@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2016-2017    Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2016-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -23,17 +23,10 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class TransferenciaStock
+class TransferenciaStock extends Base\ModelClass
 {
 
     use Base\ModelTrait;
-
-    /**
-     * Primary key. integer
-     *
-     * @var int
-     */
-    public $idtrans;
 
     /**
      * Código de almacén de destino
@@ -64,11 +57,38 @@ class TransferenciaStock
     public $hora;
 
     /**
+     * Primary key. integer
+     *
+     * @var int
+     */
+    public $idtrans;
+
+    /**
      * Usuario que realiza la transferencia
      *
      * @var string
      */
     public $usuario;
+
+    /**
+     * Reset the values of all model properties.
+     */
+    public function clear()
+    {
+        parent::clear();
+        $this->fecha = date('d-m-Y');
+        $this->hora = date('H:i:s');
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idtrans';
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -81,30 +101,7 @@ class TransferenciaStock
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'idtrans';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->idtrans = null;
-        $this->codalmadestino = null;
-        $this->codalmaorigen = null;
-        $this->fecha = date('d-m-Y');
-        $this->hora = date('H:i:s');
-        $this->usuario = null;
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
+     * Returns True if there is no errors on properties values.
      *
      * @return bool
      */
@@ -112,10 +109,9 @@ class TransferenciaStock
     {
         if ($this->codalmadestino === $this->codalmaorigen) {
             self::$miniLog->alert(self::$i18n->trans('warehouse-cant-be-same'));
-
             return false;
         }
 
-        return true;
+        return parent::test();
     }
 }

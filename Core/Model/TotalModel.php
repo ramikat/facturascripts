@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -84,7 +84,7 @@ class TotalModel
      * Returns the / fields as part of the SQL query.
      *
      * @param string $fieldCode
-     * @param array $fieldList
+     * @param array  $fieldList
      *
      * @return string
      */
@@ -109,10 +109,10 @@ class TotalModel
     /**
      * Load a list of TotalModel (code and fields of statistics) for the indicated table.
      *
-     * @param string  $tableName
+     * @param string                   $tableName
      * @param DataBase\DataBaseWhere[] $where
-     * @param array  $fieldList      (['key' => 'SUM(total)', 'key2' => 'MAX(total)' ...])
-     * @param string $fieldCode      (for multiples rows agruped by field code)
+     * @param array                    $fieldList (['key' => 'SUM(total)', 'key2' => 'MAX(total)' ...])
+     * @param string                   $fieldCode (for multiples rows agruped by field code)
      *
      * @return self[]
      */

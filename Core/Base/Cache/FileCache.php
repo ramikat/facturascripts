@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\Cache;
@@ -63,7 +63,7 @@ class FileCache implements AdaptorInterface
     public function __construct()
     {
         self::$config = [
-            'cache_path' => FS_FOLDER . '/Cache/FileCache',
+            'cache_path' => FS_FOLDER . '/MyFiles/Cache/FileCache',
             'expires' => 180,
         ];
 
@@ -74,8 +74,8 @@ class FileCache implements AdaptorInterface
         if (!file_exists($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             $this->minilog->critical($this->i18n->trans('cant-create-folder', ['%folderName%' => $dir]));
         }
-        $this->minilog->debug('using-filecache');
-        $this->minilog->debug('cache-dir', ['%folderName%' => $dir]);
+        $this->minilog->debug($this->i18n->trans('using-filecache'));
+        $this->minilog->debug($this->i18n->trans('cache-dir', ['%folderName%' => $dir]));
     }
 
     /**
@@ -93,8 +93,8 @@ class FileCache implements AdaptorInterface
     /**
      * Get the data associated with a key.
      *
-     * @param string $key
-     * @param bool $raw
+     * @param string   $key
+     * @param bool     $raw
      * @param int|null $custom_time
      *
      * @return mixed the content you put in, or null if expired or not found
@@ -119,8 +119,8 @@ class FileCache implements AdaptorInterface
      * Put content into the cache.
      *
      * @param string $key
-     * @param mixed $content the the content you want to store
-     * @param bool $raw whether if you want to store raw data or not. If it is true, $content *must* be a string
+     * @param mixed  $content the the content you want to store
+     * @param bool   $raw     whether if you want to store raw data or not. If it is true, $content *must* be a string
      *
      * @return bool whether if the operation was successful or not
      */
@@ -178,7 +178,7 @@ class FileCache implements AdaptorInterface
      * Check if a file has expired or not.
      *
      * @param string $file the rout to the file
-     * @param int $time the number of minutes it was set to expire
+     * @param int    $time the number of minutes it was set to expire
      *
      * @return bool if the file has expired or not
      */

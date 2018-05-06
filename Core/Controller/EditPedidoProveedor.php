@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Lib\ExtendedController;
@@ -25,56 +24,10 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * Controller to edit a single item from the PedidoProveedor model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
- * @autor Luis Miguel Pérez <luismi@pcrednet.com>
+ * @author Luis Miguel Pérez <luismi@pcrednet.com>
  */
-class EditPedidoProveedor extends ExtendedController\DocumentController
+class EditPedidoProveedor extends ExtendedController\BusinessDocumentController
 {
-
-    /**
-     * Load views
-     */
-    protected function createViews()
-    {
-        parent::createViews();
-        $this->addEditView('\FacturaScripts\Dinamic\Model\PedidoProveedor', 'EditPedidoProveedor', 'detail', 'fa-edit');
-    }
-
-    /**
-     * Return the document class name.
-     *
-     * @return string
-     */
-    protected function getDocumentClassName()
-    {
-        return '\FacturaScripts\Dinamic\Model\PedidoProveedor';
-    }
-
-    /**
-     * Return the document line class name.
-     *
-     * @return string
-     */
-    protected function getDocumentLineClassName()
-    {
-        return '\FacturaScripts\Dinamic\Model\LineaPedidoProveedor';
-    }
-
-    /**
-     * Load data view procedure
-     *
-     * @param string $keyView
-     * @param ExtendedController\EditView $view
-     */
-    protected function loadData($keyView, $view)
-    {
-        $idpedidoproveedor = $this->request->get('code');
-
-        switch ($keyView) {
-            case 'EditPedidoProveedor':
-                $view->loadData($idpedidoproveedor);
-                break;
-        }
-    }
 
     /**
      * Returns basic page attributes
@@ -84,11 +37,49 @@ class EditPedidoProveedor extends ExtendedController\DocumentController
     public function getPageData()
     {
         $pagedata = parent::getPageData();
-        $pagedata['title'] = 'supplier-order';
+        $pagedata['title'] = 'order';
         $pagedata['menu'] = 'purchases';
         $pagedata['icon'] = 'fa-files-o';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
+    }
+
+    /**
+     * Load views
+     */
+    protected function createViews()
+    {
+        parent::createViews();
+
+        $modelName = $this->getModelClassName();
+        $viewName = 'Edit' . $modelName;
+        $this->addEditView($viewName, $modelName, 'detail', 'fa-edit');
+    }
+
+    /**
+     * Return the document class name.
+     *
+     * @return string
+     */
+    protected function getModelClassName()
+    {
+        return 'PedidoProveedor';
+    }
+
+    /**
+     * Load data view procedure
+     *
+     * @param string                      $viewName
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($viewName, $view)
+    {
+        if ($viewName === 'EditPedidoProveedor') {
+            $idpedido = $this->getViewModelValue('Document', 'idpedido');
+            $view->loadData($idpedido);
+        }
+
+        parent::loadData($viewName, $view);
     }
 }

@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib;
 
 use FacturaScripts\Core\Base\MiniLog;
@@ -31,6 +30,7 @@ use PHPMailer\PHPMailer\PHPMailer;
  */
 class EmailTools
 {
+
     /**
      * Settings properties for email
      *
@@ -49,15 +49,32 @@ class EmailTools
     }
 
     /**
-     * Reload all email settings properties.
+     * Returns the HTML code for the email.
+     *
+     * @param string $companyName
+     * @param string $title
+     * @param string $txt
+     * @param string $sign
+     *
+     * @return mixed
      */
-    public function reloadConfig()
+    public function getHtml($companyName, $title, $txt, $sign)
     {
-        $settingsModel = new Settings();
-        $emailSettings = $settingsModel->get('email');
-        if ($emailSettings) {
-            self::$settings = $emailSettings->properties;
-        }
+        $html = file_get_contents(FS_FOLDER . '/Dinamic/Assets/Email/BasicTemplate.html.twig');
+        $search = [
+            '[[titulo]]',
+            '[[empresa]]',
+            '[[texto]]',
+            '[[pie]]',
+        ];
+        $replace = [
+            $title,
+            $companyName,
+            nl2br($txt),
+            $sign,
+        ];
+
+        return str_replace($search, $replace, $html);
     }
 
     /**
@@ -70,20 +87,28 @@ class EmailTools
         $mail = new PHPMailer();
         $mail->CharSet = 'UTF-8';
         $mail->WordWrap = 50;
-        $mail->Mailer = self::$settings['mailer'];
+        $mail->Mailer = $this->getSetting('mailer');
         $mail->SMTPAuth = true;
-        $mail->SMTPSecure = self::$settings['enc'];
-        $mail->Host = self::$settings['host'];
-        $mail->Port = self::$settings['port'];
-
-        $mail->Username = self::$settings['email'];
-        if (self::$settings['user']) {
-            $mail->Username = self::$settings['user'];
-        }
-
-        $mail->Password = self::$settings['password'];
+        $mail->SMTPSecure = $this->getSetting('enc');
+        $mail->Host = $this->getSetting('host');
+        $mail->Port = $this->getSetting('port');
+        $mail->Username = $this->getSetting('user') ? $this->getSetting('user') : $this->getSetting('email');
+        $mail->Password = $this->getSetting('password');
+        $mail->setFrom($this->getSetting('email'));
 
         return $mail;
+    }
+
+    /**
+     * Reload all email settings properties.
+     */
+    public function reloadConfig()
+    {
+        $settingsModel = new Settings();
+        $emailSettings = $settingsModel->get('email');
+        if ($emailSettings) {
+            self::$settings = $emailSettings->properties;
+        }
     }
 
     /**
@@ -95,13 +120,18 @@ class EmailTools
      */
     public function send($mail)
     {
+        if (null === $this->getSetting('host')) {
+            return false;
+        }
+
         if ($mail->smtpConnect($this->smtpOptions()) && $mail->send()) {
             return true;
         }
 
         $i18n = new i18n();
         $miniLog = new MiniLog();
-        $miniLog->alert($i18n->trans('email-error', ['%errorInfo%' => $mail->ErrorInfo]));
+        $miniLog->alert($i18n->trans('error', ['%error%' => $mail->ErrorInfo]));
+
         return false;
     }
 
@@ -114,39 +144,16 @@ class EmailTools
     {
         if (self::$settings['mailer'] === 'smtp') {
             $mail = $this->newMail();
+
             return $mail->smtpConnect($this->smtpOptions());
         }
 
         return true;
     }
 
-    /**
-     * Returns the HTML code for the email.
-     *
-     * @param string $companyName
-     * @param string $title
-     * @param string $txt
-     * @param string $sign
-     *
-     * @return mixed
-     */
-    public function getHtml($companyName, $title, $txt, $sign)
+    private function getSetting(string $key)
     {
-        $html = file_get_contents(FS_FOLDER . '/Dinamic/Assets/Email/BasicTemplate.html');
-        $search = [
-            '[[titulo]]',
-            '[[empresa]]',
-            '[[texto]]',
-            '[[pie]]'
-        ];
-        $replace = [
-            $title,
-            $companyName,
-            nl2br($txt),
-            $sign
-        ];
-
-        return str_replace($search, $replace, $html);
+        return isset(self::$settings[$key]) ? self::$settings[$key] : null;
     }
 
     /**
@@ -162,10 +169,11 @@ class EmailTools
                 'ssl' => [
                     'verify_peer' => false,
                     'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                ]
+                    'allow_self_signed' => true,
+                ],
             ];
         }
+
         return $SMTPOptions;
     }
 }

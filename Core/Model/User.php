@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,28 +10,26 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * Usuario de FacturaScripts.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class User
+class User extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        get as private traitGet;
-        clear as traitClear;
-    }
+    use Base\ModelTrait;
 
     /**
      * true -> user is admin.
@@ -76,13 +74,6 @@ class User
     public $langcode;
 
     /**
-     * Last IP used.
-     *
-     * @var string
-     */
-    public $lastip;
-
-    /**
      * Last activity date.
      *
      * @var string
@@ -90,11 +81,25 @@ class User
     public $lastactivity;
 
     /**
+     * Last IP used.
+     *
+     * @var string
+     */
+    public $lastip;
+
+    /**
+     * Indicates the level of security that the user can access
+     *
+     * @var integer
+     */
+    public $level;
+
+    /**
      * Session key, saved also in cookie. Regenerated when user log in.
      *
      * @var string
      */
-    private $logkey;
+    public $logkey;
 
     /**
      * New password.
@@ -125,30 +130,15 @@ class User
     public $password;
 
     /**
-     * Indicates the level of security that the user can access
-     *
-     * @var integer
+     * Reset the values of all model properties.
      */
-    public $level;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
+    public function clear()
     {
-        return 'fs_users';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'nick';
+        parent::clear();
+        $this->enabled = true;
+        $this->idempresa = AppSettings::get('default', 'idempresa', 1);
+        $this->langcode = FS_LANG;
+        $this->level = 1;
     }
 
     /**
@@ -160,44 +150,46 @@ class User
      */
     public function install()
     {
-        /// hay una clave ajena a fs_pages, así que cargamos el modelo necesario
+        /// we need this models to be checked before
         new Page();
         new Empresa();
 
         self::$miniLog->info(self::$i18n->trans('created-default-admin-account'));
 
-        return 'INSERT INTO ' . static::tableName() . " (nick,password,admin,enabled,idempresa,langcode,homepage,level)"
+        return 'INSERT INTO ' . static::tableName() . ' (nick,password,admin,enabled,idempresa,langcode,homepage,level)'
             . " VALUES ('admin','" . password_hash('admin', PASSWORD_DEFAULT)
             . "',TRUE,TRUE,'1','" . FS_LANG . "','Wizard','99');";
     }
 
     /**
-     * Reset the values of all model properties.
+     * Generates a new login key for the user. It also updates lastactivity
+     * ans last IP.
+     *
+     * @param string $ipAddress
+     *
+     * @return string
      */
-    public function clear()
+    public function newLogkey($ipAddress)
     {
-        $this->traitClear();
-        $this->langcode = FS_LANG;
-        $this->homepage = 'Dashboard';
-        $this->idempresa = AppSettings::get('default', 'idempresa', 1);
-        $this->enabled = true;
-        $this->level = 1;
+        $this->lastactivity = date('d-m-Y H:i:s');
+        $this->lastip = $ipAddress;
+        $this->logkey = Utils::randomString(99);
+
+        return $this->logkey;
     }
 
     /**
-     * Devuelve el usuario con el nick solicitado
+     * Returns the name of the column that is the model's primary key.
      *
-     * @param string $nick
-     *
-     * @return User|bool
+     * @return string
      */
-    public function get($nick)
+    public static function primaryColumn()
     {
-        return $this->traitGet($nick);
+        return 'nick';
     }
 
     /**
-     * Asigna la contraseña dada al usuario.
+     * Asigns the new password to the user.
      *
      * @param string $value
      */
@@ -207,8 +199,57 @@ class User
     }
 
     /**
-     * Verifica si la contraseña dada es correcta. Además comprueba si es necesario
-     * regenerar el hash de la contraseña, por ejemplo si php ha mejorado el algoritmo.
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'users';
+    }
+
+    /**
+     * Returns True if there is no errors on properties values.
+     * It runs inside the save method.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        $this->checkEmptyValues();
+        $this->nick = trim($this->nick);
+
+        if (!preg_match("/^[A-Z0-9_\+\.\-]{3,50}$/i", $this->nick)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'nick', '%min%' => '3', '%max%' => '50']));
+            return false;
+        }
+
+        if (isset($this->newPassword, $this->newPassword2) && $this->newPassword !== '' && $this->newPassword2 !== '') {
+            if ($this->newPassword !== $this->newPassword2) {
+                self::$miniLog->alert(self::$i18n->trans('different-passwords', ['%userNick%' => $this->nick]));
+                return false;
+            }
+
+            $this->setPassword($this->newPassword);
+        }
+
+        return parent::test();
+    }
+
+    /**
+     * Verifies the login key.
+     *
+     * @param string $value
+     *
+     * @return bool
+     */
+    public function verifyLogkey($value)
+    {
+        return $this->logkey === $value;
+    }
+
+    /**
+     * Verifies password. It also rehash the password if needed.
      *
      * @param string $value
      *
@@ -228,35 +269,6 @@ class User
     }
 
     /**
-     * Genera una nueva clave de login para el usuario.
-     * Además actualiza lastactivity y asigna la IP proporcionada.
-     *
-     * @param string $ipAddress
-     *
-     * @return string
-     */
-    public function newLogkey($ipAddress)
-    {
-        $this->lastactivity = date('d-m-Y H:i:s');
-        $this->lastip = $ipAddress;
-        $this->logkey = static::randomString(99);
-
-        return $this->logkey;
-    }
-
-    /**
-     * Verifica la clave de login proporcionada.
-     *
-     * @param string $value
-     *
-     * @return bool
-     */
-    public function verifyLogkey($value)
-    {
-        return $this->logkey === $value;
-    }
-
-    /**
      * Check the null value of the fields
      */
     private function checkEmptyValues()
@@ -268,35 +280,5 @@ class User
         if ($this->level === null) {
             $this->level = 0;
         }
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
-     * Se ejecuta dentro del método save.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $this->checkEmptyValues();
-        $this->nick = trim($this->nick);
-
-        if (!preg_match("/^[A-Z0-9_\+\.\-]{3,50}$/i", $this->nick)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-user-nick', ['%nick%' => $this->nick]));
-
-            return false;
-        }
-
-        if (isset($this->newPassword) && isset($this->newPassword2) && $this->newPassword !== '' && $this->newPassword2 !== '') {
-            if ($this->newPassword !== $this->newPassword2) {
-                self::$miniLog->alert(self::$i18n->trans('different-passwords', ['%userNick%' => $this->nick]));
-
-                return false;
-            }
-
-            $this->setPassword($this->newPassword);
-        }
-
-        return true;
     }
 }

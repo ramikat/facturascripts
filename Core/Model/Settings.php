@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -23,22 +23,10 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Settings
+class Settings extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        clear as traitClear;
-        loadFromData as traitLoadFromData;
-        saveInsert as traitSaveInsert;
-        saveUpdate as traitSaveUpdate;
-    }
-
-    /**
-     * Identifier of the group of values.
-     *
-     * @var string
-     */
-    public $name;
+    use Base\ModelTrait;
 
     /**
      * Description of the content and value of the group.
@@ -55,6 +43,13 @@ class Settings
     public $icon;
 
     /**
+     * Identifier of the group of values.
+     *
+     * @var string
+     */
+    public $name;
+
+    /**
      * Set of configuration values
      *
      * @var array
@@ -62,13 +57,41 @@ class Settings
     public $properties;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Check an array of data so that it has the correct structure of the model.
      *
-     * @return string
+     * @param array $data
      */
-    public static function tableName()
+    public function checkArrayData(array &$data)
     {
-        return 'fs_settings';
+        $properties = [];
+        foreach ($data as $key => $value) {
+            if (!in_array($key, ['name', 'action', 'active'])) {
+                $properties[$key] = $value;
+                unset($data[$key]);
+            }
+        }
+        $data['properties'] = json_encode($properties);
+    }
+
+    /**
+     * Reset the values of all model properties.
+     */
+    public function clear()
+    {
+        parent::clear();
+        $this->properties = [];
+    }
+
+    /**
+     * Load data from array
+     *
+     * @param array $data
+     * @param array $exclude
+     */
+    public function loadFromData(array $data = [], array $exclude = [])
+    {
+        parent::loadFromData($data, ['properties', 'action']);
+        $this->properties = isset($data['properties']) ? json_decode($data['properties'], true) : [];
     }
 
     /**
@@ -76,7 +99,7 @@ class Settings
      *
      * @return string
      */
-    public function primaryColumn()
+    public static function primaryColumn()
     {
         return 'name';
     }
@@ -92,62 +115,36 @@ class Settings
     }
 
     /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->traitClear();
-        $this->properties = [];
-    }
-
-    /**
-     * Check that a data array have correct struct of model
+     * Insert the model data in the database.
      *
-     * @param array $data
-     */
-    public function checkArrayData(&$data)
-    {
-        $properties = [];
-        foreach ($data as $key => $value) {
-            if (!in_array($key, ['name', 'action', 'active'])) {
-                $properties[$key] = $value;
-                unset($data[$key]);
-            }
-        }
-        $data['properties'] = json_encode($properties);
-        unset($properties);
-    }
-
-    /**
-     * Load data from array
+     * @param array $values
      *
-     * @param array $data
+     * @return bool
      */
-    public function loadFromData($data)
+    protected function saveInsert(array $values = [])
     {
-        $this->traitLoadFromData($data, ['properties', 'action']);
-        $this->properties = isset($data['properties']) ? json_decode($data['properties'], true) : [];
+        return parent::saveInsert(['properties' => json_encode($this->properties)]);
     }
 
     /**
      * Update the model data in the database.
      *
-     * @return bool
-     */
-    private function saveUpdate()
-    {
-        $values = ['properties' => json_encode($this->properties)];
-        return $this->traitSaveUpdate($values);
-    }
-
-    /**
-     * Insert the model data in the database.
+     * @param array $values
      *
      * @return bool
      */
-    private function saveInsert()
+    protected function saveUpdate(array $values = [])
     {
-        $values = ['properties' => json_encode($this->properties)];
-        return $this->traitSaveInsert($values);
+        return parent::saveUpdate(['properties' => json_encode($this->properties)]);
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'settings';
     }
 }

@@ -10,128 +10,26 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
+
+use FacturaScripts\Core\App\AppSettings;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * Description of crm_contacto
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Contacto
+class Contacto extends Base\Contact
 {
 
     use Base\ModelTrait;
-
-    /**
-     * Primary key.
-     *
-     * @var string
-     */
-    public $codcontacto;
-
-    /**
-     * Contact CIF/NIF.
-     *
-     * @var string
-     */
-    public $cifnif;
-
-    /**
-     * True if it is a physical person, but False.
-     *
-     * @var bool
-     */
-    public $personafisica;
-
-    /**
-     * Contact name.
-     *
-     * @var string
-     */
-    public $nombre;
-    
-    /**
-     * Last name.
-     * 
-     * @var string
-     */
-    public $apellidos;
-
-    /**
-     * Contact company.
-     *
-     * @var string
-     */
-    public $empresa;
-
-    /**
-     * Contact charge.
-     *
-     * @var string
-     */
-    public $cargo;
-
-    /**
-     * Contact email.
-     *
-     * @var string
-     */
-    public $email;
-
-    /**
-     * Phone 1 of the person.
-     *
-     * @var string
-     */
-    public $telefono1;
-
-    /**
-     * Phone 2 of the person.
-     *
-     * @var string
-     */
-    public $telefono2;
-
-    /**
-     * Address of the contact.
-     *
-     * @var string
-     */
-    public $direccion;
-
-    /**
-     * Postal code of the contact.
-     *
-     * @var string
-     */
-    public $codpostal;
-
-    /**
-     * Contact city.
-     *
-     * @var string
-     */
-    public $ciudad;
-
-    /**
-     * Contact province.
-     *
-     * @var string
-     */
-    public $provincia;
-
-    /**
-     * Contact country.
-     *
-     * @var string
-     */
-    public $codpais;
 
     /**
      * True if it supports marketing, but False.
@@ -141,11 +39,25 @@ class Contacto
     public $admitemarketing;
 
     /**
-     * Contact's observations.
+     * Last name.
      *
      * @var string
      */
-    public $observaciones;
+    public $apellidos;
+
+    /**
+     * Contact charge.
+     *
+     * @var string
+     */
+    public $cargo;
+
+    /**
+     * Contact city.
+     *
+     * @var string
+     */
+    public $ciudad;
 
     /**
      * Associated employee has this contact. Agent model.
@@ -155,18 +67,122 @@ class Contacto
     public $codagente;
 
     /**
-     * Contact's date of registration.
+     * Contact country.
      *
      * @var string
      */
-    public $fechaalta;
+    public $codpais;
 
     /**
-     * Date of the last communication.
+     * Postal code of the contact.
      *
      * @var string
      */
-    public $ultima_comunicacion;
+    public $codpostal;
+
+    /**
+     * Address of the contact.
+     *
+     * @var string
+     */
+    public $direccion;
+
+    /**
+     * Contact company.
+     *
+     * @var string
+     */
+    public $empresa;
+
+    /**
+     * Primary key.
+     *
+     * @var int
+     */
+    public $idcontacto;
+
+    /**
+     * Last activity date.
+     *
+     * @var string
+     */
+    public $lastactivity;
+
+    /**
+     * Last IP used.
+     *
+     * @var string
+     */
+    public $lastip;
+
+    /**
+     * Session key, saved also in cookie. Regenerated when user log in.
+     *
+     * @var string
+     */
+    public $logkey;
+
+    /**
+     * Contact province.
+     *
+     * @var string
+     */
+    public $provincia;
+
+    /**
+     * TRUE if contact is verified.
+     *
+     * @var bool
+     */
+    public $verificado;
+
+    /**
+     * Reset the values of all model properties.
+     */
+    public function clear()
+    {
+        parent::clear();
+        $this->admitemarketing = false;
+        $this->codpais = AppSettings::get('default', 'codpais');
+        $this->verificado = false;
+    }
+
+    /**
+     * Generates a new login key for the user. It also updates lastactivity
+     * ans last IP.
+     *
+     * @param string $ipAddress
+     *
+     * @return string
+     */
+    public function newLogkey($ipAddress)
+    {
+        $this->lastactivity = date('d-m-Y H:i:s');
+        $this->lastip = $ipAddress;
+        $this->logkey = Utils::randomString(99);
+
+        return $this->logkey;
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idcontacto';
+    }
+
+    /**
+     * Returns the name of the column used to describe this item.
+     * 
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'email';
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -175,44 +191,35 @@ class Contacto
      */
     public static function tableName()
     {
-        return 'crm_contactos';
+        return 'contactos';
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
+     * Returns True if there is no errors on properties values.
      *
-     * @return string
+     * @return bool
      */
-    public function primaryColumn()
+    public function test()
     {
-        return 'codcontacto';
+        $this->apellidos = Utils::noHtml($this->apellidos);
+        $this->cargo = Utils::noHtml($this->cargo);
+        $this->ciudad = Utils::noHtml($this->ciudad);
+        $this->direccion = Utils::noHtml($this->direccion);
+        $this->empresa = Utils::noHtml($this->empresa);
+        $this->provincia = Utils::noHtml($this->provincia);
+
+        return parent::test();
     }
 
     /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->personafisica = true;
-        $this->admitemarketing = true;
-        $this->fechaalta = date('d-m-Y');
-        $this->ultima_comunicacion = date('d-m-Y');
-    }
-
-    /**
-     * Returns a summarized version of the observations.
+     * Verifies the login key.
      *
-     * @return string
+     * @param string $value
+     *
+     * @return bool
      */
-    public function observacionesResume()
+    public function verifyLogkey($value)
     {
-        if ($this->observaciones == '') {
-            return '-';
-        }
-        if (strlen($this->observaciones) < 60) {
-            return $this->observaciones;
-        }
-
-        return substr($this->observaciones, 0, 57) . '...';
+        return $this->logkey === $value;
     }
 }

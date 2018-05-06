@@ -1,8 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2016 Joe Nilson             <joenilson at gmail.com>
- * Copyright (C) 2017 Carlos García Gómez    <carlos@facturascripts.com>
+ * Copyright (C) 2016       Joe Nilson             <joenilson at gmail.com>
+ * Copyright (C) 2017-2018  Carlos García Gómez    <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -11,33 +11,33 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
+
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * Define a permission package to quickly assign users.
  *
- * @author Joe Nilson            <joenilson at gmail.com>
- * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Joe Nilson           <joenilson at gmail.com>
+ * @author Carlos García Gómez  <carlos@facturascripts.com>
  */
-class Role
+class Role extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        url as private traitUrl;
-    }
+    use Base\ModelTrait;
 
     /**
      * Role code.
      *
      * @var string
      */
-    public $codrol;
+    public $codrole;
 
     /**
      * Description of the role.
@@ -47,47 +47,48 @@ class Role
     public $descripcion;
 
     /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codrole';
+    }
+
+    /**
      * Returns the name of the table that uses this model.
      *
      * @return string
      */
     public static function tableName()
     {
-        return 'fs_roles';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codrol';
+        return 'roles';
     }
 
     /**
      * Returns True if there is no erros on properties values.
-     * Se ejecuta dentro del método save.
+     * It runs inside the save method.
      *
      * @return bool
      */
     public function test()
     {
-        $this->descripcion = self::noHtml($this->descripcion);
+        $this->descripcion = Utils::noHtml($this->descripcion);
 
-        return true;
+        return parent::test();
     }
 
     /**
-     * Returns the url where to see/modify the data.
+     * Returns the url where to see / modify the data.
      *
      * @param string $type
+     * @param string $list
      *
      * @return string
      */
-    public function url($type = 'auto')
+    public function url(string $type = 'auto', string $list = 'List')
     {
-        return $this->traitUrl($type, 'ListUser&active=List');
+        return parent::url($type, 'ListUser?active=List');
     }
 }

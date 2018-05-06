@@ -10,84 +10,49 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\App\AppSettings;
-use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController\GridDocumentInterface;
+use FacturaScripts\Core\Base\DataBase;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * The accounting entry. It is related to an exercise and consists of games.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Asiento
+class Asiento extends Base\ModelClass implements GridDocumentInterface
 {
 
-    use Base\ModelTrait {
-        saveInsert as private traitSaveInsert;
-    }
+    use Base\ModelTrait;
 
     /**
-     * Primary key.
-     *
-     * @var int
-     */
-    public $idasiento;
-
-    /**
-     * Seat number. It will be modified when renumbering.
-     *
-     * @var string
-     */
-    public $numero;
-
-    /**
-     * Identificacion de la empresa
-     *
-     * @var int
-     */
-    public $idempresa;
-
-    /**
-     * Identifier of the concept.
-     *
-     * @var int
-     */
-    public $idconcepto;
-
-    /**
-     * Seat concept.
-     *
-     * @var string
-     */
-    public $concepto;
-
-    /**
-     * Date of the seat.
-     *
-     * @var string
-     */
-    public $fecha;
-
-    /**
-     * Exercise code of the seat.
+     * Exercise code of the accounting entry.
      *
      * @var string
      */
     public $codejercicio;
 
     /**
-     * Seat plan code.
+     * Accounting entry concept.
      *
      * @var string
      */
-    public $codplanasiento;
+    public $concepto;
+
+    /**
+     * Document associated with the accounting entry.
+     *
+     * @var string
+     */
+    public $documento;
 
     /**
      * True if it is editable, but false.
@@ -97,59 +62,41 @@ class Asiento
     public $editable;
 
     /**
-     * Document associated with the seat.
+     * Date of the accounting entry.
      *
      * @var string
      */
-    public $documento;
+    public $fecha;
 
     /**
-     * Text that identifies the type of document
-           * 'Customer invoice' or 'Vendor invoice'.
+     * Primary key.
      *
-     * @var string
+     * @var int
      */
-    public $tipodocumento;
+    public $idasiento;
 
     /**
-     * Amount of the seat.
+     * Amount of the accounting entry.
      *
      * @var float|int
      */
     public $importe;
 
     /**
-     * Seat currency code.
+     * Accounting entry number. It will be modified when renumbering.
      *
      * @var string
      */
-    private $coddivisa;
+    public $numero;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Accumulate the amounts of the detail in the document
      *
-     * @return string
+     * @param array $detail
      */
-    public static function tableName()
+    public function accumulateAmounts(array &$detail)
     {
-        return 'co_asientos';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'idasiento';
-    }
-
-    public function install()
-    {
-        new Ejercicio();
-
-        return '';
+        $this->importe += round(floatval($detail['haber']), (int) FS_NF0);
     }
 
     /**
@@ -157,394 +104,165 @@ class Asiento
      */
     public function clear()
     {
+        parent::clear();
         $this->fecha = date('d-m-Y');
         $this->editable = true;
         $this->importe = 0.0;
     }
 
     /**
-     * Returns the invoice associated with the seat.
-     *
-     * @return bool|FacturaCliente|FacturaProveedor
+     * Execute a task with cron
      */
-    public function getFactura()
+    public function cronJob()
     {
-        if ($this->tipodocumento === 'Factura de cliente') {
-            $fac = new FacturaCliente();
-
-            return $fac->loadFromCode(null, [new DataBaseWhere('codigo', $this->documento)]);
-        }
-        if ($this->tipodocumento === 'Factura de proveedor') {
-            $fac = new FacturaProveedor();
-
-            return $fac->loadFromCode(null, [new DataBaseWhere('codigo', $this->documento)]);
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns the code of the currency.
-           * What happens is that this data is stored in the games, that's why
-           * you have to use this function.
-     *
-     * @return string|null
-     */
-    public function codDivisa()
-    {
-        if ($this->coddivisa === null) {
-            $this->coddivisa = AppSettings::get('default', 'coddivisa');
-
-            foreach ($this->getPartidas() as $par) {
-                if ($par->coddivisa) {
-                    $this->coddivisa = $par->coddivisa;
-                    break;
+        /**
+         * We block closed exercise accounting entry or within regularizations.
+         */
+        $eje0 = new Ejercicio();
+        $regiva0 = new RegularizacionImpuestos();
+        foreach ($eje0->all() as $ej) {
+            if ($ej instanceof Ejercicio && $ej->abierto()) {
+                foreach ($regiva0->all([new DataBase\DataBaseWhere('codejercicio', $ej->codejercicio)]) as $reg) {
+                    $sql = 'UPDATE ' . static::tableName() . ' SET editable = false WHERE editable = true'
+                        . ' AND codejercicio = ' . self::$dataBase->var2str($ej->codejercicio)
+                        . ' AND fecha >= ' . self::$dataBase->var2str($reg->fechainicio)
+                        . ' AND fecha <= ' . self::$dataBase->var2str($reg->fechafin) . ';';
+                    self::$dataBase->exec($sql);
                 }
+            } else {
+                $sql = 'UPDATE ' . static::tableName() . ' SET editable = false WHERE editable = true'
+                    . ' AND codejercicio = ' . self::$dataBase->var2str($ej->codejercicio) . ';';
+                self::$dataBase->exec($sql);
             }
         }
 
-        return $this->coddivisa;
+        echo self::$i18n->trans('renumber-accounting');
+        $this->renumber();
     }
 
     /**
-     * Returns all the items of the seat.
-     *
-     * @return Partida[]
-     */
-    public function getPartidas()
-    {
-        $partida = new Partida();
-
-        return $partida->all([new DataBaseWhere('idasiento', $this->idasiento)]);
-    }
-
-    /**
-     * We assign a number to the seat.
-     */
-    public function newNumero()
-    {
-        $this->numero = '1';
-        $sql = 'SELECT MAX(' . self::$dataBase->sql2Int('numero') . ') as num FROM ' . static::tableName()
-            . ' WHERE codejercicio = ' . self::$dataBase->var2str($this->codejercicio) . ';';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            $this->numero = (string) (1 + (int) $data[0]['num']);
-        }
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
+     * Remove the accounting entry.
      *
      * @return bool
      */
-    public function test()
+    public function delete()
     {
-        $this->concepto = self::noHtml($this->concepto);
-        $this->documento = self::noHtml($this->documento);
-
-        if (strlen($this->concepto) > 255) {
-            self::$miniLog->alert(self::$i18n->trans('concept-seat-too-large'));
-
+        $error = $this->deleteErrorDataExercise();
+        if (!empty($error)) {
+            self::$miniLog->alert($error);
             return false;
+        }
+
+        /// TODO: Check if accounting entry have VAT Accounts
+        $regularization = new RegularizacionImpuestos();
+        if ($regularization->getFechaInside($this->fecha)) {
+            self::$miniLog->alert(self::$i18n->trans('acounting-within-regularization', ['%tax%' => FS_IVA]));
+            return false;
+        }
+        unset($regularization);
+
+        /// We keep the list of accounting items and date for subsequent operations
+        $linesModel = new Partida();
+        $lines = $linesModel->all([new DataBase\DataBaseWhere('idasiento', $this->idasiento)]);
+        $date = $this->fecha;
+
+        /// Run main delete action
+        $inTransaction = self::$dataBase->inTransaction();
+        try {
+            if ($inTransaction === false) {
+                self::$dataBase->beginTransaction();
+            }
+
+            /// delete accounting entry and detail entries via FK
+            if (!parent::delete()) {
+                return false;
+            }
+
+            /// update accounts balances
+            $account = new Subcuenta();
+            foreach ($lines as $row) {
+                $account->idsubcuenta = $row->idsubcuenta;
+                if (!$account->updateBalance($date, ($row->debe * -1), ($row->haber * -1))) {
+                    return false;
+                }
+            }
+
+            /// save transaction
+            if ($inTransaction === false) {
+                self::$dataBase->commit();
+            }
+        } catch (\Exception $e) {
+            self::$miniLog->error($e->getMessage());
+            return false;
+        } finally {
+            if (!$inTransaction && self::$dataBase->inTransaction()) {
+                self::$dataBase->rollback();
+                return false;
+            }
         }
 
         return true;
     }
 
     /**
-     * Run a complete test of tests.
-     *
-     * @param bool $duplicados
-     *
-     * @return bool
+     * Initializes the total fields
      */
-    public function fullTest($duplicados = true)
+    public function initTotals()
     {
-        $status = true;
-
-        /*
-         * We check that the seat is not empty or unbalanced.
-                   * We also check that the subaccounts belong to the same fiscal year.
-         */
-        $debe = $haber = 0;
-        $partidas = $this->getPartidas();
-        if (!empty($partidas)) {
-            foreach ($partidas as $p) {
-                $debe += $p->debe;
-                $haber += $p->haber;
-
-                $sc = $p->getSubcuenta();
-                if ($sc) {
-                    if ($sc->codejercicio !== $this->codejercicio) {
-                        self::$miniLog->alert(self::$i18n->trans('subaccount-belongs-other-year', ['%subAccountCode%' => $sc->codsubcuenta]));
-                        $status = false;
-                    }
-                } else {
-                    self::$miniLog->alert(self::$i18n->trans('subaccount-not-found', ['%subAccountCode%' => $p->codsubcuenta]));
-                    $status = false;
-                }
-            }
-        }
-
-        if (!static::floatcmp($debe, $haber, FS_NF0, true)) {
-            self::$miniLog->alert(self::$i18n->trans('notchead-seat', [round($debe - $haber, FS_NF0 + 1)]));
-            $status = false;
-        } elseif (!static::floatcmp($this->importe, max([abs($debe), abs($haber)]), FS_NF0, true)) {
-            self::$miniLog->alert(self::$i18n->trans('incorrect-seat-amount'));
-            $status = false;
-        }
-
-        /// check that the date is correct
-        $ejercicio = new Ejercicio();
-        $eje0 = $ejercicio->get($this->codejercicio);
-        if ($eje0) {
-            if (strtotime($this->fecha) < strtotime($eje0->fechainicio) || strtotime($this->fecha) > strtotime($eje0->fechafin)) {
-                self::$miniLog->alert(self::$i18n->trans('seat-date-not-in-exercise-range', ['%link%' => $eje0->url()]));
-                $status = false;
-            }
-        }
-
-        if ($status && $duplicados) {
-            /// check if it is a duplicate
-            $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE fecha = ' . self::$dataBase->var2str($this->fecha) . '
-            AND concepto = ' . self::$dataBase->var2str($this->concepto) . ' AND importe = ' . self::$dataBase->var2str($this->importe) . '
-            AND idasiento != ' . self::$dataBase->var2str($this->idasiento) . ';';
-            $asientos = self::$dataBase->select($sql);
-            if (!empty($asientos)) {
-                foreach ($asientos as $as) {
-                    /// check the lines
-                    if (strtolower(FS_DB_TYPE) === 'mysql') {
-                        $sql = 'SELECT codsubcuenta,debe,haber,codcontrapartida,concepto
-                     FROM co_partidas WHERE idasiento = ' . self::$dataBase->var2str($this->idasiento) . '
-                     AND NOT EXISTS(SELECT codsubcuenta,debe,haber,codcontrapartida,concepto FROM co_partidas
-                     WHERE idasiento = ' . self::$dataBase->var2str($as['idasiento']) . ');';
-                        $aux = self::$dataBase->select($sql);
-                    } else {
-                        $sql = 'SELECT codsubcuenta,debe,haber,codcontrapartida,concepto
-                     FROM co_partidas WHERE idasiento = ' . self::$dataBase->var2str($this->idasiento) . '
-                     EXCEPT SELECT codsubcuenta,debe,haber,codcontrapartida,concepto FROM co_partidas
-                     WHERE idasiento = ' . self::$dataBase->var2str($as['idasiento']) . ';';
-                        $aux = self::$dataBase->select($sql);
-                    }
-
-                    if (empty($aux)) {
-                        self::$miniLog->alert(self::$i18n->trans('seat-possible-duplicated', ['%seatId%' => $as['idasiento']]));
-                        $status = false;
-                    }
-                }
-            }
-        }
-
-        return $status;
+        $this->importe = 0.00;
     }
 
     /**
-     * Apply corrections to the seat
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
      *
-     * @return bool
+     * @return string
      */
-    public function fix()
+    public function install()
     {
-        $importeOld = $this->importe;
-        $debe = $haber = 0;
-        foreach ($this->getPartidas() as $p) {
-            $debe += $p->debe;
-            $haber += $p->haber;
-        }
-        $total = $debe - $haber;
-        $this->importe = max([abs($debe), abs($haber)]);
+        new Ejercicio();
+        new SubcuentaSaldo();
 
-        /// we correct unbalances of less than 0.01
-        if (static::floatcmp($debe, $haber, 2)) {
-            $debe = $haber = 0;
-            $partidas = $this->getPartidas();
-            foreach ($partidas as $p) {
-                $p->debe = round($p->debe, 2, PHP_ROUND_HALF_EVEN);
-                $debe += $p->debe;
-                $p->haber = round($p->haber, 2, PHP_ROUND_HALF_EVEN);
-                $haber += $p->haber;
-            }
-
-            /// if with rounding the problem is solved, then great!
-            if (static::floatcmp($debe, $haber)) {
-                $this->importe = max([abs($debe), abs($haber)]);
-                foreach ($partidas as $p) {
-                    $p->save();
-                }
-            } else {
-                /// If it has not worked, we try to fix it
-                $total = 0;
-                $partidas = $this->getPartidas();
-                foreach ($partidas as $p) {
-                    $total += ($p->debe - $p->haber);
-                }
-
-                if ($partidas[0]->debe !== 0) {
-                    $partidas[0]->debe -= $total;
-                } elseif ($partidas[0]->haber !== 0) {
-                    $partidas[0]->haber += $total;
-                }
-
-                $debe = $haber = 0;
-                foreach ($partidas as $p) {
-                    $debe += $p->debe;
-                    $haber += $p->haber;
-                }
-
-                /// if we have solved the problem we recorded
-                if (static::floatcmp($debe, $haber)) {
-                    $this->importe = max([abs($debe), abs($haber)]);
-                    foreach ($partidas as $p) {
-                        $p->save();
-                    }
-                }
-            }
-        }
-
-        /// If the amount has changed, we keep it
-        if (!static::floatcmp($this->importe, $importeOld)) {
-            $this->save();
-        }
-
-        /// we check the associated invoice
-        $status = true;
-        $fac = $this->getFactura();
-        if ($fac && $fac->idasiento === null) {
-            $fac->idasiento = $this->idasiento;
-            $status = $fac->save();
-        }
-
-        if ($status) {
-            return $this->fullTest();
-        }
-
-        return false;
+        return '';
     }
 
     /**
-     * Remove the database entry.
+     * Returns the following code for the reported field or the primary key of the model.
      *
-     * @return bool
+     * @param string $field
+     * @param array $where
+     *
+     * @return int
      */
-    public function delete()
+    public function newCode(string $field = '', array $where = [])
     {
-        $bloquear = false;
-
-        $eje0 = new Ejercicio();
-        $ejercicio = $eje0->get($this->codejercicio);
-        if ($ejercicio) {
-            if ($this->idasiento === $ejercicio->idasientoapertura) {
-                /// we allow to eliminate the opening seat
-            } elseif ($this->idasiento === $ejercicio->idasientocierre) {
-                /// we allow to eliminate the closing seat
-            } elseif ($this->idasiento === $ejercicio->idasientopyg) {
-                /// we allow to eliminate the profit and loss statement
-            } elseif ($ejercicio->abierto()) {
-                $reg0 = new RegularizacionIva();
-                if ($reg0->getFechaInside($this->fecha)) {
-                    self::$miniLog->alert(self::$i18n->trans('seat-within-regularization', ['%tax%' => FS_IVA]));
-                    $bloquear = true;
-                }
-            } else {
-                self::$miniLog->alert(self::$i18n->trans('closed-exercise', ['%exerciseName%' => $ejercicio->nombre]));
-                $bloquear = true;
-            }
-        }
-
-        if ($bloquear) {
-            return false;
-        }
-
-        /// we unlink the invoice
-        $fac = $this->getFactura();
-        if ($fac) {
-            if ($fac->idasiento === $this->idasiento) {
-                $fac->idasiento = null;
-                $fac->save();
-            }
-        }
-
-        /// we eliminate the items one by one to force the updating of the associated subaccounts
-        foreach ($this->getPartidas() as $p) {
-            $p->delete();
-        }
-
-        $sql = 'DELETE FROM ' . static::tableName() . ' WHERE idasiento = ' . self::$dataBase->var2str($this->idasiento) . ';';
-
-        return self::$dataBase->exec($sql);
+        $where[] = new DataBase\DataBaseWhere('codejercicio', $this->codejercicio);
+        return parent::newCode($field, $where);
     }
 
     /**
-     * Returns an array with combinations containing $query in its number
-           * or concept or amount.
+     * Returns the name of the column that is the model's primary key.
      *
-     * @param string $query
-     * @param int    $offset
-     *
-     * @return self[]
+     * @return string
      */
-    public function search($query, $offset = 0)
+    public static function primaryColumn()
     {
-        $alist = [];
-        $query = self::noHtml(mb_strtolower($query, 'UTF8'));
-
-        $consulta = 'SELECT * FROM ' . static::tableName() . ' WHERE ';
-        if (is_numeric($query)) {
-            $auxSql = '';
-            if (strtolower(FS_DB_TYPE) === 'postgresql') {
-                $auxSql = '::TEXT';
-            }
-
-            $consulta .= 'numero' . $auxSql . " LIKE '%" . $query . "%' OR concepto LIKE '%" . $query
-                . "%' OR importe BETWEEN " . ($query - .01) . ' AND ' . ($query + .01);
-        } elseif (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/i', $query)) {
-            $consulta .= 'fecha = ' . self::$dataBase->var2str($query) . " OR concepto LIKE '%" . $query . "%'";
-        } else {
-            $consulta .= "lower(concepto) LIKE '%" . str_replace(' ', '%', $query) . "%'";
-        }
-        $consulta .= ' ORDER BY fecha DESC';
-
-        $data = self::$dataBase->selectLimit($consulta, FS_ITEM_LIMIT, $offset);
-        if (!empty($data)) {
-            foreach ($data as $a) {
-                $alist[] = new self($a);
-            }
-        }
-
-        return $alist;
+        return 'idasiento';
     }
 
     /**
-     * Returns a list of unbalanced entries.
+     * Returns the name of the column that describes the model, such as name, description...
      *
-     * @return array
+     * @return string
      */
-    public function descuadrados()
+    public function primaryDescriptionColumn()
     {
-        /// we started games to make sure that the table exists
-        new Partida();
-
-        $alist = [];
-        $sql = 'SELECT p.idasiento,SUM(p.debe) AS sdebe,SUM(p.haber) AS shaber
-         FROM co_partidas p, ' . static::tableName() . ' a
-          WHERE p.idasiento = a.idasiento
-           GROUP BY p.idasiento
-            HAVING ABS(SUM(p.haber) - SUM(p.debe)) > 0.01
-             ORDER BY p.idasiento DESC;';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $a) {
-                $alist[] = $this->get($a['idasiento']);
-            }
-        }
-
-        return $alist;
+        return 'numero';
     }
 
     /**
-     * Re-number the seats of the open exercises
+     * Re-number the accounting entries of the open exercises
      *
      * @return bool
      */
@@ -552,7 +270,7 @@ class Asiento
     {
         $continuar = false;
         $ejercicio = new Ejercicio();
-        foreach ($ejercicio->all([new DataBaseWhere('estado', 'ABIERTO')]) as $eje) {
+        foreach ($ejercicio->all([new DataBase\DataBaseWhere('estado', 'ABIERTO')]) as $eje) {
             $posicion = 0;
             $numero = 1;
             $sql = '';
@@ -589,45 +307,109 @@ class Asiento
     }
 
     /**
-     * Execute a task with cron
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
      */
-    public function cronJob()
+    public static function tableName()
     {
-        /**
-         * We block closed exercise seats or within regularizations.
-         */
-        $eje0 = new Ejercicio();
-        $regiva0 = new RegularizacionIva();
-        foreach ($eje0->all() as $ej) {
-            if ($ej instanceof Ejercicio && $ej->abierto()) {
-                foreach ($regiva0->all([new DataBaseWhere('codejercicio', $ej->codejercicio)]) as $reg) {
-                    $sql = 'UPDATE ' . static::tableName() . ' SET editable = false WHERE editable = true'
-                        . ' AND codejercicio = ' . self::$dataBase->var2str($ej->codejercicio)
-                        . ' AND fecha >= ' . self::$dataBase->var2str($reg->fechainicio)
-                        . ' AND fecha <= ' . self::$dataBase->var2str($reg->fechafin) . ';';
-                    self::$dataBase->exec($sql);
-                }
-            } else {
-                $sql = 'UPDATE ' . static::tableName() . ' SET editable = false WHERE editable = true'
-                    . ' AND codejercicio = ' . self::$dataBase->var2str($ej->codejercicio) . ';';
-                self::$dataBase->exec($sql);
-            }
+        return 'asientos';
+    }
+
+    /**
+     * Returns True if there is no errors on properties values.
+     *
+     * @return bool
+     */
+    public function test(): bool
+    {
+        $this->concepto = Utils::noHtml($this->concepto);
+        $this->documento = Utils::noHtml($this->documento);
+
+        if ($this->testErrorInData()) {
+            self::$miniLog->alert(self::$i18n->trans('accounting-data-missing'));
+            return false;
         }
 
-        echo self::$i18n->trans('renumber-accounting');
-        $this->renumber();
+        $error = $this->testErrorInExercise();
+        if (!empty($error)) {
+            self::$miniLog->alert(self::$i18n->trans($error));
+            return false;
+        }
+
+        if (strlen($this->concepto) > 255) {
+            self::$miniLog->alert(self::$i18n->trans('concept-too-large'));
+            return false;
+        }
+
+        return parent::test();
     }
-    /// Renumber all seats. Returns False in case of error
+
+    /**
+     * Check if accounty entry is a special entry or is in a closed fiscal year
+     */
+    private function deleteErrorDataExercise(): string
+    {
+        $exercise = new Ejercicio();
+        $exercise->loadFromCode($this->codejercicio);
+
+        if (!$exercise->abierto()) {
+            return self::$i18n->trans('closed-exercise', ['%exerciseName%' => $exercise->nombre]);
+        }
+
+        if (($this->idasiento === $exercise->idasientoapertura) && ($exercise->idasientopyg > 0)) {
+            return self::$i18n->trans('delete-aperture-error');
+        }
+
+        if (($this->idasiento === $exercise->idasientopyg) && ($exercise->idasientocierre > 0)) {
+            return self::$i18n->trans('delete-pyg-error');
+        }
+
+        return '';
+    }
+
+    /**
+     * Check if exists error in accounting entry
+     *
+     * @return bool
+     */
+    private function testErrorInData(): bool
+    {
+        return empty($this->concepto) || empty($this->fecha);
+    }
+
+    /**
+     * TODO: Uncomplete documentation
+     *
+     * @return string
+     */
+    private function testErrorInExercise(): string
+    {
+        $exerciseModel = new Ejercicio();
+        $exercise = $exerciseModel->getByFecha($this->fecha);
+        if (empty($exercise) || empty($exercise->codejercicio)) {
+            return 'exercise-data-missing';
+        }
+
+        if (!$exercise->abierto()) {
+            return 'exercise-closed';
+        }
+
+        // All Ok, get exercise code
+        $this->codejercicio = $exercise->codejercicio;
+        return '';
+    }
 
     /**
      * Insert the model data in the database.
      *
+     * @param array $values
+     *
      * @return bool
      */
-    private function saveInsert()
+    protected function saveInsert(array $values = []): bool
     {
-        $this->newNumero();
-
-        return $this->traitSaveInsert();
+        $this->numero = $this->newCode('numero');
+        return parent::saveInsert($values);
     }
 }

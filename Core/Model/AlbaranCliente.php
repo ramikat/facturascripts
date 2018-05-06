@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,15 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Dinamic\Model\LineaAlbaranCliente;
 
 /**
  * Customer's delivery note or delivery note. Represents delivery to a customer
@@ -27,10 +28,10 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class AlbaranCliente
+class AlbaranCliente extends Base\SalesDocument
 {
 
-    use Base\DocumentoVenta;
+    use Base\ModelTrait;
 
     /**
      * Primary key. Integer.
@@ -47,11 +48,62 @@ class AlbaranCliente
     public $idfactura;
 
     /**
-     * True => is pending invoice.
+     * Returns the lines associated with the delivery note.
      *
-     * @var bool
+     * @return LineaAlbaranCliente[]
      */
-    public $ptefactura;
+    public function getLines()
+    {
+        $lineaModel = new LineaAlbaranCliente();
+        $where = [new DataBaseWhere('idalbaran', $this->idalbaran)];
+        $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
+
+        return $lineaModel->all($where, $order, 0, 0);
+    }
+
+    /**
+     * Returns a new line for the document.
+     * 
+     * @param array $data
+     * 
+     * @return LineaAlbaranCliente
+     */
+    public function getNewLine(array $data = [])
+    {
+        $newLine = new LineaAlbaranCliente($data);
+        $newLine->idalbaran = $this->idalbaran;
+
+        $state = $this->getState();
+        $newLine->actualizastock = $state->actualizastock;
+
+        return $newLine;
+    }
+
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
+     */
+    public function install()
+    {
+        parent::install();
+
+        new FacturaCliente();
+
+        return '';
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idalbaran';
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -61,73 +113,5 @@ class AlbaranCliente
     public static function tableName()
     {
         return 'albaranescli';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'idalbaran';
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        /// we force the checking of the bill tablecli.
-        new FacturaCliente();
-
-        return '';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->clearDocumentoVenta();
-        $this->ptefactura = true;
-    }
-
-    /**
-     * Returns the lines associated with the delivery note.
-     *
-     * @return LineaAlbaranCliente[]
-     */
-    public function getLineas()
-    {
-        $lineaModel = new LineaAlbaranCliente();
-        return $lineaModel->all([new DataBaseWhere('idalbaran', $this->idalbaran)]);
-    }
-
-    /**
-     * Check the data of the delivery note, return True if they are correct.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        return $this->testTrait();
-    }
-
-    /**
-     * Execute a task with cron
-     */
-    public function cronJob()
-    {
-        /**
-         * We put to Null all the invoices that are not in invoices.
-         * Why? Because many users are dedicated to touching the database.
-         */
-        self::$dataBase->exec('UPDATE ' . static::tableName() . ' SET idfactura = NULL WHERE idfactura IS NOT NULL'
-            . ' AND idfactura NOT IN (SELECT idfactura FROM facturascli);');
     }
 }

@@ -10,54 +10,68 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Dinamic\Model\LineaFacturaCliente;
 
 /**
  * Invoice of a client.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class FacturaCliente
+class FacturaCliente extends Base\SalesDocument
 {
 
-    use Base\DocumentoVenta;
-    use Base\Factura;
+    use Base\ModelTrait;
+    use Base\InvoiceTrait;
 
     /**
-     * Optional identifier for printing. Still without use.
-     * Can be used to identify a form of printing and always use
-     * that in this invoice.
-     *
-     * @var int
+     * Reset the values of all model properties.
      */
-    public $idimprenta;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
+    public function clear()
     {
-        return 'facturascli';
+        parent::clear();
+        $this->anulada = false;
+        $this->pagada = false;
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
+     * Returns the lines associated with the invoice.
      *
-     * @return string
+     * @return LineaFacturaCliente[]
      */
-    public function primaryColumn()
+    public function getLines()
     {
-        return 'idfactura';
+        $lineaModel = new LineaFacturaCliente();
+        $where = [new DataBaseWhere('idfactura', $this->idfactura)];
+        $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
+
+        return $lineaModel->all($where, $order, 0, 0);
+    }
+
+    /**
+     * Returns a new line for the document.
+     * 
+     * @param array $data
+     * 
+     * @return LineaFacturaCliente
+     */
+    public function getNewLine(array $data = [])
+    {
+        $newLine = new LineaFacturaCliente($data);
+        $newLine->idfactura = $this->idfactura;
+
+        $state = $this->getState();
+        $newLine->actualizastock = $state->actualizastock;
+
+        return $newLine;
     }
 
     /**
@@ -69,215 +83,29 @@ class FacturaCliente
      */
     public function install()
     {
-        new Serie();
-        new Ejercicio();
+        parent::install();
         new Asiento();
-        
+
         return '';
     }
 
     /**
-     * Reset the values of all model properties.
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
      */
-    public function clear()
+    public static function primaryColumn()
     {
-        $this->clearDocumentoVenta();
-        $this->pagada = false;
-        $this->anulada = false;
-        $this->vencimiento = date('d-m-Y', strtotime('+1 day'));
+        return 'idfactura';
     }
 
     /**
-     * Returns true its expired, but false.
+     * Returns the name of the table that uses this model.
      *
-     * @return bool
+     * @return string
      */
-    public function vencida()
+    public static function tableName()
     {
-        return ($this->pagada) ? false : strtotime($this->vencimiento) < strtotime(date('d-m-Y'));
-    }
-
-    /**
-     * Set the date and time, but respecting the numbering, the exercise
-     * and VAT regularizations.
-     * Returns True if a different date is assigned to those requested.
-     *
-     * @param string $fecha
-     * @param string $hora
-     *
-     * @return bool
-     */
-    public function setFechaHora($fecha, $hora)
-    {
-        $cambio = false;
-
-        if ($this->numero === null) { /// new invoice
-            /// we look for the last date used in an invoice in this series and exercise
-            $sql = 'SELECT MAX(fecha) AS fecha FROM ' . static::tableName()
-                . ' WHERE codserie = ' . self::$dataBase->var2str($this->codserie)
-                . ' AND codejercicio = ' . self::$dataBase->var2str($this->codejercicio) . ';';
-
-            $data = self::$dataBase->select($sql);
-            if (!empty($data)) {
-                if (strtotime($data[0]['fecha']) > strtotime($fecha)) {
-                    $fechaOld = $fecha;
-                    $fecha = date('d-m-Y', strtotime($data[0]['fecha']));
-
-                    self::$miniLog->alert(self::$i18n->trans('invoice-new-assigned-date', ['%oldDate%' => $fechaOld, '%newDate%' => $fecha]));
-                    $cambio = true;
-                }
-            }
-
-            /// now we look for the last hour used for that date, series and exercise
-            $sql = 'SELECT MAX(hora) AS hora FROM ' . static::tableName()
-                . ' WHERE codserie = ' . self::$dataBase->var2str($this->codserie)
-                . ' AND codejercicio = ' . self::$dataBase->var2str($this->codejercicio)
-                . ' AND fecha = ' . self::$dataBase->var2str($fecha) . ';';
-
-            $data = self::$dataBase->select($sql);
-            if (!empty($data)) {
-                if (strtotime($data[0]['hora']) > strtotime($hora) || $cambio) {
-                    $hora = date('H:i:s', strtotime($data[0]['hora']));
-                    $cambio = true;
-                }
-            }
-
-            $this->fecha = $fecha;
-            $this->hora = $hora;
-        } elseif ($fecha !== $this->fecha) { /// existing invoice and change date
-            $cambio = true;
-
-            $eje0 = new Ejercicio();
-            $ejercicio = $eje0->get($this->codejercicio);
-            if ($ejercicio) {
-                if (!$ejercicio->abierto()) {
-                    self::$miniLog->alert(self::$i18n->trans('closed-exercise-cant-change-date', ['%exerciseName%' => $ejercicio->nombre]));
-                } elseif ($fecha === $ejercicio->get_best_fecha($fecha)) {
-                    $regiva0 = new RegularizacionIva();
-                    if ($regiva0->getFechaInside($fecha)) {
-                        self::$miniLog->alert(self::$i18n->trans('cant-assign-date-already-regularized', ['%date%' => $fecha, '%tax%' => FS_IVA]));
-                    } elseif ($regiva0->getFechaInside($this->fecha)) {
-                        self::$miniLog->alert(self::$i18n->trans('invoice-regularized-cant-change-date', ['%tax%' => FS_IVA]));
-                    } else {
-                        $this->fecha = $fecha;
-                        $this->hora = $hora;
-                        $cambio = false;
-                    }
-                } else {
-                    self::$miniLog->alert(self::$i18n->trans('date-out-of-exercise-range', ['%exerciseName%' => $ejercicio->nombre]));
-                }
-            } else {
-                self::$miniLog->alert(self::$i18n->trans('exercise-not-found'));
-            }
-        } elseif ($hora !== $this->hora) { /// existing invoice and we change hour
-            $this->hora = $hora;
-        }
-
-        return $cambio;
-    }
-
-    /**
-     * Returns the lines associated with the invoice.
-     *
-     * @return LineaFacturaCliente[]
-     */
-    public function getLineas()
-    {
-        $lineaModel = new LineaFacturaCliente();
-        return $lineaModel->all([new DataBaseWhere('idfactura', $this->idfactura)]);
-    }
-
-    /**
-     * Returns the VAT lines of the invoice.
-     * If there are not, create them.
-     *
-     * @return LineaIvaFacturaCliente[]
-     */
-    public function getLineasIva()
-    {
-        return $this->getLineasIvaTrait('FacturaCliente');
-    }
-
-    /**
-     * Check the invoice data, return True if correct.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        return $this->testTrait();
-    }
-
-    /**
-     * Remove an invoice and update the records related to it.
-     *
-     * @return bool
-     */
-    public function delete()
-    {
-        $bloquear = false;
-
-        $eje0 = new Ejercicio();
-        $ejercicio = $eje0->get($this->codejercicio);
-        if ($ejercicio) {
-            if ($ejercicio->abierto()) {
-                $reg0 = new RegularizacionIva();
-                if ($reg0->getFechaInside($this->fecha)) {
-                    self::$miniLog->alert(self::$i18n->trans('invoice-regularized-cant-delete', ['%tax%' => FS_IVA]));
-                    $bloquear = true;
-                } else {
-                    foreach ($this->getRectificativas() as $rect) {
-                        self::$miniLog->alert(self::$i18n->trans('invoice-have-rectifying-cant-delete'));
-                        $bloquear = true;
-                        break;
-                    }
-                }
-            } else {
-                self::$miniLog->alert(self::$i18n->trans('closed-exercise', ['%exerciseName%' => $ejercicio->nombre]));
-                $bloquear = true;
-            }
-        }
-
-        /// unlink associated delivery notes and eliminate invoice
-        $sql = 'UPDATE albaranescli'
-            . ' SET idfactura = NULL, ptefactura = TRUE WHERE idfactura = ' . self::$dataBase->var2str($this->idfactura) . ';'
-            . 'DELETE FROM ' . static::tableName() . ' WHERE idfactura = ' . self::$dataBase->var2str($this->idfactura) . ';';
-
-        if ($bloquear) {
-            return false;
-        }
-        if (self::$dataBase->exec($sql)) {
-            if ($this->idasiento) {
-                /**
-                 * We delegate the elimination of the seats in the corresponding class.
-                 */
-                $asiento = new Asiento();
-                $asi0 = $asiento->get($this->idasiento);
-                if ($asi0) {
-                    $asi0->delete();
-                }
-
-                $asi1 = $asiento->get($this->idasientop);
-                if ($asi1) {
-                    $asi1->delete();
-                }
-            }
-
-            self::$miniLog->info(self::$i18n->trans('customer-invoice-deleted-successfully', ['%docCode%' => $this->codigo]));
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns an array with the gaps in the numbering.
-     *
-     * @return mixed
-     */
-    public function huecos()
-    {
-        return [];
+        return 'facturascli';
     }
 }

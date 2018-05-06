@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\Dashboard;
 
@@ -28,6 +28,7 @@ use FacturaScripts\Core\Model;
  */
 class MessagesComponent extends BaseComponent implements ComponentInterface
 {
+
     /**
      * List of dashboard cards.
      *
@@ -39,7 +40,7 @@ class MessagesComponent extends BaseComponent implements ComponentInterface
      * MessagesComponent constructor.
      *
      * @param Model\DashboardData $data
-     * @param string $userNick
+     * @param string              $userNick
      */
     public function __construct($data, $userNick)
     {
@@ -57,7 +58,7 @@ class MessagesComponent extends BaseComponent implements ComponentInterface
         return [
             'description' => '',
             'color' => 'info',
-            'link' => ''
+            'link' => '',
         ];
     }
 
@@ -101,9 +102,9 @@ class MessagesComponent extends BaseComponent implements ComponentInterface
         }
 
         $newItem->properties = [
-                'color' => $data['color'],
-                'description' => $data['description'],
-                'link' => $data['link']
+            'color' => $data['color'],
+            'description' => $data['description'],
+            'link' => $data['link'],
         ];
 
         $newItem->save();
@@ -128,6 +129,6 @@ class MessagesComponent extends BaseComponent implements ComponentInterface
      */
     public function url($id)
     {
-        return 'index.php?page=EditDashboardData&code=' . $id;
+        return 'EditDashboardData?code=' . $id;
     }
 }

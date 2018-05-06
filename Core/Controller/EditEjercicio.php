@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
@@ -23,7 +23,7 @@ use FacturaScripts\Core\Lib\Accounting\AccountingPlanImport;
 use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
- * Controller to edit a single item from the Familia model
+ * Controller to edit a single item from the Ejercicio model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
@@ -31,43 +31,6 @@ use FacturaScripts\Core\Lib\ExtendedController;
  */
 class EditEjercicio extends ExtendedController\PanelController
 {
-
-    /**
-     * Load views.
-     */
-    protected function createViews()
-    {
-        $this->addEditView('\FacturaScripts\Dinamic\Model\Ejercicio', 'EditEjercicio', 'exercise');
-        $this->addListView('\FacturaScripts\Dinamic\Model\GrupoEpigrafes', 'ListGrupoEpigrafes', 'epigraphs-group');
-        $this->addListView('\FacturaScripts\Dinamic\Model\Epigrafe', 'ListEpigrafe', 'epigraphs');
-        $this->addListView('\FacturaScripts\Dinamic\Model\Cuenta', 'ListCuenta', 'accounts', 'fa-book');
-        $this->addListView('\FacturaScripts\Dinamic\Model\Subcuenta', 'ListSubcuenta', 'subaccount');
-    }
-
-    /**
-     * Load view data procedure
-     *
-     * @param string $keyView
-     * @param ExtendedController\EditView $view
-     */
-    protected function loadData($keyView, $view)
-    {
-        switch ($keyView) {
-            case 'EditEjercicio':
-                $code = $this->request->get('code');
-                $view->loadData($code);
-                break;
-
-            case 'ListGrupoEpigrafes':
-            case 'ListEpigrafe':
-            case 'ListCuenta':
-            case 'ListSubcuenta':
-                $codejercicio = $this->getViewModelValue('EditEjercicio', 'codejercicio');
-                $where = [new DataBaseWhere('codejercicio', $codejercicio)];
-                $view->loadData(false, $where);
-                break;
-        }
-    }
 
     /**
      * Returns basic page attributes
@@ -85,7 +48,53 @@ class EditEjercicio extends ExtendedController\PanelController
         return $pagedata;
     }
 
-    protected function execAfterAction($view, $action)
+    /**
+     * Load views.
+     */
+    protected function createViews()
+    {
+        $this->addEditView('EditEjercicio', 'Ejercicio', 'exercise');
+        $this->addListView('ListCuenta', 'Cuenta', 'accounts', 'fa-book');
+        $this->addListView('ListSubcuenta', 'Subcuenta', 'subaccount');
+
+        /// Disable columns
+        $this->views['ListCuenta']->disableColumn('fiscal-exercise', true);
+        $this->views['ListSubcuenta']->disableColumn('fiscal-exercise', true);
+    }
+
+    /**
+     * Load view data procedure
+     *
+     * @param string                      $viewName
+     * @param ExtendedController\EditView $view
+     */
+    protected function loadData($viewName, $view)
+    {
+        $codejercicio = $this->getViewModelValue('EditEjercicio', 'codejercicio');
+        $where = [new DataBaseWhere('codejercicio', $codejercicio)];
+
+        switch ($viewName) {
+            case 'EditEjercicio':
+                $code = $this->request->get('code');
+                $view->loadData($code);
+                break;
+
+            case 'ListCuenta':
+                $view->loadData(false, $where, ['codcuenta' => 'ASC']);
+                break;
+
+            case 'ListSubcuenta':
+                $view->loadData(false, $where, ['codsubcuenta' => 'ASC']);
+                break;
+        }
+    }
+
+    /**
+     * Run the controller after actions
+     *
+     * @param string $action
+     */
+    protected function execAfterAction($action)
     {
         switch ($action) {
             case 'import-accounting':
@@ -93,10 +102,15 @@ class EditEjercicio extends ExtendedController\PanelController
                 break;
 
             default:
-                parent::execAfterAction($view, $action);
+                parent::execAfterAction($action);
         }
     }
 
+    /**
+     * Import AccountingPlan from any supported file type.
+     *
+     * @return bool
+     */
     private function importAccountingPlan()
     {
         $accountingPlanImport = new AccountingPlanImport();
@@ -104,15 +118,17 @@ class EditEjercicio extends ExtendedController\PanelController
         $uploadFile = $this->request->files->get('accountingfile', false);
         if ($uploadFile === false) {
             $this->miniLog->alert($this->i18n->trans('file-not-found', ['%fileName%' => '']));
+
             return false;
         }
-
         switch ($uploadFile->getMimeType()) {
             case 'application/xml':
+            case 'text/xml':
                 $accountingPlanImport->importXML($uploadFile->getPathname(), $codejercicio);
                 break;
 
             case 'text/csv':
+            case 'text/plain':
                 $accountingPlanImport->importCSV($uploadFile->getPathname(), $codejercicio);
                 break;
 

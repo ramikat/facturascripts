@@ -1,8 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2014-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
- * Copyright (C) 2017  Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez     <carlos@facturascripts.com>
+ * Copyright (C) 2017       Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -11,45 +11,61 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
+
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A state associated with documents to distinguish them by groups.
  * For example: Earrings, Approved, ...
  *
  * @author Francesc Pineda Segarra <francesc.pìneda.segarra@gmail.com>
+ * @author Carlos García Gómez     <carlos@facturascripts.com>
  */
-class EstadoDocumento
+class EstadoDocumento extends Base\ModelClass
 {
 
     use Base\ModelTrait;
+
+    /**
+     * True if this states must update product stock.
+     *
+     * @var int
+     */
+    public $actualizastock;
+
+    /**
+     *
+     * @var bool
+     */
+    public $bloquear;
+
+    /**
+     * If the state is editable or not.
+     *
+     * @var bool
+     */
+    public $editable;
+
+    /**
+     * Name of the document to generate when this state is selected.
+     *
+     * @var string
+     */
+    public $generadoc;
 
     /**
      * Primary key.
      *
      * @var int
      */
-    public $id;
-
-    /**
-     * Document type.
-     *
-     * @var string
-     */
-    public $documento;
-
-    /**
-     * Status number.
-     *
-     * @var int
-     */
-    public $status;
+    public $idestado;
 
     /**
      * Name of the state to show the user.
@@ -59,11 +75,80 @@ class EstadoDocumento
     public $nombre;
 
     /**
-     * If the state is blocked or not.
+     * Sets this state as default for tipodoc.
      *
      * @var bool
      */
-    public $bloquedo;
+    public $predeterminado;
+
+    /**
+     * Document type: custommer invoice, supplier order, etc...
+     * @var string
+     */
+    public $tipodoc;
+
+    /**
+     * Reset the values of all model properties.
+     */
+    public function clear()
+    {
+        parent::clear();
+        $this->actualizastock = 0;
+        $this->bloquear = false;
+        $this->editable = true;
+        $this->predeterminado = false;
+        $this->tipodoc = 'PedidoProveedor';
+    }
+
+    /**
+     * 
+     * @return boolean
+     */
+    public function delete()
+    {
+        if ($this->bloquear) {
+            self::$miniLog->alert(self::$i18n->trans('locked'));
+            return false;
+        }
+
+        return parent::delete();
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idestado';
+    }
+
+    /**
+     * 
+     * @return boolean
+     */
+    public function save()
+    {
+        if ($this->bloquear) {
+            self::$miniLog->alert(self::$i18n->trans('locked'));
+            return false;
+        }
+
+        if (parent::save()) {
+            if ($this->predeterminado) {
+                $sql = "UPDATE " . static::tableName() . " SET predeterminado = false"
+                    . " WHERE predeterminado = true"
+                    . " AND tipodoc = " . self::$dataBase->var2str($this->tipodoc)
+                    . " AND idestado != " . self::$dataBase->var2str($this->idestado) . ";";
+                return self::$dataBase->exec($sql);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -76,94 +161,18 @@ class EstadoDocumento
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'id';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->id = null;
-        $this->documento = null;
-        $this->status = null;
-        $this->nombre = null;
-        $this->bloqueado = null;
-    }
-
-    /**
      * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
     public function test()
     {
-        $status = false;
+        $this->nombre = Utils::noHtml($this->nombre);
 
-        $this->documento = self::noHtml($this->documento);
-        $this->nombre = self::noHtml($this->nombre);
-
-        $docLength = strlen($this->documento);
-        $nameLength = strlen($this->nombre);
-        if ($docLength < 1 || $docLength > 20) {
-            self::$miniLog->alert(self::$i18n->trans('document-type-valid-length'));
-        } elseif ($nameLength < 1 || $nameLength > 20) {
-            self::$miniLog->alert(self::$i18n->trans('status-name-valid-length'));
-        } elseif (!is_numeric($this->status)) {
-            self::$miniLog->alert(self::$i18n->trans('status-value-is-number'));
-        } else {
-            $status = true;
+        if (empty($this->tipodoc) || empty($this->nombre)) {
+            return false;
         }
 
-        return $status;
-    }
-
-    /**
-     * Returns an array with the states for the indicated document type.
-     *
-     * @param $doc
-     *
-     * @return array
-     */
-    public function getByDocument($doc)
-    {
-        $list = [];
-
-        $sql = 'SELECT * FROM ' . static::tableName()
-            . ' WHERE documento = ' . self::$dataBase->var2str($doc) . ' ORDER BY id ASC;';
-        $data = self::$dataBase->select($sql);
-        if ($data) {
-            foreach ($data as $d) {
-                $list[] = new self($d);
-            }
-        }
-
-        return $list;
-    }
-
-    /**
-     * Returns an array with all states.
-     *
-     * @return array
-     */
-    public function allDocumentTypes()
-    {
-        $list = [];
-
-        $sql = 'SELECT DISTINCT(documento) FROM ' . static::tableName() . ' ORDER BY id ASC;';
-        $data = self::$dataBase->select($sql);
-        if ($data) {
-            foreach ($data as $d) {
-                $list[] = $d['documento'];
-            }
-        }
-
-        return $list;
+        return parent::test();
     }
 }

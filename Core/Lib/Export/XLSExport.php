@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\Export;
 
@@ -29,8 +29,6 @@ use Symfony\Component\HttpFoundation\Response;
 class XLSExport implements ExportInterface
 {
 
-    use Base\Utils;
-
     const LIST_LIMIT = 1000;
 
     /**
@@ -43,32 +41,39 @@ class XLSExport implements ExportInterface
     /**
      * Return the full document.
      *
-     * @return bool|string
+     * @return string
      */
     public function getDoc()
     {
-        return $this->writer->writeToString();
+        return (string) $this->writer->writeToString();
     }
 
     /**
-     * Create the document and set headers.
-     *
-     * @param Response $response
+     * Blank document.
      */
-    public function newDoc(&$response)
+    public function newDoc()
     {
-        $response->headers->set('Content-Type', 'text/vnd.ms-excel; charset=utf-8');
-        $response->headers->set('Content-Disposition', 'attachment;filename=doc.xlsx');
-
         $this->writer = new \XLSXWriter();
         $this->writer->setAuthor('FacturaScripts');
     }
 
     /**
+     * Set headers and output document content to response.
+     *
+     * @param Response $response
+     */
+    public function show(Response &$response)
+    {
+        $response->headers->set('Content-Type', 'text/vnd.ms-excel; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment;filename=doc.xlsx');
+        $response->setContent($this->getDoc());
+    }
+
+    /**
      * Adds a new page with the model data.
      *
-     * @param mixed $model
-     * @param array $columns
+     * @param mixed  $model
+     * @param array  $columns
      * @param string $title
      */
     public function generateModelPage($model, $columns, $title = '')
@@ -86,12 +91,12 @@ class XLSExport implements ExportInterface
     /**
      * Adds a new page with a table listing all models data.
      *
-     * @param mixed $model
+     * @param mixed                         $model
      * @param Base\DataBase\DataBaseWhere[] $where
-     * @param array $order
-     * @param int $offset
-     * @param array $columns
-     * @param string $title
+     * @param array                         $order
+     * @param int                           $offset
+     * @param array                         $columns
+     * @param string                        $title
      */
     public function generateListModelPage($model, $where, $order, $offset, $columns, $title = '')
     {
@@ -124,28 +129,27 @@ class XLSExport implements ExportInterface
      */
     public function generateDocumentPage($model)
     {
-        /// TODO: Uncomplete
         $tableData = [];
         foreach ((array) $model as $key => $value) {
             if (is_string($value)) {
                 $tableData[] = ['key' => $key, 'value' => $value];
             }
         }
-        
+
         $this->writer->writeSheet($tableData, 'doc', ['key' => 'string', 'value' => 'string']);
     }
 
     /**
      * Adds a new page with the table.
-     * 
+     *
      * @param array $headers
      * @param array $rows
      */
     public function generateTablePage($headers, $rows)
     {
         $this->writer->writeSheetRow('sheet1', $headers);
-        
-        foreach($rows as $row){
+
+        foreach ($rows as $row) {
             $this->writer->writeSheetRow('sheet1', $row);
         }
     }

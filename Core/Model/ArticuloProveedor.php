@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -23,26 +23,10 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class ArticuloProveedor
+class ArticuloProveedor extends Base\Product
 {
 
-    use Base\ModelTrait {
-        url as private traitUrl;
-    }
-
-    /**
-     * Primary key.
-     *
-     * @var int
-     */
-    public $id;
-
-    /**
-     * Referencia del artículo en nuestro catálogo. Puede no estar actualmente.
-     *
-     * @var string
-     */
-    public $referencia;
+    use Base\ModelTrait;
 
     /**
      * Código del proveedor asociado.
@@ -52,18 +36,18 @@ class ArticuloProveedor
     public $codproveedor;
 
     /**
-     * Referencia del artículo para el proveedor.
+     * Descuento sobre el precio que nos hace el proveedor.
      *
-     * @var string
+     * @var float|int
      */
-    public $refproveedor;
+    public $dto;
 
     /**
-     * Descripción del artículo
+     * Primary key.
      *
-     * @var string
+     * @var int
      */
-    public $descripcion;
+    public $id;
 
     /**
      * Precio neto al que nos ofrece el proveedor este producto.
@@ -73,65 +57,20 @@ class ArticuloProveedor
     public $precio;
 
     /**
-     * Descuento sobre el precio que nos hace el proveedor.
-     *
-     * @var float|int
-     */
-    public $dto;
-
-    /**
-     * Impuesto asignado. Clase impuesto.
+     * Referencia del artículo para el proveedor.
      *
      * @var string
      */
-    public $codimpuesto;
+    public $refproveedor;
 
     /**
-     * Stock del artículo en el almacén del proveedor.
-     *
-     * @var float|int
+     * Reset the values of all model properties.
      */
-    public $stock;
-
-    /**
-     * True -> The item does not offer stock.
-     *
-     * @var bool
-     */
-    public $nostock;
-
-    /**
-     * Barcode of the article.
-     *
-     * @var string
-     */
-    public $codbarras;
-
-    /**
-     * Part Number.
-     *
-     * @var string
-     */
-    public $partnumber;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
+    public function clear()
     {
-        return 'articulosprov';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'id';
+        parent::clear();
+        $this->precio = 0.0;
+        $this->dto = 0.0;
     }
 
     /**
@@ -150,68 +89,35 @@ class ArticuloProveedor
     }
 
     /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->id = null;
-        $this->referencia = null;
-        $this->codproveedor = null;
-        $this->refproveedor = null;
-        $this->descripcion = null;
-        $this->precio = 0;
-        $this->dto = 0;
-        $this->codimpuesto = null;
-        $this->stock = 0;
-        $this->nostock = true;
-        $this->codbarras = null;
-        $this->partnumber = null;
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $this->descripcion = self::noHtml($this->descripcion);
-
-        if ($this->nostock) {
-            $this->stock = 0;
-        }
-
-        if ($this->refproveedor === null || empty($this->refproveedor) || strlen($this->refproveedor) > 25) {
-            self::$miniLog->alert(self::$i18n->trans('supplier-reference-valid-length'));
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Returns the url where to see/modify the data.
-     *
-     * @param string $type
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
-    public function url($type = 'auto')
+    public static function primaryColumn()
     {
-        return $this->traitUrl($type, 'ListArticulo&active=List');
+        return 'id';
     }
 
     /**
-     * Apply corrections to the table.
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
      */
-    public function fixDb()
+    public static function tableName()
     {
-        $fixes = [
-            'DELETE FROM articulosprov WHERE codproveedor NOT IN (SELECT codproveedor FROM proveedores);',
-            'UPDATE articulosprov SET refproveedor = referencia WHERE refproveedor IS NULL;',
-        ];
-        foreach ($fixes as $sql) {
-            self::$dataBase->exec($sql);
-        }
+        return 'articulosprov';
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return parent::url($type, 'ListArticulo?active=List');
     }
 }

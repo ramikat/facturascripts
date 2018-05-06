@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,17 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Base;
 
 use FacturaScripts\Core\Lib\AssetManager;
 use FacturaScripts\Core\Model;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -63,20 +62,6 @@ class Controller
     protected $dataBase;
 
     /**
-     * Event manager.
-     *
-     * @var EventDispatcher
-     */
-    protected $dispatcher;
-
-    /**
-     * Tools to work with currencies.
-     *
-     * @var DivisaTools
-     */
-    public $divisaTools;
-
-    /**
      * Selected company.
      *
      * @var Model\Empresa|false
@@ -98,16 +83,9 @@ class Controller
     protected $miniLog;
 
     /**
-     * Tools to work with numbers.
-     *
-     * @var NumberTools
-     */
-    public $numberTools;
-    
-    /**
      * User permissions on this controller.
-     * 
-     * @var ControllerPermissions 
+     *
+     * @var ControllerPermissions
      */
     public $permissions;
 
@@ -128,7 +106,7 @@ class Controller
     /**
      * Name of the file for the template.
      *
-     * @var string|false nombre_archivo.html
+     * @var string|false nombre_archivo.html.twig
      */
     private $template;
 
@@ -140,6 +118,13 @@ class Controller
     public $title;
 
     /**
+     * Given uri, default is empty.
+     *
+     * @var string
+     */
+    public $uri;
+
+    /**
      * User logged in.
      *
      * @var Model\User
@@ -149,30 +134,26 @@ class Controller
     /**
      * Initialize all objects and properties.
      *
-     * @param Cache $cache
+     * @param Cache      $cache
      * @param Translator $i18n
-     * @param MiniLog $miniLog
-     * @param string $className
+     * @param MiniLog    $miniLog
+     * @param string     $className
+     * @param string     $uri
      */
-    public function __construct(&$cache, &$i18n, &$miniLog, $className)
+    public function __construct(&$cache, &$i18n, &$miniLog, $className, $uri = '')
     {
         $this->assets = AssetManager::getAssetsForPage($className);
         $this->cache = &$cache;
         $this->className = $className;
         $this->dataBase = new DataBase();
-        $this->dispatcher = new EventDispatcher();
-        $this->divisaTools = new DivisaTools();
         $this->i18n = &$i18n;
         $this->miniLog = &$miniLog;
-        $this->numberTools = new NumberTools();
         $this->request = Request::createFromGlobals();
-        $this->template = $this->className . '.html';
+        $this->template = $this->className . '.html.twig';
+        $this->uri = $uri;
 
-        $this->title = $this->className;
         $pageData = $this->getPageData();
-        if (!empty($pageData)) {
-            $this->title = $pageData['title'];
-        }
+        $this->title = empty($pageData) ? $this->className : $pageData['title'];
     }
 
     /**
@@ -183,51 +164,6 @@ class Controller
     protected function getClassName()
     {
         return $this->className;
-    }
-
-    /**
-     * Return the template to use for this controller.
-     *
-     * @return string|false
-     */
-    public function getTemplate()
-    {
-        return $this->template;
-    }
-
-    /**
-     * Returns a field value for the loaded data model
-     *
-     * @param mixed $model
-     * @param string $fieldName
-     *
-     * @return mixed
-     */
-    public function getFieldValue($model, $fieldName)
-    {
-        if (isset($model->{$fieldName})) {
-            return $model->{$fieldName};
-        }
-
-        return null;
-    }
-
-    /**
-     * Set the template to use for this controller.
-     *
-     * @param string|false $template
-     *
-     * @return bool
-     */
-    public function setTemplate($template)
-    {
-        if ($template === false) {
-            $this->template = false;
-            return true;
-        }
-
-        $this->template = $template . '.html';
-        return true;
     }
 
     /**
@@ -244,37 +180,25 @@ class Controller
             'menu' => 'new',
             'submenu' => null,
             'showonmenu' => true,
-            'orden' => 100,
+            'ordernum' => 100,
         ];
     }
 
     /**
-     * Return the URL of the actual controller.
+     * Return the template to use for this controller.
      *
-     * @return string
+     * @return string|false
      */
-    public function url()
+    public function getTemplate()
     {
-        return 'index.php?page=' . $this->className;
-    }
-
-    /**
-     * Execute the public part of the controller.
-     *
-     * @param Response $response
-     */
-    public function publicCore(&$response)
-    {
-        $this->response = &$response;
-        $this->template = 'Login/Login.html';
-        $this->dispatcher->dispatch('pre-publicCore');
+        return $this->template;
     }
 
     /**
      * Runs the controller's private logic.
      *
-     * @param Response $response
-     * @param Model\User $user
+     * @param Response              $response
+     * @param Model\User            $user
      * @param ControllerPermissions $permissions
      */
     public function privateCore(&$response, $user, $permissions)
@@ -298,7 +222,46 @@ class Controller
             $this->response->headers->setCookie(new Cookie('fsHomepage', $this->user->homepage, time() - FS_COOKIES_EXPIRE));
             $this->user->save();
         }
+    }
 
-        $this->dispatcher->dispatch('pre-privateCore');
+    /**
+     * Execute the public part of the controller.
+     *
+     * @param Response $response
+     */
+    public function publicCore(&$response)
+    {
+        $this->response = &$response;
+        $this->template = 'Login/Login.html.twig';
+    }
+
+    /**
+     * Set the template to use for this controller.
+     *
+     * @param string|false $template
+     *
+     * @return bool
+     */
+    public function setTemplate($template)
+    {
+        if ($template === false) {
+            $this->template = false;
+
+            return true;
+        }
+
+        $this->template = $template . '.html.twig';
+
+        return true;
+    }
+
+    /**
+     * Return the URL of the actual controller.
+     *
+     * @return string
+     */
+    public function url()
+    {
+        return $this->className;
     }
 }

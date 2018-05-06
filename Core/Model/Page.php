@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -23,7 +23,7 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Page
+class Page extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -59,7 +59,7 @@ class Page
 
     /**
      * Indicates if it is displayed in the menu.
-     * False -> hide in the menu.
+     * False -> hide in the menu.
      *
      * @var bool
      */
@@ -70,7 +70,7 @@ class Page
      *
      * @var int
      */
-    public $orden;
+    public $ordernum;
 
     /**
      * Icon of the page.
@@ -80,23 +80,13 @@ class Page
     public $icon;
 
     /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
+     * Reset the values of all model properties.
      */
-    public static function tableName()
+    public function clear()
     {
-        return 'fs_pages';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'name';
+        parent::clear();
+        $this->showonmenu = true;
+        $this->ordernum = 100;
     }
 
     /**
@@ -112,26 +102,35 @@ class Page
     }
 
     /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->name = null;
-        $this->title = null;
-        $this->menu = null;
-        $this->submenu = null;
-        $this->icon = null;
-        $this->showonmenu = true;
-        $this->orden = 100;
-    }
-
-    /**
-     * Returns the url where to see/modify the data.
+     * Returns the name of the column that is the model's primary key.
      *
      * @return string
      */
-    public function url()
+    public static function primaryColumn()
     {
-        return 'index.php?page=' . $this->name;
+        return 'name';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'pages';
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return $this->name;
     }
 }

@@ -1,8 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2016 Joe Nilson             <joenilson at gmail.com>
- * Copyright (C) 2017 Carlos García Gómez    <carlos@facturascripts.com>
+ * Copyright (C) 2016       Joe Nilson          <joenilson at gmail.com>
+ * Copyright (C) 2017-2018  Carlos García Gómez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -27,10 +27,17 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  * @author Joe Nilson            <joenilson at gmail.com>
  * @author Carlos García Gómez   <carlos@facturascripts.com>
  */
-class RoleUser
+class RoleUser extends Base\ModelClass
 {
 
     use Base\ModelTrait;
+
+    /**
+     * Role code.
+     *
+     * @var string
+     */
+    public $codrole;
 
     /**
      * Identifier.
@@ -40,72 +47,11 @@ class RoleUser
     public $id;
 
     /**
-     * Role code.
-     *
-     * @var string
-     */
-    public $codrol;
-
-    /**
      * Nick.
      *
      * @var string
      */
     public $nick;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'fs_roles_users';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'id';
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        new Role();
-        
-        return '';
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        if (empty($this->nick)) {
-            self::$miniLog->alert(self::$i18n->trans('nick-is-empty'));
-            return false;
-        }
-
-        if (empty($this->codrol)) {
-            self::$miniLog->alert(self::$i18n->trans('role-is-empty'));
-            return false;
-        }
-
-        return true;
-    }
 
     /**
      * Return the user role access.
@@ -125,7 +71,7 @@ class RoleUser
             return [];
         }
 
-        $filter = [new DataBaseWhere('codrol', $this->codrol)];
+        $filter = [new DataBaseWhere('codrole', $this->codrole)];
         if (!empty($pageName)) {
             $filter[] = new DataBaseWhere('pagename', $pageName);
         }
@@ -135,5 +81,59 @@ class RoleUser
         }
 
         return $accesses;
+    }
+
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
+     */
+    public function install()
+    {
+        new Role();
+
+        return '';
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'id';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'roles_users';
+    }
+
+    /**
+     * Returns True if there is no erros on properties values.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        if (empty($this->nick)) {
+            self::$miniLog->alert(self::$i18n->trans('nick-is-empty'));
+            return false;
+        }
+
+        if (empty($this->codrole)) {
+            self::$miniLog->alert(self::$i18n->trans('role-is-empty'));
+            return false;
+        }
+
+        return parent::test();
     }
 }

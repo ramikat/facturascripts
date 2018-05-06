@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Lib\ExtendedController;
@@ -31,50 +30,6 @@ class ListCuenta extends ExtendedController\ListController
 {
 
     /**
-     * Load views
-     */
-    protected function createViews()
-    {
-        /* Accounts */
-        $this->addView('\FacturaScripts\Dinamic\Model\Cuenta', 'ListCuenta', 'accounts', 'fa-book');
-        $this->addSearchFields('ListCuenta', ['descripcion', 'codcuenta', 'codejercicio', 'codepigrafe']);
-
-        $this->addOrderBy('ListCuenta', 'codejercicio desc,codcuenta', 'code');
-        $this->addOrderBy('ListCuenta', 'codejercicio desc,descripcion', 'description');
-
-        $this->addFilterSelect('ListCuenta', 'codejercicio', 'ejercicios', '', 'nombre');
-        $this->addFilterSelect('ListCuenta', 'codepigrafe', 'co_epigrafes', '', 'descripcion');
-
-        /* Epigraphs */
-        $this->addView('\FacturaScripts\Dinamic\Model\Epigrafe', 'ListEpigrafe', 'epigraphs', 'fa-list-alt');
-        $this->addSearchFields('ListEpigrafe', ['descripcion', 'codepigrafe', 'codejercicio']);
-
-        $this->addOrderBy('ListEpigrafe', 'codejercicio desc,descripcion', 'description');
-        $this->addOrderBy('ListEpigrafe', 'codejercicio desc,codepigrafe', 'code');
-
-        $this->addFilterSelect('ListEpigrafe', 'codejercicio', 'ejercicios', '', 'nombre');
-        $this->addFilterSelect('ListEpigrafe', 'codgrupo', 'co_gruposepigrafes', '', 'descripcion');
-
-        /* Epigraphs groups */
-        $this->addView('\FacturaScripts\Dinamic\Model\GrupoEpigrafes', 'ListGrupoEpigrafes', 'epigraphs-group', 'fa-bars');
-        $this->addSearchFields('ListGrupoEpigrafes', ['descripcion', 'codgrupo', 'codejercicio']);
-
-        $this->addOrderBy('ListGrupoEpigrafes', 'codejercicio desc,codgrupo', 'code');
-        $this->addOrderBy('ListGrupoEpigrafes', 'codejercicio desc,descripcion', 'description');
-
-        $this->addFilterSelect('ListGrupoEpigrafes', 'codejercicio', 'ejercicios', '', 'nombre');
-
-        /* Special account */
-        $this->addView('\FacturaScripts\Dinamic\Model\CuentaEspecial', 'ListCuentaEspecial', 'special-account', 'fa-newspaper-o');
-        $this->addSearchFields('ListCuentaEspecial', ['descripcion', 'codcuenta']);
-
-        $this->addOrderBy('ListCuentaEspecial', 'descripcion', 'description');
-        $this->addOrderBy('ListCuentaEspecial', 'codsubcuenta', 'code');
-
-        $this->addFilterSelect('ListCuentaEspecial', 'codsubcuenta', '', 'descripcion');
-    }
-
-    /**
      * Returns basic page attributes
      *
      * @return array
@@ -87,5 +42,38 @@ class ListCuenta extends ExtendedController\ListController
         $pagedata['menu'] = 'accounting';
 
         return $pagedata;
+    }
+
+    /**
+     * Load views
+     */
+    protected function createViews()
+    {
+        /* Sub-Accounts */
+        $this->addView('ListSubcuenta', 'Subcuenta', 'subaccounts', 'fa-th-list');
+        $this->addSearchFields('ListSubcuenta', ['codsubcuenta', 'descripcion', 'codejercicio']);
+
+        $exerciseValues = $this->codeModel->all('ejercicios', 'codejercicio', 'nombre');
+        $this->addFilterSelect('ListSubcuenta', 'codejercicio', 'exercise', 'codejercicio', $exerciseValues);
+
+        $this->addOrderBy('ListSubcuenta', 'codejercicio desc, codsubcuenta', 'code');
+        $this->addOrderBy('ListSubcuenta', 'codejercicio desc, descripcion', 'description');
+        $this->addOrderBy('ListSubcuenta', 'saldo', 'balance');
+
+        /* Accounts */
+        $this->addView('ListCuenta', 'Cuenta', 'accounts', 'fa-book');
+        $this->addSearchFields('ListCuenta', ['descripcion', 'codcuenta', 'codejercicio']);
+
+        $this->addFilterSelect('ListCuenta', 'codejercicio', 'exercise', 'codejercicio', $exerciseValues);
+
+        $this->addOrderBy('ListCuenta', 'codejercicio desc, codcuenta', 'code');
+        $this->addOrderBy('ListCuenta', 'codejercicio desc, descripcion', 'description');
+
+        /* Special account */
+        $this->addView('ListCuentaEspecial', 'CuentaEspecial', 'special-account', 'fa-newspaper-o');
+        $this->addSearchFields('ListCuentaEspecial', ['descripcion', 'codcuentaesp']);
+
+        $this->addOrderBy('ListCuentaEspecial', 'descripcion', 'description');
+        $this->addOrderBy('ListCuentaEspecial', 'codcuentaesp', 'code');
     }
 }

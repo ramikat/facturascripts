@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\DocumentReportsBase;
 
@@ -23,18 +23,26 @@ use FacturaScripts\Core\Model;
 /**
  * Description of DocumentReportsSource
  *
- * @author Francesc Pienda Segarra <francesc.pineda.segarra@gmail.com>
+ * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 class DocumentReportsSource
 {
+
     /**
      * Document Model selected.
      *
      * @var string
      */
     public $source;
+
+    /**
+     * RGB colors values
+     *
+     * @var string
+     */
+    public $color;
 
     /**
      * Start date.
@@ -54,10 +62,12 @@ class DocumentReportsSource
      * Create and initialize object
      *
      * @param string $source
+     * @param string $color
      */
-    public function __construct($source)
+    public function __construct($source, $color)
     {
         $this->source = $source;
+        $this->color = $color;
         $this->dateFrom = new \DateTime(date('01-m-Y'));
         $this->dateTo = new \DateTime(date('t-m-Y'));
     }

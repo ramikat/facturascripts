@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of presupuestos_y_pedidos
- * Copyright (C) 2014-2017  Carlos Garcia Gomez       <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez       <carlos@facturascripts.com>
  * Copyright (C) 2014-2015  Francesc Pineda Segarra   <shawe.ewahs@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -24,10 +24,10 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class LineaPedidoProveedor
+class LineaPedidoProveedor extends Base\BusinessDocumentLine
 {
 
-    use Base\LineaDocumentoCompra;
+    use Base\ModelTrait;
 
     /**
      * Order ID.
@@ -44,14 +44,5 @@ class LineaPedidoProveedor
     public static function tableName()
     {
         return 'lineaspedidosprov';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->clearLinea();
-        $this->idpedido = null;
     }
 }

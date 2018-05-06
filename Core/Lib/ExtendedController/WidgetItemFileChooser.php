@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  carlos@facturascripts.com
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez  carlos@facturascripts.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,16 +10,18 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+
 /**
- * This class manage all specific method for a WidgetItem of Color Picker type.
+ * This class manage all specific method for a WidgetItem of File Chooser type.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -27,13 +29,35 @@ class WidgetItemFileChooser extends WidgetItem
 {
 
     /**
-     * Class constructor
+     * WidgetItemFileChooser constructor.
      */
     public function __construct()
     {
         parent::__construct();
-
         $this->type = 'filechooser';
+    }
+
+    /**
+     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public function getEditHTML($value)
+    {
+        $html = $this->getIconHTML() . "<input type='file' name='" . $this->fieldName
+            . "' class='form-control-file' " . $this->specialAttributes() . " />";
+
+        if (!empty($this->icon)) {
+            $html .= '</div>';
+        }
+
+        if (!empty($value)) {
+            $html = ' <label>' . $value . '</label>' . $html;
+        }
+
+        return $html;
     }
 
     /**
@@ -49,29 +73,12 @@ class WidgetItemFileChooser extends WidgetItem
     }
 
     /**
-     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
+     * Return the max file size that can be uploaded.
      *
-     * @param string $value
-     *
-     * @return string
+     * @return int
      */
-    public function getEditHTML($value)
-    {
-        $html = $this->getIconHTML() . "<input type='file' name='" . $this->fieldName
-            . "' value='" . $value . "' class='form-control-file' />";
-
-        if (!empty($this->icon)) {
-            $html .= '</div>';
-        }
-
-        return $html;
-    }
-    
     public function getMaxFileUpload()
     {
-        $postMaxSize = (int) ini_get('post_max_size');
-        $uploadMaxSize = (int) ini_get('upload_max_filesize');
-        
-        return ($uploadMaxSize > $postMaxSize) ? $uploadMaxSize : $postMaxSize;
+        return UploadedFile::getMaxFilesize() / 1024 / 1024;
     }
 }

@@ -1,8 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015         Pablo Peralta
- * Copyright (C) 2015-2017    Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -11,16 +10,15 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A family of products.
@@ -28,7 +26,7 @@ use FacturaScripts\Core\Lib\Import\CSVImport;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Familia
+class Familia extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -62,49 +60,30 @@ class Familia
     public $nivel;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Returns the daughter families.
      *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'familias';
-    }
-
-    /**
-     * Returns the name of the column that is the primary key of the model.
+     * @param string $codmadre
      *
-     * @return string
+     * @return self[]
      */
-    public function primaryColumn()
+    public function hijas($codmadre = '')
     {
-        return 'codfamilia';
-    }
+        $famlist = [];
 
-    /**
-     * Returns True if there is no erros on properties values.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $status = false;
-
-        $this->codfamilia = self::noHtml($this->codfamilia);
-        $this->descripcion = self::noHtml($this->descripcion);
-        $this->madre = self::noHtml($this->madre);
-
-        if (empty($this->codfamilia) || strlen($this->codfamilia) > 8) {
-            self::$miniLog->alert(self::$i18n->trans('family-code-valid-length'));
-        } elseif (empty($this->descripcion) || strlen($this->descripcion) > 100) {
-            self::$miniLog->alert(self::$i18n->trans('family-desc-not-valid'));
-        } elseif ($this->madre === $this->codfamilia) {
-            self::$miniLog->alert(self::$i18n->trans('parent-family-cant-be-child'));
-        } else {
-            $status = true;
+        if (!empty($codmadre)) {
+            $codmadre = $this->codfamilia;
         }
 
-        return $status;
+        $sql = 'SELECT * FROM ' . static::tableName()
+            . ' WHERE madre = ' . self::$dataBase->var2str($codmadre) . ' ORDER BY descripcion ASC;';
+        $data = self::$dataBase->select($sql);
+        if (!empty($data)) {
+            foreach ($data as $d) {
+                $famlist[] = new self($d);
+            }
+        }
+
+        return $famlist;
     }
 
     /**
@@ -134,69 +113,52 @@ class Familia
     }
 
     /**
-     * Returns the daughter families.
-     *
-     * @param string|bool $codmadre
-     *
-     * @return self[]
-     */
-    public function hijas($codmadre = false)
-    {
-        $famlist = [];
-
-        if (!empty($codmadre)) {
-            $codmadre = $this->codfamilia;
-        }
-
-        $sql = 'SELECT * FROM ' . static::tableName()
-            . ' WHERE madre = ' . self::$dataBase->var2str($codmadre) . ' ORDER BY descripcion ASC;';
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $d) {
-                $famlist[] = new self($d);
-            }
-        }
-
-        return $famlist;
-    }
-
-    /**
-     * Apply corrections to the table.
-     */
-    public function fixDb()
-    {
-        /// we check that families with mother, their mother exists.
-        $sql = 'SELECT * FROM ' . static::tableName() . ' WHERE madre IS NOT NULL;';
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $d) {
-                $fam = $this->get($d['madre']);
-                if (!$fam) {
-                    /// if it does not exist, we disassociate
-                    $sql = 'UPDATE ' . static::tableName() . ' SET madre = null WHERE codfamilia = '
-                        . self::$dataBase->var2str($d['codfamilia']) . ':';
-                    self::$dataBase->exec($sql);
-                }
-            }
-        }
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
+     * Returns the name of the column that is the primary key of the model.
      *
      * @return string
      */
-    public function install()
+    public static function primaryColumn()
     {
-        return CSVImport::importTableSQL(static::tableName());
+        return 'codfamilia';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'familias';
+    }
+
+    /**
+     * Returns True if there is no erros on properties values.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        $this->codfamilia = Utils::noHtml($this->codfamilia);
+        $this->descripcion = Utils::noHtml($this->descripcion);
+
+        if (empty($this->codfamilia) || strlen($this->codfamilia) > 8) {
+            self::$miniLog->alert(self::$i18n->trans('family-code-valid-length'));
+        } elseif (empty($this->descripcion) || strlen($this->descripcion) > 100) {
+            self::$miniLog->alert(self::$i18n->trans('family-desc-not-valid'));
+        } elseif ($this->madre === $this->codfamilia) {
+            self::$miniLog->alert(self::$i18n->trans('parent-family-cant-be-child'));
+        } else {
+            return parent::test();
+        }
+
+        return false;
     }
 
     /**
      * Complete the data in the list of families with the level.
      *
-     * @param array $familias
+     * @param array  $familias
      * @param string $madre
      * @param string $nivel
      *

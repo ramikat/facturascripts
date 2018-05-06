@@ -2,7 +2,7 @@
 /**
  * This file is part of FacturaScripts
  * Copyright (C) 2017       Francesc Pineda Segarra     <francesc.pineda.segarra@gmail.com>
- * Copyright (C) 2013-2017  Carlos Garcia Gomez         <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez         <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -11,34 +11,34 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A province.
  *
  * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  */
-class Provincia
+class Provincia extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        url as private traitUrl;
-    }
+    use Base\ModelTrait;
 
     /**
-     * Identify the registry.
+     * 'Normalized' code in Spain to identify the provinces.
+     *
+     * @url: https://es.wikipedia.org/wiki/Provincia_de_España#Denominaci.C3.B3n_y_lista_de_las_provincias
      *
      * @var string
      */
-    public $idprovincia;
+    public $codisoprov;
 
     /**
      * Country code associated with the province.
@@ -48,27 +48,20 @@ class Provincia
     public $codpais;
 
     /**
-     * Name of the province.
-     *
-     * @var string
-     */
-    public $provincia;
-
-    /**
-     * 'Normalized' code in Spain to identify the provinces.
-     * @url: https://es.wikipedia.org/wiki/Provincia_de_España#Denominaci.C3.B3n_y_lista_de_las_provincias
-     *
-     * @var string
-     */
-    public $codisoprov;
-
-    /**
      * Postal code associated with the province.
+     *
      * @url: https://upload.wikimedia.org/wikipedia/commons/5/5c/2_digit_postcode_spain.png
      *
      * @var string
      */
     public $codpostal2d;
+
+    /**
+     * Identify the registry.
+     *
+     * @var string
+     */
+    public $idprovincia;
 
     /**
      * Latitude associated with the place.
@@ -85,6 +78,23 @@ class Provincia
     public $longitud;
 
     /**
+     * Name of the province.
+     *
+     * @var string
+     */
+    public $provincia;
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idprovincia';
+    }
+
+    /**
      * Returns the name of the table that uses this model.
      *
      * @return string
@@ -95,36 +105,27 @@ class Provincia
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
+     * Returns True if there is no errors on properties values.
      *
-     * @return string
+     * @return bool
      */
-    public function primaryColumn()
+    public function test()
     {
-        return 'idprovincia';
+        $this->provincia = Utils::noHtml($this->provincia);
+
+        return parent::test();
     }
 
     /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        return CSVImport::importTableSQL(static::tableName());
-    }
-
-    /**
-     * Returns the url where to see/modify the data.
+     * Returns the url where to see / modify the data.
      *
      * @param string $type
+     * @param string $list
      *
      * @return string
      */
-    public function url($type = 'auto')
+    public function url(string $type = 'auto', string $list = 'List')
     {
-        return $this->traitUrl($type, 'ListPais&active=List');
+        return parent::url($type, 'ListPais?active=List');
     }
 }

@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Test\Core\Model;
@@ -23,11 +23,10 @@ namespace FacturaScripts\Test\Core\Model;
 use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Model\AlbaranProveedor;
-use FacturaScripts\Dinamic\Model\LineaAlbaranProveedor;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers AlbaranProveedor
+ * @covers \AlbaranProveedor
  */
 final class AlbaranProveedorTest extends TestCase
 {
@@ -36,22 +35,19 @@ final class AlbaranProveedorTest extends TestCase
         $model = new AlbaranProveedor();
 
         $this->assertInstanceOf(AlbaranProveedor::class, $model);
-        $this->assertEquals(null, $model->cifnif);
-        $this->assertEquals(null, $model->codagente);
+        $this->assertNull($model->cifnif);
         $this->assertEquals(AppSettings::get('default', 'codalmacen'), $model->codalmacen);
         $this->assertEquals(null, $model->codproveedor);
-        $this->assertEquals(null, $model->coddivisa);
+        $this->assertEquals(AppSettings::get('default', 'coddivisa'), $model->coddivisa);
         $this->assertEquals(null, $model->codejercicio);
         $this->assertEquals(null, $model->codigo);
         $this->assertEquals(AppSettings::get('default', 'codpago'), $model->codpago);
         $this->assertEquals(AppSettings::get('default', 'codserie'), $model->codserie);
         $this->assertEquals(date('d-m-Y'), $model->fecha);
-        $this->assertEquals(date('H:i:s'), $model->hora);
         $this->assertEquals(AppSettings::get('default', 'idempresa'), $model->idempresa);
         $this->assertEquals(0.0, $model->irpf);
         $this->assertEquals(0.0, $model->neto);
         $this->assertEquals(null, $model->nombre);
-        $this->assertEquals(0, $model->numdocs);
         $this->assertEquals(null, $model->numero);
         $this->assertEquals(null, $model->numproveedor);
         $this->assertEquals(1.0, $model->tasaconv);
@@ -61,7 +57,6 @@ final class AlbaranProveedorTest extends TestCase
         $this->assertEquals(0.0, $model->totalirpf);
         $this->assertEquals(0.0, $model->totalrecargo);
         $this->assertEquals(null, $model->observaciones);
-        $this->assertEquals(true, $model->ptefactura);
         $this->assertEquals(null, $model->idalbaran);
         $this->assertEquals(null, $model->idfactura);
         $this->assertTrue($model->test());
@@ -78,7 +73,7 @@ final class AlbaranProveedorTest extends TestCase
     {
         $model = new AlbaranProveedor();
 
-        $this->assertInternalType('string', $model->primaryColumn());
+        $this->assertInternalType('string', $model::primaryColumn());
     }
 
     public function testInstall()
@@ -114,19 +109,4 @@ final class AlbaranProveedorTest extends TestCase
             $this->assertSame([], $list);
         }
     }
-    /*
-        public function testGetLineas()
-        {
-
-            $model = new AlbaranProveedor();
-            $list = $model->getLineas();
-
-            if (!empty($list)) {
-                $this->assertInternalType('array', $list);
-
-            } else {
-                $this->assertSame([], $list);
-            }
-        }
-    */
 }

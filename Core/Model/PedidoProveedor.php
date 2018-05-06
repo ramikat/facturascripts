@@ -1,7 +1,7 @@
 <?php
 /**
- * This file is part of presupuestos_y_pedidos
- * Copyright (C) 2014-2017  Carlos Garcia Gomez       <carlos@facturascripts.com>
+ * This file is part of FacturaScripts
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez       <carlos@facturascripts.com>
  * Copyright (C) 2014-2015  Francesc Pineda Segarra   <shawe.ewahs@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -11,30 +11,24 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Dinamic\Model\LineaPedidoProveedor;
 
 /**
  * Supplier order.
  */
-class PedidoProveedor
+class PedidoProveedor extends Base\PurchaseDocument
 {
 
-    use Base\DocumentoCompra;
-
-    /**
-     * Primary key.
-     *
-     * @var int
-     */
-    public $idpedido;
+    use Base\ModelTrait;
 
     /**
      * Related delivery note ID.
@@ -44,18 +38,61 @@ class PedidoProveedor
     public $idalbaran;
 
     /**
-     * True if it is editable, but false.
-     *
-     * @var bool
-     */
-    public $editable;
-
-    /**
-     * If this estiamtion is the version of another, the original estimation document is stored here.
+     * Primary key.
      *
      * @var int
      */
-    public $idoriginal;
+    public $idpedido;
+
+    /**
+     * Returns the lines associated with the order.
+     *
+     * @return LineaPedidoProveedor[]
+     */
+    public function getLines()
+    {
+        $lineaModel = new LineaPedidoProveedor();
+        $where = [new DataBaseWhere('idpedido', $this->idpedido)];
+        $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
+
+        return $lineaModel->all($where, $order, 0, 0);
+    }
+
+    /**
+     * Returns a new line for this document.
+     * 
+     * @param array $data
+     *
+     * @return LineaPedidoProveedor
+     */
+    public function getNewLine(array $data = [])
+    {
+        $newLine = new LineaPedidoProveedor($data);
+        $newLine->idpedido = $this->idpedido;
+
+        $state = $this->getState();
+        $newLine->actualizastock = $state->actualizastock;
+
+        return $newLine;
+    }
+
+    public function install()
+    {
+        parent::install();
+        new AlbaranProveedor();
+
+        return '';
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idpedido';
+    }
 
     /**
      * Returns the name of the table that uses this model.
@@ -65,108 +102,5 @@ class PedidoProveedor
     public static function tableName()
     {
         return 'pedidosprov';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'idpedido';
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        new Serie();
-        new Ejercicio();
-
-        return '';
-    }
-
-    /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->clearDocumentoCompra();
-        $this->editable = true;
-    }
-
-    /**
-     * Returns the lines associated with the order.
-     *
-     * @return LineaPedidoProveedor[]
-     */
-    public function getLineas()
-    {
-        $lineaModel = new LineaPedidoProveedor();
-        return $lineaModel->all([new DataBaseWhere('idpedido', $this->idpedido)]);
-    }
-
-    /**
-     * Returns the versions of an order.
-     *
-     * @return self[]
-     */
-    public function getVersiones()
-    {
-        $versiones = [];
-
-        $sql = 'SELECT * FROM ' . static::tableName()
-            . ' WHERE idoriginal = ' . self::$dataBase->var2str($this->idpedido);
-        if ($this->idoriginal) {
-            $sql .= ' OR idoriginal = ' . self::$dataBase->var2str($this->idoriginal);
-            $sql .= ' OR idpedido = ' . self::$dataBase->var2str($this->idoriginal);
-        }
-        $sql .= 'ORDER BY fecha DESC, hora DESC;';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $d) {
-                $versiones[] = new self($d);
-            }
-        }
-
-        return $versiones;
-    }
-
-    /**
-     * Check the order data, return True if it is correct.
-     *
-     * @return boolean
-     */
-    public function test()
-    {
-        return $this->testTrait();
-    }
-
-    /**
-     * Run a complete test of tests.
-     *
-     * @return bool
-     */
-    public function fullTest()
-    {
-        return $this->fullTestTrait('order');
-    }
-
-    /**
-     * Execute a task with cron
-     */
-    public function cronJob()
-    {
-        $sql = 'UPDATE ' . static::tableName() . ' SET idalbaran = NULL, editable = TRUE'
-            . ' WHERE idalbaran IS NOT NULL AND NOT EXISTS(SELECT 1 FROM albaranesprov t1'
-            . ' WHERE t1.idalbaran = ' . static::tableName() . '.idalbaran);';
-        self::$dataBase->exec($sql);
     }
 }

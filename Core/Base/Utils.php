@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Base;
 
 /**
@@ -24,8 +23,9 @@ namespace FacturaScripts\Core\Base;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-trait Utils
+class Utils
 {
+
     /**
      * Convert a variable with binary content to text.
      * It does it in base64.
@@ -83,8 +83,8 @@ trait Utils
      *
      * @param double $f1
      * @param double $f2
-     * @param int $precision
-     * @param bool $round
+     * @param int    $precision
+     * @param bool   $round
      *
      * @return bool
      */
@@ -150,12 +150,10 @@ trait Utils
     public static function noHtml($txt)
     {
         $newt = str_replace(
-            ['<', '>', '"', "'"],
-            ['&lt;', '&gt;', '&quot;', '&#39;'],
-            $txt
+            ['<', '>', '"', "'"], ['&lt;', '&gt;', '&quot;', '&#39;'], $txt
         );
 
-        return trim($newt);
+        return ($txt === null) ? null : trim($newt);
     }
 
     /**
@@ -167,13 +165,10 @@ trait Utils
      */
     public static function fixHtml($txt)
     {
-        if($txt === null) {
-            return null;
-        }
-        
         $original = ['&lt;', '&gt;', '&quot;', '&#39;'];
         $final = ['<', '>', "'", "'"];
-        return trim(str_replace($original, $final, $txt));
+
+        return ($txt === null) ? null : trim(str_replace($original, $final, $txt));
     }
 
     /**
@@ -185,7 +180,7 @@ trait Utils
      *
      * @return bool
      */
-    public function str2bool($val)
+    public static function str2bool($val)
     {
         return in_array(strtolower($val), ['true', 't', '1'], false);
     }
@@ -197,7 +192,7 @@ trait Utils
      *
      * @return string
      */
-    public function bool2str($val)
+    public static function bool2str($val)
     {
         switch ($val) {
             case true:

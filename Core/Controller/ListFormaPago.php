@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Lib\ExtendedController;
@@ -51,19 +50,17 @@ class ListFormaPago extends ExtendedController\ListController
     protected function createViews()
     {
         /* Payment Methods */
-        $this->addView('\FacturaScripts\Dinamic\Model\FormaPago', 'ListFormaPago', 'payment-methods', 'fa-credit-card');
+        $this->addView('ListFormaPago', 'FormaPago', 'payment-methods', 'fa-credit-card');
         $this->addSearchFields('ListFormaPago', ['descripcion', 'codpago', 'codcuenta']);
 
         $this->addOrderBy('ListFormaPago', 'codpago', 'code');
         $this->addOrderBy('ListFormaPago', 'descripcion', 'description');
 
-        $this->addFilterSelect('ListFormaPago', 'generación', 'formaspago', '', 'genrecibos');
-        $this->addFilterSelect('ListFormaPago', 'vencimiento', 'formaspago');
-        $this->addFilterCheckbox('ListFormaPago', 'domiciliado', 'domicilied');
-        $this->addFilterCheckbox('ListFormaPago', 'imprimir', 'print');
+        $this->addFilterCheckbox('ListFormaPago', 'domiciliado', 'domicilied', 'domiciliado');
+        $this->addFilterCheckbox('ListFormaPago', 'imprimir', 'print', 'imprimir');
 
         /* Bank accounts */
-        $this->addView('\FacturaScripts\Dinamic\Model\CuentaBanco', 'ListCuentaBanco', 'bank-accounts', 'fa-university');
+        $this->addView('ListCuentaBanco', 'CuentaBanco', 'bank-accounts', 'fa-university');
         $this->addSearchFields('ListCuentaBanco', ['descripcion', 'codcuenta']);
 
         $this->addOrderBy('ListCuentaBanco', 'codcuenta', 'code');

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,16 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
-use FacturaScripts\Core\Lib\ExportManager;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExportManager;
 
 /**
  * View definition for its use in ExtendedControllers
@@ -27,11 +27,11 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class EditView extends BaseView
+class EditView extends BaseView implements DataViewInterface
 {
 
     /**
-     * Class constructor and initialization
+     * EditView constructor and initialization.
      *
      * @param string $title
      * @param string $modelName
@@ -47,11 +47,37 @@ class EditView extends BaseView
     }
 
     /**
-     * Calculate and set new code for PK of the model
+     * Establishes the column edit state
+     *
+     * @param string $columnName
+     * @param bool   $disabled
      */
-    public function setNewCode()
+    public function disableColumn($columnName, $disabled)
     {
-        $this->model->{$this->model->primaryColumn()} = $this->model->newCode();
+        $column = $this->columnForName($columnName);
+        if (!empty($column)) {
+            $column->widget->readOnly = $disabled;
+        }
+    }
+
+    /**
+     * Method to export the view data.
+     *
+     * @param ExportManager $exportManager
+     */
+    public function export(&$exportManager)
+    {
+        $exportManager->generateModelPage($this->model, $this->getColumns(), $this->title);
+    }
+
+    /**
+     * Returns the column configuration
+     *
+     * @return GroupItem[]
+     */
+    public function getColumns()
+    {
+        return $this->pageOption->columns;
     }
 
     /**
@@ -75,49 +101,15 @@ class EditView extends BaseView
     }
 
     /**
-     * Returns the column configuration
-     *
-     * @return GroupItem[]
-     */
-    public function getColumns()
-    {
-        return $this->pageOption->columns;
-    }
-
-    /**
-     * Returns the name.
-     *
-     * @return string
-     */
-    public function getViewName()
-    {
-        return $this->pageOption->name;
-    }
-
-    /**
-     * Establishes the column edit state
-     *
-     * @param string $columnName
-     * @param bool $disabled
-     */
-    public function disableColumn($columnName, $disabled)
-    {
-        $column = $this->columnForName($columnName);
-        if (!empty($column)) {
-            $column->widget->readOnly = $disabled;
-        }
-    }
-    
-    /**
      * Load the data in the model property, according to the code specified.
-     * 
-     * @param mixed $code
+     *
+     * @param string          $code
      * @param DataBaseWhere[] $where
-     * @param array $order
-     * @param int $offset
-     * @param int $limit
+     * @param array           $order
+     * @param int             $offset
+     * @param int             $limit
      */
-    public function loadData($code = false, $where = [], $order = [], $offset = 0, $limit = FS_ITEM_LIMIT)
+    public function loadData($code = '', $where = [], $order = [], $offset = 0, $limit = FS_ITEM_LIMIT)
     {
         if ($this->newCode !== null) {
             $code = $this->newCode;
@@ -141,15 +133,5 @@ class EditView extends BaseView
         if (!empty($column)) {
             $column->widget->readOnly = ($this->count > 0);
         }
-    }
-
-    /**
-     * Method to export the view data
-     *
-     * @param ExportManager $exportManager
-     */
-    public function export(&$exportManager)
-    {
-        $exportManager->generateModelPage($this->model, $this->getColumns(), $this->title);
     }
 }

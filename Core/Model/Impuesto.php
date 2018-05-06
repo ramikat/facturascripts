@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,17 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
-use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A tax (VAT) that can be associated to articles, delivery notes lines,
@@ -28,7 +27,7 @@ use FacturaScripts\Core\Lib\Import\CSVImport;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Impuesto
+class Impuesto extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -39,20 +38,6 @@ class Impuesto
      * @var string
      */
     public $codimpuesto;
-
-    /**
-     * Sub-account code for sales.
-     *
-     * @var string
-     */
-    public $codsubcuentarep;
-
-    /**
-     * Sub-account code for purchases.
-     *
-     * @var string
-     */
-    public $codsubcuentasop;
 
     /**
      * Description of the tax.
@@ -76,34 +61,11 @@ class Impuesto
     public $recargo;
 
     /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'impuestos';
-    }
-
-    /**
-     * Returns the name of the column that is the primary key of the model.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codimpuesto';
-    }
-
-    /**
      * Reset the values of all model properties.
      */
     public function clear()
     {
-        $this->codimpuesto = null;
-        $this->codsubcuentarep = null;
-        $this->codsubcuentasop = null;
-        $this->descripcion = null;
+        parent::clear();
         $this->iva = 0.0;
         $this->recargo = 0.0;
     }
@@ -119,37 +81,44 @@ class Impuesto
     }
 
     /**
+     * Returns the name of the column that is the primary key of the model.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codimpuesto';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'impuestos';
+    }
+
+    /**
      * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
     public function test()
     {
-        $status = false;
-
         $this->codimpuesto = trim($this->codimpuesto);
-        $this->descripcion = self::noHtml($this->descripcion);
-
         if (empty($this->codimpuesto) || strlen($this->codimpuesto) > 10) {
             self::$miniLog->alert(self::$i18n->trans('not-valid-tax-code-length'));
-        } elseif (empty($this->descripcion) || strlen($this->descripcion) > 50) {
-            self::$miniLog->alert(self::$i18n->trans('not-valid-description-tax'));
-        } else {
-            $status = true;
+            return false;
         }
 
-        return $status;
-    }
+        $this->descripcion = Utils::noHtml($this->descripcion);
+        if (empty($this->descripcion) || strlen($this->descripcion) > 50) {
+            self::$miniLog->alert(self::$i18n->trans('not-valid-description-tax'));
+            return false;
+        }
 
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        return CSVImport::importTableSQL(static::tableName());
+        return parent::test();
     }
 }

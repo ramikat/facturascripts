@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -26,12 +25,6 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
  */
 class GroupItem extends VisualItem implements VisualItemInterface
 {
-    /**
-     * Icon used as the value or accompaining the group title
-     *
-     * @var string
-     */
-    public $icon;
 
     /**
      * Define the columns that the group includes
@@ -41,16 +34,90 @@ class GroupItem extends VisualItem implements VisualItemInterface
     public $columns;
 
     /**
-     * Create and load the group structure from a XML file
+     * Icon used as the value or accompaining the group title
+     *
+     * @var string
+     */
+    public $icon;
+
+    /**
+     * Class construct and initialization
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->icon = null;
+        $this->columns = [];
+    }
+
+    /**
+     * Check and apply special operations on the group
+     */
+    public function applySpecialOperations()
+    {
+        foreach ($this->columns as $column) {
+            $column->applySpecialOperations();
+        }
+    }
+
+    /**
+     * Generates the HTML code to display the visual element's header
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public function getHeaderHTML($value)
+    {
+        return $this->getIconHTML() . parent::getHeaderHTML($value);
+    }
+
+    /**
+     * Loads the attributes structure from a JSON file
+     *
+     * @param array $group
+     */
+    public function loadFromJSON($group)
+    {
+        parent::loadFromJSON($group);
+        $this->icon = (string) $group['icon'];
+
+        foreach ($group['columns'] as $column) {
+            $columnItem = ColumnItem::newFromJSON($column);
+            $this->columns[$columnItem->name] = $columnItem;
+        }
+        uasort($this->columns, ['self', 'sortColumns']);
+    }
+
+    /**
+     * Loads the attributes structure from a XML file
      *
      * @param \SimpleXMLElement $group
-     * @return GroupItem
      */
-    public static function newFromXML($group)
+    public function loadFromXML($group)
     {
-        $result = new GroupItem();
-        $result->loadFromXML($group);
-        return $result;
+        parent::loadFromXML($group);
+
+        $group_atributes = $group->attributes();
+        $this->icon = (string) $group_atributes->icon;
+        $this->loadFromXMLColumns($group);
+    }
+
+    /**
+     * Loads the groups from the columns
+     *
+     * @param \SimpleXMLElement $group
+     */
+    public function loadFromXMLColumns($group)
+    {
+        if (isset($group->column)) {
+            foreach ($group->column as $column) {
+                $columnItem = ColumnItem::newFromXML($column);
+                $this->columns[$columnItem->name] = $columnItem;
+            }
+            uasort($this->columns, ['self', 'sortColumns']);
+        }
     }
 
     /**
@@ -62,8 +129,24 @@ class GroupItem extends VisualItem implements VisualItemInterface
      */
     public static function newFromJSON($group)
     {
-        $result = new GroupItem();
+        $result = new self();
         $result->loadFromJSON($group);
+
+        return $result;
+    }
+
+    /**
+     * Create and load the group structure from a XML file
+     *
+     * @param \SimpleXMLElement $group
+     *
+     * @return GroupItem
+     */
+    public static function newFromXML($group)
+    {
+        $result = new self();
+        $result->loadFromXML($group);
+
         return $result;
     }
 
@@ -85,66 +168,6 @@ class GroupItem extends VisualItem implements VisualItemInterface
     }
 
     /**
-     * Class construct and initialization
-     */
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->icon = null;
-        $this->columns = [];
-    }
-
-    /**
-     * Loads the groups from the columns
-     *
-     * @param \SimpleXMLElement $group
-     */
-    public function loadFromXMLColumns($group)
-    {
-        if (isset($group->column)) {
-            foreach ($group->column as $column) {
-                $columnItem = ColumnItem::newFromXML($column);
-                $this->columns[$columnItem->name] = $columnItem;
-                unset($columnItem);
-            }
-            uasort($this->columns, ['self', 'sortColumns']);
-        }
-    }
-
-    /**
-     * Loads the attributes structure from a XML file
-     *
-     * @param \SimpleXMLElement $group
-     */
-    public function loadFromXML($group)
-    {
-        parent::loadFromXML($group);
-
-        $group_atributes = $group->attributes();
-        $this->icon = (string) $group_atributes->icon;
-        $this->loadFromXMLColumns($group);
-    }
-
-    /**
-     * Loads the attributes structure from a JSON file
-     *
-     * @param array $group
-     */
-    public function loadFromJSON($group)
-    {
-        parent::loadFromJSON($group);
-        $this->icon = (string) $group['icon'];
-
-        foreach ($group['columns'] as $column) {
-            $columnItem = ColumnItem::newFromJSON($column);
-            $this->columns[$columnItem->name] = $columnItem;
-            unset($columnItem);
-        }
-        uasort($this->columns, ['self', 'sortColumns']);
-    }
-
-    /**
      * Returns the HTML code to display an icon
      *
      * @return string
@@ -160,27 +183,5 @@ class GroupItem extends VisualItem implements VisualItemInterface
         }
 
         return '<i aria-hidden="true">' . $this->icon . '</i>&nbsp;&nbsp;</span>';
-    }
-
-    /**
-     * Generates the HTML code to display the visual element's header
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    public function getHeaderHTML($value)
-    {
-        return $this->getIconHTML() . parent::getHeaderHTML($value);
-    }
-
-    /**
-     * Check and apply special operations on the group
-     */
-    public function applySpecialOperations()
-    {
-        foreach ($this->columns as $column) {
-            $column->applySpecialOperations();
-        }
     }
 }

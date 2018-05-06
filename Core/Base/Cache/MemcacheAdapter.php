@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\Cache;
@@ -31,7 +31,6 @@ use FacturaScripts\Core\Base\Translator;
  */
 class MemcacheAdapter implements AdaptorInterface
 {
-
     /**
      * Memcache object
      *
@@ -72,7 +71,7 @@ class MemcacheAdapter implements AdaptorInterface
         self::$connected = false;
         if (self::$memcache === null) {
             self::$memcache = new \Memcache();
-            if (@self::$memcache->connect(FS_CACHE_HOST, FS_CACHE_PORT)) {
+            if (@self::$memcache->connect(FS_CACHE_HOST, (int) FS_CACHE_PORT)) {
                 self::$connected = true;
                 $this->minilog->debug($this->i18n->trans('using-memcache'));
             } else {
@@ -102,6 +101,7 @@ class MemcacheAdapter implements AdaptorInterface
     {
         if (self::$connected) {
             $this->minilog->debug($this->i18n->trans('memcache-get-key-item', ['%item%' => $key]));
+
             return self::$memcache->get(FS_CACHE_PREFIX . $key);
         }
 
@@ -112,8 +112,8 @@ class MemcacheAdapter implements AdaptorInterface
      * Put content into the cache.
      *
      * @param string $key
-     * @param mixed $content the the content you want to store
-     * @param int $expire time to expire
+     * @param mixed  $content the the content you want to store
+     * @param int    $expire  time to expire
      *
      * @return bool whether if the operation was successful or not
      */
@@ -121,7 +121,7 @@ class MemcacheAdapter implements AdaptorInterface
     {
         $this->minilog->debug($this->i18n->trans('memcache-set-key-item', ['%item%' => $key]));
         if (self::$connected) {
-            return self::$memcache->set(FS_CACHE_PREFIX . $key, $content, false, $expire);
+            return self::$memcache->set(FS_CACHE_PREFIX . $key, $content, 0, $expire);
         }
 
         return false;

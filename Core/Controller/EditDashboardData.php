@@ -1,7 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez     <carlos@facturascripts.com>
+ * Copyright (C) 2017       Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
@@ -30,83 +31,26 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EditDashboardData extends ExtendedController\EditController
 {
-    
+
     /**
-     * Runs the controller's private logic.
+     * Returns the configuration property value for a specified $field
      *
-     * @param Response $response
-     * @param User $user
-     * @param Base\ControllerPermissions $permissions
-     */
-    public function privateCore(&$response, $user, $permissions)
-    {
-        parent::privateCore($response, $user, $permissions);
-
-        $this->validateProperties();
-        $this->validateColumns();
-    }
-
-    /**
-     * Return the propierties fields.
+     * @param mixed  $model
+     * @param string $field
      *
      * @return mixed
      */
-    private function getPropertiesFields()
+    public function getFieldValue($model, $field)
     {
-        $model = $this->view->getModel();
-        $component = 'FacturaScripts\\Core\\Lib\\Dashboard\\'
-            . $model->component
-            . DashboardLib\BaseComponent::SUFIX_COMPONENTS;
-
-        return $component::getPropertiesFields();
-    }
-
-    /**
-     * Validate propierties columns.
-     */
-    private function validateColumns()
-    {
-        $fields = array_keys($this->view->getModel()->properties);
-        $group = $this->view->getColumns()['options']->columns;
-        foreach ($group as $column) {
-            if (in_array($column->widget->fieldName, $fields, false)) {
-                continue;
-            }
-
-            $column->display = 'none';
+        if (isset($model->{$field})) {
+            return $model->{$field};
         }
-    }
 
-    /**
-     * Validate propierties fields.
-     */
-    private function validateProperties()
-    {
-        $model = $this->view->getModel();
-        $properties = $this->getPropertiesFields();
-        foreach ($properties as $key => $value) {
-            if (!isset($model->properties[$key])) {
-                $model->properties[$key] = $value;
-            }
+        if (is_array($model->properties) && array_key_exists($field, $model->properties)) {
+            return $model->properties[$field];
         }
-    }
 
-    /**
-     * Run the data edits
-     *
-     * @return bool
-     */
-    protected function editAction()
-    {
-        $model = $this->view->getModel();
-        $properties = array_keys($this->getPropertiesFields());
-        $fields = array_keys($model->properties);
-        foreach ($fields as $key) {
-            if (!in_array($key, $properties, false)) {
-                unset($model->properties[$key]);
-            }
-        }
-        return parent::editAction();
+        return null;
     }
 
     /**
@@ -114,7 +58,7 @@ class EditDashboardData extends ExtendedController\EditController
      */
     public function getModelClassName()
     {
-        return '\FacturaScripts\Dinamic\Model\DashboardData';
+        return 'DashboardData';
     }
 
     /**
@@ -134,23 +78,81 @@ class EditDashboardData extends ExtendedController\EditController
     }
 
     /**
-     * Returns the configuration property value for a specified $field
+     * Runs the controller's private logic.
      *
-     * @param mixed $model
-     * @param string $field
+     * @param Response                   $response
+     * @param User                       $user
+     * @param Base\ControllerPermissions $permissions
+     */
+    public function privateCore(&$response, $user, $permissions)
+    {
+        parent::privateCore($response, $user, $permissions);
+
+        $this->validateProperties();
+        $this->validateColumns();
+    }
+
+    /**
+     * Run the data edits
+     *
+     * @return bool
+     */
+    protected function editAction()
+    {
+        $model = $this->views[$this->active]->getModel();
+        $properties = array_keys($this->getPropertiesFields());
+        $fields = array_keys($model->properties);
+        foreach ($fields as $key) {
+            if (!in_array($key, $properties, false)) {
+                unset($model->properties[$key]);
+            }
+        }
+
+        return parent::editAction();
+    }
+
+    /**
+     * Return the propierties fields.
+     *
      * @return mixed
      */
-    public function getFieldValue($model, $field)
+    private function getPropertiesFields()
     {
-        $value = parent::getFieldValue($model, $field);
-        if (isset($value)) {
-            return $value;
-        }
+        $model = $this->getModel();
+        $component = 'FacturaScripts\\Dinamic\\Lib\\Dashboard\\'
+            . $model->component
+            . DashboardLib\BaseComponent::SUFIX_COMPONENTS;
 
-        if (is_array($model->properties) && array_key_exists($field, $model->properties)) {
-            return $model->properties[$field];
-        }
+        return $component::getPropertiesFields();
+    }
 
-        return null;
+    /**
+     * Validate propierties columns.
+     */
+    private function validateColumns()
+    {
+        $fields = array_keys($this->getModel()->properties);
+        $group = $this->views['EditDashboardData']->getColumns()['options']->columns;
+        foreach ($group as $column) {
+            if (in_array($column->widget->fieldName, $fields, false)) {
+                continue;
+            }
+
+            $column->display = 'none';
+        }
+    }
+
+    /**
+     * Validate propierties fields.
+     */
+    private function validateProperties()
+    {
+        $model = $this->getModel();
+        $properties = $this->getPropertiesFields();
+        foreach ($properties as $key => $value) {
+            if (!isset($model->properties[$key])) {
+                $model->properties[$key] = $value;
+            }
+        }
     }
 }

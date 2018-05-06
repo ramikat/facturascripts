@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
@@ -42,10 +42,10 @@ class Dashboard extends Base\Controller
     /**
      * Dashboard constructor.
      *
-     * @param Base\Cache $cache
+     * @param Base\Cache      $cache
      * @param Base\Translator $i18n
-     * @param Base\MiniLog $miniLog
-     * @param string $className
+     * @param Base\MiniLog    $miniLog
+     * @param string          $className
      */
     public function __construct(&$cache, &$i18n, &$miniLog, $className)
     {
@@ -53,12 +53,12 @@ class Dashboard extends Base\Controller
 
         $this->components = [];
     }
-    
+
     /**
      * Runs the controller's private logic.
      *
-     * @param Response $response
-     * @param Model\User $user
+     * @param Response                   $response
+     * @param Model\User                 $user
      * @param Base\ControllerPermissions $permissions
      */
     public function privateCore(&$response, $user, $permissions)
@@ -97,7 +97,7 @@ class Dashboard extends Base\Controller
             $componentName = Lib\Dashboard\BaseComponent::DIR_COMPONENTS
                 . $data->component
                 . Lib\Dashboard\BaseComponent::SUFIX_COMPONENTS;
-            
+
             $this->components[$data->component] = new $componentName($data, $userNick);
         }
     }

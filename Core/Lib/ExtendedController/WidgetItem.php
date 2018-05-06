@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -29,18 +28,18 @@ abstract class WidgetItem implements VisualItemInterface
 {
 
     /**
+     * To put the focus on the first editable input.
+     *
+     * @var bool
+     */
+    private static $autofocus = true;
+
+    /**
      * Field name with the data that the widget displays
      *
      * @var string
      */
     public $fieldName;
-
-    /**
-     * Type of widget displayed
-     *
-     * @var string
-     */
-    public $type;
 
     /**
      * Additional information for the user
@@ -50,25 +49,18 @@ abstract class WidgetItem implements VisualItemInterface
     public $hint;
 
     /**
-     * Indicates that the field is read only
-     *
-     * @var bool
-     */
-    public $readOnly;
-
-    /**
-     * Indicates that the field is mandatory and it must have a value
-     *
-     * @var bool
-     */
-    public $required;
-
-    /**
      * Icon used as a value or to accompany the widget
      *
      * @var string
      */
     public $icon;
+
+    /**
+     * Indicates that the max length of value
+     *
+     * @var int
+     */
+    public $maxLength;
 
     /**
      * Destination controller to go to when the displayed data is clicked
@@ -85,11 +77,25 @@ abstract class WidgetItem implements VisualItemInterface
     public $options;
 
     /**
-     * Generates the html code to display the model data for List controller
+     * Indicates that the field is read only
      *
-     * @param string $value
+     * @var bool
      */
-    abstract public function getListHTML($value);
+    public $readOnly;
+
+    /**
+     * Indicates that the field is mandatory and it must have a value
+     *
+     * @var bool
+     */
+    public $required;
+
+    /**
+     * Type of widget displayed
+     *
+     * @var string
+     */
+    public $type;
 
     /**
      * Generates the html code to display the model data for Edit controller
@@ -99,90 +105,25 @@ abstract class WidgetItem implements VisualItemInterface
     abstract public function getEditHTML($value);
 
     /**
-     * Class dynamic constructor. It creates a widget of the given type
+     * Generates the html code to display the model data for List controller
      *
-     * @param string $type
-     *
-     * @return WidgetItem
+     * @param string $value
      */
-    private static function widgetItemFromType($type)
-    {
-        switch ($type) {
-            case 'autocomplete':
-                return new WidgetItemAutocomplete();
-
-            case 'checkbox':
-                return new WidgetItemCheckBox();
-
-            case 'color':
-                return new WidgetItemColor();
-
-            case 'datepicker':
-                return new WidgetItemDateTime();
-
-            case 'filechooser':
-                return new WidgetItemFileChooser();
-
-            case 'money':
-                return new WidgetItemMoney();
-
-            case 'number':
-                return new WidgetItemNumber();
-
-            case 'radio':
-                return new WidgetItemRadio();
-
-            case 'select':
-                return new WidgetItemSelect();
-
-            default:
-                return new WidgetItemText($type);
-        }
-    }
+    abstract public function getListHTML($value);
 
     /**
-     * Creates and loads the attributes structure from a XML file
-     *
-     * @param \SimpleXMLElement $column
-     *
-     * @return WidgetItem
-     */
-    public static function newFromXML($column)
-    {
-        $widgetAtributes = $column->widget->attributes();
-        $type = (string) $widgetAtributes->type;
-        $widget = self::widgetItemFromType($type);
-        $widget->loadFromXML($column);
-        return $widget;
-    }
-
-    /**
-     * Creates and loads the attributes structure from the database
-     *
-     * @param array $widget
-     *
-     * @return WidgetItem
-     */
-    public static function newFromJSON($widget)
-    {
-        $type = (string) $widget['type'];
-        $widgetItem = self::widgetItemFromType($type);
-        $widgetItem->loadFromJSON($widget);
-        return $widgetItem;
-    }
-
-    /**
-     * Class constructor
+     * WidgetItem constructor.
      */
     public function __construct()
     {
         $this->fieldName = '';
         $this->hint = '';
-        $this->readOnly = false;
-        $this->required = false;
         $this->icon = null;
+        $this->maxLength = 0;
         $this->onClick = '';
         $this->options = [];
+        $this->readOnly = false;
+        $this->required = false;
     }
 
     /**
@@ -206,23 +147,33 @@ abstract class WidgetItem implements VisualItemInterface
     }
 
     /**
-     * Loads the attribute dictionary for a widget's group of options or values
+     * Returns the HTML code to display a popover with the given text
      *
-     * @param array $property
-     * @param \SimpleXMLElement[] $group
+     * @param string $hint
+     *
+     * @return string
      */
-    protected function getAttributesGroup(&$property, $group)
+    public function getHintHTML($hint)
     {
-        $property = [];
-        foreach ($group as $item) {
-            $values = [];
-            foreach ($item->attributes() as $attributeKey => $attributeValue) {
-                $values[$attributeKey] = (string) $attributeValue;
-            }
-            $values['value'] = (string) $item;
-            $property[] = $values;
-            unset($values);
-        }
+        return empty($hint) ? '' : ' data-toggle="popover" data-placement="auto" data-trigger="hover" data-content="'
+            . $hint . '" ';
+    }
+
+    /**
+     * Loads the attributes structure from the database
+     *
+     * @param array $widget
+     */
+    public function loadFromJSON($widget)
+    {
+        $this->fieldName = (string) $widget['fieldName'];
+        $this->hint = (string) $widget['hint'];
+        $this->readOnly = (bool) $widget['readOnly'];
+        $this->required = (bool) $widget['required'];
+        $this->maxLength = (integer) $widget['maxLength'];
+        $this->icon = (string) $widget['icon'];
+        $this->onClick = (string) $widget['onClick'];
+        $this->options = (array) $widget['options'];
     }
 
     /**
@@ -237,6 +188,7 @@ abstract class WidgetItem implements VisualItemInterface
         $this->hint = (string) $widgetAtributes->hint;
         $this->readOnly = (bool) $widgetAtributes->readonly;
         $this->required = (bool) $widgetAtributes->required;
+        $this->maxLength = (integer) $widgetAtributes->maxlength;
         $this->icon = (string) $widgetAtributes->icon;
         $this->onClick = (string) $widgetAtributes->onclick;
 
@@ -244,19 +196,36 @@ abstract class WidgetItem implements VisualItemInterface
     }
 
     /**
-     * Loads the attributes structure from the database
+     * Creates and loads the attributes structure from the database
      *
      * @param array $widget
+     *
+     * @return WidgetItem
      */
-    public function loadFromJSON($widget)
+    public static function newFromJSON($widget)
     {
-        $this->fieldName = (string) $widget['fieldName'];
-        $this->hint = (string) $widget['hint'];
-        $this->readOnly = (bool) $widget['readOnly'];
-        $this->required = (bool) $widget['required'];
-        $this->icon = (string) $widget['icon'];
-        $this->onClick = (string) $widget['onClick'];
-        $this->options = (array) $widget['options'];
+        $type = (string) $widget['type'];
+        $widgetItem = self::widgetItemFromType($type);
+        $widgetItem->loadFromJSON($widget);
+
+        return $widgetItem;
+    }
+
+    /**
+     * Creates and loads the attributes structure from a XML file
+     *
+     * @param \SimpleXMLElement $column
+     *
+     * @return WidgetItem
+     */
+    public static function newFromXML($column)
+    {
+        $widgetAtributes = $column->widget->attributes();
+        $type = (string) $widgetAtributes->type;
+        $widget = self::widgetItemFromType($type);
+        $widget->loadFromXML($column);
+
+        return $widget;
     }
 
     /**
@@ -284,7 +253,46 @@ abstract class WidgetItem implements VisualItemInterface
                 $result = ($optionValue === $valueItem);
                 break;
         }
+
         return $result;
+    }
+
+    /**
+     * Loads the attribute dictionary for a widget's group of options or values
+     *
+     * @param array               $property
+     * @param \SimpleXMLElement[] $group
+     */
+    protected function getAttributesGroup(&$property, $group)
+    {
+        $property = [];
+        foreach ($group as $item) {
+            $values = [];
+            foreach ($item->attributes() as $attributeKey => $attributeValue) {
+                $values[$attributeKey] = (string) $attributeValue;
+            }
+            $values['value'] = (string) $item;
+            $property[] = $values;
+        }
+    }
+
+    /**
+     * Generates the HTML code to display an icon on the left side of the data
+     *
+     * @return string
+     */
+    protected function getIconHTML()
+    {
+        if (empty($this->icon)) {
+            return '';
+        }
+
+        $html = '<div class="input-group"><span class="input-group-prepend"><span class="input-group-text">';
+        if (strpos($this->icon, 'fa-') === 0) {
+            return $html . '<i class="fa ' . $this->icon . '" aria-hidden="true"></i></span></span>';
+        }
+
+        return $html . '<i aria-hidden="true">' . $this->icon . '</i></span></span>';
     }
 
     /**
@@ -314,38 +322,6 @@ abstract class WidgetItem implements VisualItemInterface
     }
 
     /**
-     * Returns the HTML code to display a popover with the given text
-     *
-     * @param string $hint
-     *
-     * @return string
-     */
-    public function getHintHTML($hint)
-    {
-        return empty($hint) ? '' : ' data-toggle="popover" data-placement="auto" data-trigger="hover" data-content="'
-            . $hint . '" ';
-    }
-
-    /**
-     * Generates the HTML code to display an icon on the left side of the data
-     *
-     * @return string
-     */
-    protected function getIconHTML()
-    {
-        if (empty($this->icon)) {
-            return '';
-        }
-
-        $html = '<div class="input-group"><span class="input-group-addon">';
-        if (strpos($this->icon, 'fa-') === 0) {
-            return $html . '<i class="fa ' . $this->icon . '" aria-hidden="true"></i></span>';
-        }
-
-        return $html . '<i aria-hidden="true">' . $this->icon . '</i></span>';
-    }
-
-    /**
      * Generates the HTML code for special attributes like:
      * hint
      * read only
@@ -355,11 +331,41 @@ abstract class WidgetItem implements VisualItemInterface
      */
     protected function specialAttributes()
     {
-        $hint = $this->getHintHTML($this->hint);
-        $readOnly = empty($this->readOnly) ? '' : ' readonly=""';
-        $required = empty($this->required) ? '' : ' required=""';
+        $attributes = $this->getHintHTML($this->hint);
+        $attributes .= empty($this->readOnly) ? '' : ' readonly=""';
+        $attributes .= empty($this->required) ? '' : ' required=""';
+        $attributes .= empty($this->maxLength) ? '' : ' maxlength="' . $this->maxLength . '"';
 
-        return $hint . $readOnly . $required;
+        if (!$this->readOnly && self::$autofocus) {
+            $attributes .= ' autofocus=""';
+            self::$autofocus = false;
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Returns the HTML code to edit non special controls
+     *
+     * @param string $value
+     * @param string $specialAttributes
+     * @param string $extraClass
+     * @param string $type
+     *
+     * @return string
+     */
+    protected function standardEditHTMLWidget($value, $specialAttributes, $extraClass = '', $type = '')
+    {
+        $type2 = empty($type) ? $this->type : $type;
+        $html = $this->getIconHTML()
+            . '<input type="' . $type2 . '" class="form-control' . $extraClass . '"'
+            . 'name="' . $this->fieldName . '" value="' . $value . '"' . $specialAttributes . ' />';
+
+        if (!empty($this->icon)) {
+            $html .= '</div>';
+        }
+
+        return $html;
     }
 
     /**
@@ -376,35 +382,53 @@ abstract class WidgetItem implements VisualItemInterface
             return '';
         }
 
-        $text = empty($text) ? $value : $text;
+        $text2 = empty($text) ? $value : $text;
         $style = $this->getTextOptionsHTML($value);
-        $html = empty($this->onClick) ? '<span' . $style . '>' . $text . '</span>' : '<a href="?page=' . $this->onClick
-            . '&code=' . $value . '" ' . $style . '>' . $text . '</a>';
-
-        return $html;
+        return empty($this->onClick) ? '<span' . $style . '>' . $text2 . '</span>' : '<a href="' . $this->onClick
+            . '?code=' . $value . '" ' . $style . '>' . $text2 . '</a>';
     }
 
     /**
-     * Returns the HTML code to edit non special controls
+     * Class dynamic constructor. It creates a widget of the given type
      *
-     * @param string $value
-     * @param string $specialAttributes
-     * @param string $extraClass
      * @param string $type
      *
-     * @return string
+     * @return WidgetItem
      */
-    protected function standardEditHTMLWidget($value, $specialAttributes, $extraClass = '', $type = '')
+    private static function widgetItemFromType($type)
     {
-        $type = empty($type) ? $this->type : $type;
-        $html = $this->getIconHTML()
-            . '<input id="' . $this->fieldName . '" type="' . $type . '" class="form-control' . $extraClass . '"'
-            . 'name="' . $this->fieldName . '" value="' . $value . '"' . $specialAttributes . ' />';
+        switch ($type) {
+            case 'autocomplete':
+                return new WidgetItemAutocomplete();
 
-        if (!empty($this->icon)) {
-            $html .= '</div>';
+            case 'checkbox':
+                return new WidgetItemCheckBox();
+
+            case 'color':
+                return new WidgetItemColor();
+
+            case 'date':
+            case 'datepicker':
+                return new WidgetItemDateTime();
+
+            case 'file':
+            case 'filechooser':
+                return new WidgetItemFileChooser();
+
+            case 'money':
+                return new WidgetItemMoney();
+
+            case 'number':
+                return new WidgetItemNumber();
+
+            case 'radio':
+                return new WidgetItemRadio();
+
+            case 'select':
+                return new WidgetItemSelect();
+
+            default:
+                return new WidgetItemText($type);
         }
-
-        return $html;
     }
 }

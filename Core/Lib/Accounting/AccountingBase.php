@@ -10,17 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\Accounting;
 
 use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\DivisaTools;
-use FacturaScripts\Core\Base\Utils;
 
 /**
  * Description of AccountingBase
@@ -31,33 +30,59 @@ use FacturaScripts\Core\Base\Utils;
 abstract class AccountingBase
 {
 
-    use Utils;
+    /**
+     * Link with the active dataBase
+     *
+     * @var DataBase
+     */
+    protected $dataBase;
 
-    protected $database;
+    /**
+     * Tools to work with currencies.
+     *
+     * @var DivisaTools
+     */
     protected $divisaTools;
+
+    /**
+     * Start date.
+     *
+     * @var string
+     */
     protected $dateFrom;
+
+    /**
+     * End date.
+     *
+     * @var string
+     */
     protected $dateTo;
 
+    /**
+     * Generate the balance ammounts between two dates.
+     */
+    abstract public function generate(string $dateFrom, string $dateTo, array $params = []);
+
+    /**
+     * Obtains the balances for each one of the sections of the balance sheet according to their assigned accounts.
+     */
     abstract protected function getData();
 
-    abstract protected function processLine($line);
-
-    abstract public static function generate($dateFrom, $dateTo);
-
-    public function __construct($dateFrom, $dateTo)
+    /**
+     * AccountingBase constructor.
+     */
+    public function __construct()
     {
-        $this->database = new DataBase();
+        $this->dataBase = new DataBase();
         $this->divisaTools = new DivisaTools();
-
-        $this->dateFrom = $dateFrom;
-        $this->dateTo = $dateTo;
     }
 
     /**
+     * Returns a new date.
      *
      * @param string $date
      * @param string $add
-     * 
+     *
      * @return string
      */
     protected function addToDate($date, $add)

@@ -1,8 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2016 Joe Nilson             <joenilson at gmail.com>
- * Copyright (C) 2017 Carlos García Gómez    <carlos@facturascripts.com>
+ * Copyright (C) 2016       Joe Nilson             <joenilson at gmail.com>
+ * Copyright (C) 2017-2018  Carlos García Gómez    <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -11,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -27,7 +27,7 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  * @author Joe Nilson            <joenilson at gmail.com>
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class RoleAccess
+class RoleAccess extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -44,7 +44,7 @@ class RoleAccess
      *
      * @var string
      */
-    public $codrol;
+    public $codrole;
 
     /**
      * Name of the page.
@@ -74,7 +74,7 @@ class RoleAccess
      */
     public static function tableName()
     {
-        return 'fs_roles_access';
+        return 'roles_access';
     }
 
     /**
@@ -82,7 +82,7 @@ class RoleAccess
      *
      * @return string
      */
-    public function primaryColumn()
+    public static function primaryColumn()
     {
         return 'id';
     }
@@ -90,20 +90,21 @@ class RoleAccess
     /**
      * Add the indicated page list to the Role group
      *
-     * @param string $codrol
+     * @param string $codrole
      * @param Page[] $pages
+     *
      * @return bool
      */
-    public static function addPagesToRole($codrol, $pages)
+    public static function addPagesToRole($codrole, $pages)
     {
-        $where = [new DataBaseWhere('codrol', $codrol)];
-        $roleAccess = new RoleAccess();
+        $where = [new DataBaseWhere('codrole', $codrole)];
+        $roleAccess = new self();
 
         foreach ($pages as $record) {
             $where[] = new DataBaseWhere('pagename', $record->name);
 
             if (!$roleAccess->loadFromCode('', $where)) {
-                $roleAccess->codrol = $codrol;
+                $roleAccess->codrole = $codrole;
                 $roleAccess->pagename = $record->name;
                 $roleAccess->allowdelete = true;
                 $roleAccess->allowupdate = true;
@@ -113,6 +114,7 @@ class RoleAccess
             }
             unset($where[1]);
         }
+
         return true;
     }
 }

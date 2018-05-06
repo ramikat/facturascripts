@@ -10,16 +10,15 @@
         }
     ],
     "require": {
-        "php": ">=5.6",
-        "symfony/http-foundation": "v3.3.*",
-        "symfony/translation": "v3.3.*",
-        "twig/twig": "v1.*",
+        "php": ">=7.0.8",
         "maximebf/debugbar": "1.*",
-        "symfony/event-dispatcher": "v3.3.*",
-        "rospdf/pdf-php": "0.12.41",
-        "mk-j/php_xlsxwriter": "0.35",
-        "phpmailer/phpmailer": "v6.0.1",
-        "parsecsv/php-parsecsv": "0.4.5"
+        "mk-j/php_xlsxwriter": "0.37",
+        "parsecsv/php-parsecsv": "1.*",
+        "phpmailer/phpmailer": "v6.0.3",
+        "rospdf/pdf-php": "0.12.43",
+        "symfony/http-foundation": "^3.4",
+        "symfony/translation": "^3.4",
+        "twig/twig": "v2.*"
     },
     "require-dev": {
         "phpunit/phpunit": "5.7.*",
@@ -31,5 +30,24 @@
             "FacturaScripts\\Dinamic\\": "Dinamic/",
             "FacturaScripts\\Plugins\\": "Plugins/"
         }
+    },
+    "keywords" : [
+        "facturascripts",
+        "php",
+        "invoice",
+        "erp",
+        "crm",
+        "billing",
+        "accounting"
+    ],
+    "scripts": {
+        "auto-scripts": {
+        },
+        "post-install-cmd": [
+            "npm install"
+        ],
+        "post-update-cmd": [
+            "npm update"
+        ]
     }
 }

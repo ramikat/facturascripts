@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  carlos@facturascripts.com
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -26,49 +25,16 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
  */
 class WidgetItemText extends WidgetItem
 {
+
     /**
-     * Class constructor
+     * WidgetItemText constructor.
      *
      * @param string $type
      */
     public function __construct($type)
     {
         parent::__construct();
-
         $this->type = $type;
-    }
-
-    /**
-     * Formats text to a given maximum length
-     *
-     * @param string $txt
-     * @param int $len
-     *
-     * @return string
-     */
-    private function getTextResume($txt, $len = 60)
-    {
-        if (mb_strlen($txt) < $len) {
-            return $txt;
-        }
-
-        return mb_substr($txt, 0, $len - 3) . '...';
-    }
-
-    /**
-     * Generates the HTML code to display the data in the List controller
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    public function getListHTML($value)
-    {
-        if ($value === null || $value === '') {
-            return '';
-        }
-        $txt = $this->getTextResume($value);
-        return $this->standardListHTMLWidget($value, $txt);
     }
 
     /**
@@ -83,15 +49,14 @@ class WidgetItemText extends WidgetItem
         $specialAttributes = $this->specialAttributes();
 
         switch ($this->type) {
-            case 'textarea':
-                $html = $this->getIconHTML()
-                    . '<textarea name="' . $this->fieldName . '" id="' . $this->fieldName
-                    . '" class="form-control" rows="3" ' . $specialAttributes
-                    . '>' . $value . '</textarea>';
+            case 'html':
+                $html = '<textarea name="' . $this->fieldName . '" class="html-editor" '
+                    . $specialAttributes . '>' . $value . '</textarea>';
+                break;
 
-                if (!empty($this->icon)) {
-                    $html .= '</div>';
-                }
+            case 'textarea':
+                $html = '<textarea name="' . $this->fieldName . '" class="form-control" rows="3" '
+                    . $specialAttributes . '>' . $value . '</textarea>';
                 break;
 
             default:
@@ -99,5 +64,39 @@ class WidgetItemText extends WidgetItem
         }
 
         return $html;
+    }
+
+    /**
+     * Generates the HTML code to display the data in the List controller
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public function getListHTML($value)
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        $txt = $this->getTextResume($value);
+        return $this->standardListHTMLWidget($value, $txt);
+    }
+
+    /**
+     * Formats text to a given maximum length
+     *
+     * @param string $txt
+     * @param int    $len
+     *
+     * @return string
+     */
+    private function getTextResume($txt, $len = 60)
+    {
+        if (mb_strlen($txt) < $len) {
+            return $txt;
+        }
+
+        return mb_substr($txt, 0, $len - 3) . '...';
     }
 }

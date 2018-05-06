@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\DocumentReportsBase;
 
@@ -24,11 +24,12 @@ use FacturaScripts\Core\Base\DataBase;
 /**
  * Description of DocumentReportsFilterList
  *
- * @author Francesc Pienda Segarra <francesc.pineda.segarra@gmail.com>
+ * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
 class DocumentReportsFilterList
 {
+
     /**
      * Structure data from
      */
@@ -43,6 +44,7 @@ class DocumentReportsFilterList
 
     /**
      * Icon for select input
+     *
      * @var string
      */
     public $icon;
@@ -54,7 +56,14 @@ class DocumentReportsFilterList
      */
     public $listValues;
 
-
+    /**
+     * DocumentReportsFilterList constructor.
+     *
+     * @param string $modelName
+     * @param string $selectedValue
+     * @param string $icon
+     * @param bool $allowEmpty
+     */
     public function __construct($modelName, $selectedValue = '', $icon = 'fa-list', $allowEmpty = true)
     {
         $this->model = new $modelName();
@@ -63,6 +72,11 @@ class DocumentReportsFilterList
         $this->loadValuesFromModel($allowEmpty);
     }
 
+    /**
+     * Load requires values from model.
+     *
+     * @param bool $allowEmpty
+     */
     private function loadValuesFromModel($allowEmpty = true)
     {
         $tableName = $this->model->tableName();
@@ -77,6 +91,11 @@ class DocumentReportsFilterList
         unset($rows);
     }
 
+    /**
+     * Return DataBaseWhere with needed filter.
+     *
+     * @return DataBase\DataBaseWhere|null
+     */
     public function getWhere()
     {
         if (empty($this->selectedValue)) {

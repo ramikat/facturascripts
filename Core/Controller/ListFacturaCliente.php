@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,15 +10,15 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -26,30 +26,10 @@ use FacturaScripts\Core\Lib\ExtendedController;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author Raul Jimenez <raul.jimenez@nazcanetworks.com>
  */
 class ListFacturaCliente extends ExtendedController\ListController
 {
-
-    /**
-     * Load views
-     */
-    protected function createViews()
-    {
-        $this->addView('\FacturaScripts\Dinamic\Model\FacturaCliente', 'ListFacturaCliente');
-        $this->addSearchFields('ListFacturaCliente', ['codigo', 'numero2', 'observaciones']);
-
-        $this->addFilterDatePicker('ListFacturaCliente', 'date', 'date', 'fecha');
-        $this->addFilterNumber('ListFacturaCliente', 'total', 'total');
-        $this->addFilterSelect('ListFacturaCliente', 'codalmacen', 'almacenes', '', 'nombre');
-        $this->addFilterSelect('ListFacturaCliente', 'codserie', 'series', '', 'codserie');
-        $this->addFilterSelect('ListFacturaCliente', 'codpago', 'formaspago', '', 'codpago');
-        $this->addFilterAutocomplete('ListFacturaCliente', 'codcliente', 'clientes', '', 'nombre');
-        $this->addFilterCheckbox('ListFacturaCliente', 'paid', 'paid', 'pagada');
-
-        $this->addOrderBy('ListFacturaCliente', 'codigo', 'code');
-        $this->addOrderBy('ListFacturaCliente', 'fecha', 'date', 2);
-        $this->addOrderBy('ListFacturaCliente', 'total', 'amount');
-    }
 
     /**
      * Returns basic page attributes
@@ -64,5 +44,58 @@ class ListFacturaCliente extends ExtendedController\ListController
         $pagedata['menu'] = 'sales';
 
         return $pagedata;
+    }
+
+    /**
+     * Load views
+     */
+    protected function createViews()
+    {
+        $this->addView('ListFacturaCliente', 'FacturaCliente');
+        $this->addSearchFields('ListFacturaCliente', ['codigo', 'numero2', 'observaciones']);
+        $this->addOrderBy('ListFacturaCliente', 'codigo', 'code');
+        $this->addOrderBy('ListFacturaCliente', 'fecha', 'date', 2);
+        $this->addOrderBy('ListFacturaCliente', 'total', 'amount');
+
+        $this->addFilterDatePicker('ListFacturaCliente', 'fecha', 'date', 'fecha');
+        $this->addFilterNumber('ListFacturaCliente', 'total', 'total', 'total');
+
+        $where = [new DataBaseWhere('tipodoc', 'FacturaCliente')];
+        $stateValues = $this->codeModel->all('estados_documentos', 'idestado', 'nombre', true, $where);
+        $this->addFilterSelect('ListFacturaCliente', 'idestado', 'state', 'idestado', $stateValues);
+
+        $warehouseValues = $this->codeModel->all('almacenes', 'codalmacen', 'nombre');
+        $this->addFilterSelect('ListFacturaCliente', 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
+
+        $serieValues = $this->codeModel->all('series', 'codserie', 'descripcion');
+        $this->addFilterSelect('ListFacturaCliente', 'codserie', 'series', 'codserie', $serieValues);
+
+        $paymentValues = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
+        $this->addFilterSelect('ListFacturaCliente', 'codpago', 'payment-method', 'codpago', $paymentValues);
+
+        $this->addFilterAutocomplete('ListFacturaCliente', 'codcliente', 'customer', 'codcliente', 'clientes', 'codcliente', 'nombre');
+        $this->addFilterCheckbox('ListFacturaCliente', 'paid', 'paid', 'pagada');
+
+        // Delivery notes lines
+        $this->createViewLines();
+    }
+
+    protected function createViewLines()
+    {
+        $this->addView('ListLineaFacturaCliente', 'LineaFacturaCliente', 'lines', 'fa-list');
+        $this->addSearchFields('ListLineaFacturaCliente', ['referencia', 'descripcion']);
+        $this->addOrderBy('ListLineaFacturaCliente', 'referencia', 'reference');
+        $this->addOrderBy('ListLineaFacturaCliente', 'cantidad', 'quantity');
+        $this->addOrderBy('ListLineaFacturaCliente', 'descripcion', 'description');
+        $this->addOrderBy('ListLineaFacturaCliente', 'pvptotal', 'ammount');
+        $this->addOrderBy('ListLineaFacturaCliente', 'idfactura', 'code', 2);
+
+        $taxValues = $this->codeModel->all('impuestos', 'codimpuesto', 'descripcion');
+        $this->addFilterSelect('ListLineaFacturaCliente', 'codimpuesto', 'tax', 'codimpuesto', $taxValues);
+
+        $this->addFilterNumber('ListLineaFacturaCliente', 'cantidad', 'quantity', 'cantidad');
+        $this->addFilterNumber('ListLineaFacturaCliente', 'dtopor', 'discount', 'dtopor');
+        $this->addFilterNumber('ListLineaFacturaCliente', 'pvpunitario', 'pvp', 'pvpunitario');
+        $this->addFilterNumber('ListLineaFacturaCliente', 'pvptotal', 'ammount', 'pvptotal');
     }
 }

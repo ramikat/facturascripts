@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,38 +10,26 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
+
+use FacturaScripts\Core\Base\Utils;
+use FacturaScripts\Core\Lib\RegimenIVA;
 
 /**
  * This class stores the main data of the company.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Empresa
+class Empresa extends Base\Contact
 {
 
     use Base\ModelTrait;
-    use Base\ContactInformation;
-
-    /**
-     * Primary key. Integer.
-     *
-     * @var int
-     */
-    public $id;
-
-    /**
-     * True -> activates the use of an equivalence surcharge on delivery notes and purchase invoices.
-     *
-     * @var bool
-     */
-    public $recequivalencia;
 
     /**
      * Name of the company administrator.
@@ -51,18 +39,53 @@ class Empresa
     public $administrador;
 
     /**
-     * Tax identification code of the company.
+     * Post office box of the address.
      *
      * @var string
      */
-    public $cifnif;
+    public $apartado;
 
     /**
-     * Company name.
+     * City of the address.
      *
      * @var string
      */
-    public $nombre;
+    public $ciudad;
+
+    /**
+     * Country of the address.
+     *
+     * @var string
+     */
+    public $codpais;
+
+    /**
+     * Postal code of the address.
+     *
+     * @var string
+     */
+    public $codpostal;
+
+    /**
+     * Address.
+     *
+     * @var string
+     */
+    public $direccion;
+
+    /**
+     * Physical person.
+     *
+     * @var int
+     */
+    public $personafisica;
+
+    /**
+     * Primary key. Integer.
+     *
+     * @var int
+     */
+    public $idempresa;
 
     /**
      * Short name of the company, to show on the menu.
@@ -72,11 +95,18 @@ class Empresa
     public $nombrecorto;
 
     /**
-     * Start date of the activity.
+     * Province of the address.
      *
      * @var string
      */
-    public $inicio_actividad;
+    public $provincia;
+
+    /**
+     * True -> activates the use of an equivalence surcharge on delivery notes and purchase invoices.
+     *
+     * @var bool
+     */
+    public $recequivalencia;
 
     /**
      * VAT regime of the company.
@@ -86,60 +116,21 @@ class Empresa
     public $regimeniva;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Website of the person.
      *
-     * @return string
+     * @var string
      */
-    public static function tableName()
-    {
-        return 'empresas';
-    }
+    public $web;
 
     /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
+     * Reset the values of all model properties.
      */
-    public function primaryColumn()
+    public function clear()
     {
-        return 'id';
-    }
+        parent::clear();
 
-    /**
-     * Check the company's data, return TRUE if correct
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $this->nombre = self::noHtml($this->nombre);
-        $this->nombrecorto = self::noHtml($this->nombrecorto);
-        $this->administrador = self::noHtml($this->administrador);
-        $this->apartado = self::noHtml($this->apartado);
-        $this->cifnif = self::noHtml($this->cifnif);
-        $this->ciudad = self::noHtml($this->ciudad);
-        $this->codpostal = self::noHtml($this->codpostal);
-        $this->direccion = self::noHtml($this->direccion);
-        $this->email = self::noHtml($this->email);
-        $this->fax = self::noHtml($this->fax);
-        $this->provincia = self::noHtml($this->provincia);
-        $this->telefono = self::noHtml($this->telefono);
-        $this->web = self::noHtml($this->web);
-
-        $lenName = strlen($this->nombre);
-        if (($lenName == 0) || ($lenName > 99)) {
-            self::$miniLog->alert(self::$i18n->trans('company-name-invalid'));
-
-            return false;
-        }
-
-        if ($lenName < strlen($this->nombrecorto)) {
-            self::$miniLog->alert(self::$i18n->trans('company-short-name-smaller-name'));
-
-            return false;
-        }
-
-        return true;
+        $regimenIVA = new RegimenIVA();
+        $this->regimeniva = $regimenIVA::defaultValue();
     }
 
     /**
@@ -153,10 +144,63 @@ class Empresa
     {
         $num = mt_rand(1, 9999);
 
-        return 'INSERT INTO ' . static::tableName() . ' (recequivalencia,web,email,fax,telefono,codpais,apartado,'
-            . 'provincia,ciudad,codpostal,direccion,administrador,cifnif,nombre,nombrecorto)'
-            . "VALUES (NULL,'https://www.facturascripts.com',"
+        return 'INSERT INTO ' . static::tableName() . ' (idempresa,recequivalencia,web,email,fax,telefono1,codpais,apartado,'
+            . 'provincia,ciudad,codpostal,direccion,administrador,cifnif,nombre,nombrecorto,personafisica)'
+            . "VALUES (1,NULL,'https://www.facturascripts.com',"
             . "NULL,NULL,NULL,'ESP',NULL,NULL,NULL,NULL,'C/ Falsa, 123','','00000014Z',"
-            . "'Empresa " . $num . " S.L.','E-" . $num . "');";
+            . "'Empresa " . $num . " S.L.','E-" . $num . "','0');";
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'idempresa';
+    }
+
+    /**
+     * Returns the description of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'nombrecorto';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'empresas';
+    }
+
+    /**
+     * Check the company's data, return TRUE if correct
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        $this->administrador = Utils::noHtml($this->administrador);
+        $this->apartado = Utils::noHtml($this->apartado);
+        $this->ciudad = Utils::noHtml($this->ciudad);
+        $this->codpostal = Utils::noHtml($this->codpostal);
+        $this->direccion = Utils::noHtml($this->direccion);
+        $this->nombrecorto = Utils::noHtml($this->nombrecorto);
+        $this->provincia = Utils::noHtml($this->provincia);
+        $this->web = Utils::noHtml($this->web);
+
+        if (empty($this->idempresa)) {
+            $this->idempresa = $this->newCode();
+        }
+
+        return parent::test();
     }
 }

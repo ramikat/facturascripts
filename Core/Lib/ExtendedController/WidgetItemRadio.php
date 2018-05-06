@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  carlos@facturascripts.com
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -26,6 +25,7 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
  */
 class WidgetItemRadio extends WidgetItem
 {
+
     /**
      * Accepted values for the field associated to the widget
      *
@@ -34,7 +34,7 @@ class WidgetItemRadio extends WidgetItem
     public $values;
 
     /**
-     * Class constructor
+     * WidgetItemRadio constructor.
      */
     public function __construct()
     {
@@ -45,25 +45,24 @@ class WidgetItemRadio extends WidgetItem
     }
 
     /**
-     * Loads the attributes structure from a XML file
+     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
      *
-     * @param \SimpleXMLElement $column
+     * @param string $value
+     *
+     * @return string
      */
-    public function loadFromXML($column)
+    public function getEditHTML($value)
     {
-        parent::loadFromXML($column);
-        $this->getAttributesGroup($this->values, $column->widget->values);
-    }
+        $html = $this->getIconHTML()
+            . '<input name="' . $this->fieldName . '" id="' . $this->fieldName
+            . '"sufix% class="form-check-input" type="radio"'
+            . ' value=""value%"' . $this->specialAttributes() . '"checked%>';
 
-    /**
-     * Loads the attributes structure from a JSON file
-     *
-     * @param array $widget
-     */
-    public function loadFromJSON($widget)
-    {
-        parent::loadFromJSON($widget);
-        $this->values = (array) $widget['values'];
+        if (!empty($this->icon)) {
+            $html .= '</div>';
+        }
+
+        return $html;
     }
 
     /**
@@ -79,24 +78,24 @@ class WidgetItemRadio extends WidgetItem
     }
 
     /**
-     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
+     * Loads the attributes structure from a JSON file
      *
-     * @param string $value
-     *
-     * @return string
+     * @param array $widget
      */
-    public function getEditHTML($value)
+    public function loadFromJSON($widget)
     {
-        $specialAttributes = $this->specialAttributes();
-        $html = $this->getIconHTML()
-            . '<input name="' . $this->fieldName . '" id="' . $this->fieldName
-            . '"sufix% class="form-check-input" type="radio"'
-            . ' value=""value%"' . $specialAttributes . '"checked%>';
+        parent::loadFromJSON($widget);
+        $this->values = (array) $widget['values'];
+    }
 
-        if (!empty($this->icon)) {
-            $html .= '</div>';
-        }
-
-        return $html;
+    /**
+     * Loads the attributes structure from a XML file
+     *
+     * @param \SimpleXMLElement $column
+     */
+    public function loadFromXML($column)
+    {
+        parent::loadFromXML($column);
+        $this->getAttributesGroup($this->values, $column->widget->values);
     }
 }

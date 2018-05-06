@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,25 +10,25 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
+
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * Un atributo para artículos.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Atributo
+class Atributo extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        save as private traitSave;
-    }
+    use Base\ModelTrait;
 
     /**
      * Primary key.
@@ -43,38 +43,6 @@ class Atributo
      * @var string
      */
     public $nombre;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'atributos';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codatributo';
-    }
-
-    /**
-     * Obtain the attributes of an attribute code.
-     *
-     * @return AtributoValor[]
-     */
-    public function valores()
-    {
-        $valor0 = new AtributoValor();
-
-        return $valor0->allFromAtributo($this->codatributo);
-    }
 
     /**
      * Get attribute by name.
@@ -102,14 +70,46 @@ class Atributo
     }
 
     /**
-     * Stores the model data in the database.
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codatributo';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'atributos';
+    }
+
+    /**
+     * Obtain the attributes of an attribute code.
+     *
+     * @return AtributoValor[]
+     */
+    public function valores()
+    {
+        $valor0 = new AtributoValor();
+
+        return $valor0->allFromAtributo($this->codatributo);
+    }
+
+    /**
+     * Returns True if there is no errors on properties values.
      *
      * @return bool
      */
-    public function save()
+    public function test()
     {
-        $this->nombre = self::noHtml($this->nombre);
+        $this->nombre = Utils::noHtml($this->nombre);
 
-        return $this->traitSave();
+        return parent::test();
     }
 }

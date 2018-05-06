@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 /**
@@ -26,6 +25,7 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
  */
 class RowItemStatus extends RowItem
 {
+
     /**
      * Field name to which the options are applied to
      *
@@ -41,7 +41,7 @@ class RowItemStatus extends RowItem
     public $options;
 
     /**
-     * Class constructor
+     * RowItemStatus constructor.
      */
     public function __construct()
     {
@@ -51,20 +51,37 @@ class RowItemStatus extends RowItem
     }
 
     /**
-     * Loads the attributes structure from a XML file
+     * Returns the status for a given value
      *
-     * @param \SimpleXMLElement $row
+     * @param string $value
+     *
+     * @return string
      */
-    public function loadFromXML($row)
+    public function getStatus($value)
     {
-        $row_atributes = $row->attributes();
-        $this->fieldName = (string) $row_atributes->fieldname;
+        foreach ($this->options as $option) {
+            switch ($option['value'][0]) {
+                case '>':
+                    if ($value > (float) substr($option['value'], 1)) {
+                        return $option['color'];
+                    }
+                    break;
 
-        foreach ($row->option as $option) {
-            $values = $this->getAttributesFromXML($option);
-            $this->options[] = $values;
-            unset($values);
+                case '<':
+                    if ($value < (float) substr($option['value'], 1)) {
+                        return $option['color'];
+                    }
+                    break;
+
+                default:
+                    /// don't use strict comparation (===)
+                    if ($option['value'] == $value) {
+                        return $option['color'];
+                    }
+            }
         }
+
+        return 'table-light';
     }
 
     /**
@@ -80,31 +97,18 @@ class RowItemStatus extends RowItem
     }
 
     /**
-     * Returns the status for a given value
+     * Loads the attributes structure from a XML file
      *
-     * @param string $value
-     *
-     * @return string
+     * @param \SimpleXMLElement $row
      */
-    public function getStatus($value)
+    public function loadFromXML($row)
     {
-        foreach ($this->options as $option) {
-            /// don't use strict comparation (===)
-            if ($option['value'] == $value) {
-                return $option['color'];
-            }
+        $row_atributes = $row->attributes();
+        $this->fieldName = (string) $row_atributes->fieldname;
 
-            $operator = $option['value'][0];
-            $value2 = (float) substr($option['value'], 1);
-            if ($operator === '>' && $value > $value2) {
-                return $option['color'];
-            }
-
-            if ($operator === '<' && $value < $value2) {
-                return $option['color'];
-            }
+        foreach ($row->option as $option) {
+            $values = $this->getAttributesFromXML($option);
+            $this->options[] = $values;
         }
-
-        return 'table-light';
     }
 }

@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Description of AccountingReports
  *
- * @author Carlos García Gómez
+ * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 class AccountingReports extends Controller
 {
@@ -49,10 +49,40 @@ class AccountingReports extends Controller
     public $exportManager;
 
     /**
+     * Return the basic data for this page.
+     *
+     * @return array
+     */
+    public function getPageData()
+    {
+        $pageData = parent::getPageData();
+        $pageData['menu'] = 'reports';
+        $pageData['title'] = 'accounting-reports';
+        $pageData['icon'] = 'fa-balance-scale';
+
+        return $pageData;
+    }
+
+    /**
+     * Return list of accounting documents
+     *
+     * @return array
+     */
+    public function getReports()
+    {
+        return [
+            'ledger' => ['description' => 'ledger', 'grouping' => true],
+            'balance-ammounts' => ['description' => 'balance-ammounts', 'grouping' => false],
+            'balance-sheet' => ['description' => 'balance-sheet', 'grouping' => false],
+            'profit' => ['description' => 'profit-and-loss-balance', 'grouping' => false],
+        ];
+    }
+
+    /**
      * Runs the controller's private logic.
      *
-     * @param Response $response
-     * @param User $user
+     * @param Response              $response
+     * @param User                  $user
      * @param ControllerPermissions $permissions
      */
     public function privateCore(&$response, $user, $permissions)
@@ -71,89 +101,65 @@ class AccountingReports extends Controller
 
     /**
      * Execute main actions.
-     *
+     * Filter bi date-from date-to format and grouping
+     * 
      * @param $action
      */
     private function execAction($action)
     {
-        $data = [];
-        $dateFrom = $this->request->get('date-from');
-        $dateTo = $this->request->get('date-to');
-        $format = $this->request->get('format');
+        $pages = [];
+        $dateFrom = $this->request->get('date-from', '');
+        $dateTo = $this->request->get('date-to', '');
+        $format = $this->request->get('format', '');
+        $params = ['grouping' => ('YES' == $this->request->get('grouping', 'YES'))];
 
         switch ($action) {
-            case 'libro-mayor':
-                $this->setTemplate(false);
+            case 'ledger':
                 $ledger = new Accounting\Ledger();
-                $data = $ledger->generate($dateFrom, $dateTo);
+                $pages = $ledger->generate($dateFrom, $dateTo, $params);
                 break;
 
-            case 'sumas-saldos':
+            case 'balance-ammounts':
                 $balanceAmmount = new Accounting\BalanceAmmounts();
-                $data = $balanceAmmount->generate($dateFrom, $dateTo);
+                $pages = $balanceAmmount->generate($dateFrom, $dateTo, $params);
                 break;
 
-            case 'situacion':
-                $balanceSheet = new Accounting\BalanceSheet($dateFrom, $dateTo);
-                $data = $balanceSheet->generate($dateFrom, $dateTo);
+            case 'balance-sheet':
+                $balanceSheet = new Accounting\BalanceSheet();
+                $pages = $balanceSheet->generate($dateFrom, $dateTo, $params);
                 break;
 
-            case 'pyg':
-                $proffitAndLoss = new Accounting\ProffitAndLoss($dateFrom, $dateTo);
-                $data = $proffitAndLoss->generate($dateFrom, $dateTo);
+            case 'profit':
+                $profitAndLoss = new Accounting\ProfitAndLoss();
+                $pages = $profitAndLoss->generate($dateFrom, $dateTo, $params);
                 break;
         }
 
-        if (empty($data)) {
+        if (empty($pages)) {
             $this->miniLog->info($this->i18n->trans('no-data'));
+
             return;
         }
+
         $this->setTemplate(false);
-        $this->exportData($data, $format);
-    }
-
-    /**
-     * Return list of accounting documents
-     *
-     * @return array
-     */
-    public function getReports()
-    {
-        return [
-            'libro-mayor' => 'ledger',
-            'sumas-saldos' => 'balance-ammounts',
-            'situacion' => 'balance-sheet',
-            'pyg' => 'profit-and-loss-balance'
-        ];
-    }
-
-    /**
-     * Return the basic data for this page.
-     *
-     * @return array
-     */
-    public function getPageData()
-    {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'reports';
-        $pageData['title'] = 'accounting-reports';
-        $pageData['icon'] = 'fa-balance-scale';
-
-        return $pageData;
+        $this->exportData($pages, $format);
     }
 
     /**
      * Exports data to PDF.
      *
-     * @param array $data
+     * @param array  $pages
      * @param string $format
      */
-    private function exportData(&$data, $format)
+    private function exportData(&$pages, $format)
     {
-        $headers = empty($data) ? [] : array_keys($data[0]);
+        $this->exportManager->newDoc($format);
 
-        $this->exportManager->newDoc($this->response, $format);
-        $this->exportManager->generateTablePage($headers, $data);
+        foreach ($pages as $data) {
+            $headers = empty($data) ? [] : array_keys($data[0]);
+            $this->exportManager->generateTablePage($headers, $data);
+        }
+
         $this->exportManager->show($this->response);
     }
 }

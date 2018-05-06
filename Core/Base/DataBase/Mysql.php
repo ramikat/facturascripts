@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\DataBase;
@@ -31,7 +31,6 @@ use FacturaScripts\Core\Base\Translator;
  */
 class Mysql implements DataBaseEngine
 {
-
     /**
      * Link to the SQL statements for the connected database
      *
@@ -246,7 +245,7 @@ class Mysql implements DataBaseEngine
      * or an empty array when it fails.
      *
      * @param \mysqli $link
-     * @param string $sql
+     * @param string  $sql
      *
      * @return array
      */
@@ -275,7 +274,7 @@ class Mysql implements DataBaseEngine
      * (inserts, updates or deletes)
      *
      * @param \mysqli $link
-     * @param string $sql
+     * @param string  $sql
      *
      * @return bool
      */
@@ -300,7 +299,7 @@ class Mysql implements DataBaseEngine
      * Escapes quotes from a text string
      *
      * @param \mysqli $link
-     * @param string $str
+     * @param string  $str
      *
      * @return string
      */
@@ -408,9 +407,9 @@ class Mysql implements DataBaseEngine
      * sequence exists. If it can't find it, i will create one.
      *
      * @param \mysqli $link
-     * @param string $tableName
-     * @param string $default
-     * @param string $colname
+     * @param string  $tableName
+     * @param string  $default
+     * @param string  $colname
      *
      * @return bool
      */
@@ -423,8 +422,8 @@ class Mysql implements DataBaseEngine
      * Runs extra checks in the table
      *
      * @param \mysqli $link
-     * @param string $tableName
-     * @param string $error
+     * @param string  $tableName
+     * @param string  $error
      *
      * @return bool
      */
@@ -437,7 +436,7 @@ class Mysql implements DataBaseEngine
         if (!empty($data) && $data[0]['Engine'] !== 'InnoDB') {
             $result = $this->exec($link, 'ALTER TABLE ' . $tableName . ' ENGINE=InnoDB;');
             if ($result) {
-                $error = $this->i18n->trans('cant-convert-to-innodb', [ '%tableName%' => $tableName]);
+                $error = $this->i18n->trans('cant-convert-to-innodb', ['%tableName%' => $tableName]);
             }
         }
 

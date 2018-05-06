@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\DataBase;
@@ -27,7 +27,6 @@ namespace FacturaScripts\Core\Base\DataBase;
  */
 class MysqlSQL implements DataBaseSQL
 {
-
     /**
      * Generates the SQL with the field type and the DEFAULT and null constraints
      *
@@ -209,8 +208,8 @@ class MysqlSQL implements DataBaseSQL
      * Returns the SQL needed to create a table with the given structure
      *
      * @param string $tableName
-     * @param array $columns
-     * @param array $constraints
+     * @param array  $columns
+     * @param array  $constraints
      *
      * @return string
      */
@@ -232,7 +231,7 @@ class MysqlSQL implements DataBaseSQL
      * Returns the SQL needed to add a column to a table
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      *
      * @return string
      */
@@ -248,7 +247,7 @@ class MysqlSQL implements DataBaseSQL
      * Returns the SQL needed to alter a column in a table
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      *
      * @return string
      */
@@ -265,7 +264,7 @@ class MysqlSQL implements DataBaseSQL
      * Returns the needed SQL to alter a column default constraint
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      *
      * @return string
      */
@@ -283,7 +282,7 @@ class MysqlSQL implements DataBaseSQL
      * SQL statement to alter a null constraint in a table column
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      *
      * @return string
      */
@@ -296,7 +295,7 @@ class MysqlSQL implements DataBaseSQL
      * Returns the SQL needed to remove a constraint from a table
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      *
      * @return string
      */

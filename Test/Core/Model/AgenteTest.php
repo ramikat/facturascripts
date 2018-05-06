@@ -1,7 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017    Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * Copyright (C) 2017   Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * Copyright (C) 2018   Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +11,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Test\Core\Model;
@@ -24,7 +25,7 @@ use FacturaScripts\Core\Model\Agente;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Agente
+ * @covers \Agente
  */
 final class AgenteTest extends TestCase
 {
@@ -37,8 +38,7 @@ final class AgenteTest extends TestCase
             $model
         );
 
-        $this->assertEquals(
-            null,
+        $this->assertNull(
             $model->codagente
         );
 
@@ -54,7 +54,7 @@ final class AgenteTest extends TestCase
 
         $this->assertEquals(
             '',
-            $model->dnicif
+            $model->cifnif
         );
 
         $this->assertEquals(
@@ -79,17 +79,17 @@ final class AgenteTest extends TestCase
 
         $this->assertEquals(
             date('d-m-Y'),
-            $model->f_alta
+            $model->fechaalta
         );
 
         $this->assertEquals(
             null,
-            $model->f_baja
+            $model->fechabaja
         );
 
         $this->assertEquals(
-            date('d-m-Y'),
-            $model->f_nacimiento
+            null,
+            $model->fechanacimiento
         );
 
         $this->assertInternalType(
@@ -97,7 +97,7 @@ final class AgenteTest extends TestCase
             $model->primaryDescription()
         );
 
-        $this->assertTrue($model->test());
+        $this->assertFalse($model->test());
     }
 
     public function testTable()
@@ -116,7 +116,7 @@ final class AgenteTest extends TestCase
 
         $this->assertInternalType(
             'string',
-            $model->primaryColumn()
+            $model::primaryColumn()
         );
     }
 

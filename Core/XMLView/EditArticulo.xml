@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Initial description for the controller EditArticulo
@@ -29,9 +29,8 @@
                 <widget type="text" fieldname="referencia" maxlength="18" required="true" />
             </column>
             <column name="tipo" title="type" numcolumns="12" order="110">
-                <widget type="select" fieldname="tipo">
-                    <values title="Producto simple">simple</values>
-                    <values title="Producto con atributos">atributos</values>
+                <widget type="select" fieldname="tipo" required="true">
+                    <values title="simple">simple</values>
                 </widget>
             </column>
         </group>
@@ -61,37 +60,32 @@
                 <widget type="text" fieldname="equivalencia"/>
             </column>
         </group>
-        <group name="stock" numcolumns="4">
-            <column name="stockfis" title="physical-stock" numcolumns="4" order="100">
+        <group name="stock" numcolumns="3">
+            <column name="stockfis" title="physical-stock" order="100">
                 <widget type="number" fieldname="stockfis" readonly="true"/>
             </column>
-            <column name="stockmin" title="minimum-stock" numcolumns="4" order="100">
-                <widget type="number" fieldname="stockmin"/>
-            </column>
-            <column name="stockmax" title="maximum-stock" numcolumns="4" order="210">
-                <widget type="number" fieldname="stockmax"/>
-            </column>
         </group>
-        <group name="vacio" numcolumns="3">
-             
-        </group>
-        <group name="option" numcolumns="5">
-            <column name="nostock" title="no-stock" numcolumns="6" order="100">
+        <group name="options" numcolumns="3">
+            <column name="nostock" title="no-stock" numcolumns="12" order="100">
                 <widget type="checkbox" fieldname="nostock" />
             </column>
-            <column name="secompra" title="for-purchase" numcolumns="6" order="140">
-                <widget type="checkbox" fieldname="secompra" />
-            </column>
-            <column name="sevende" title="for-sale" numcolumns="6" order="120">
-                <widget type="checkbox" fieldname="sevende" />
-            </column>
-            <column name="publico" title="public" numcolumns="6" order="130">
-                <widget type="checkbox" fieldname="publico" />
-            </column> 
-            <column name="trazabilidad" title="traceability" numcolumns="6" order="110">
+            <column name="trazabilidad" title="traceability" numcolumns="12" order="110">
                 <widget type="checkbox" fieldname="trazabilidad"/>
             </column>
-            <column name="bloqueado" title="blocked" numcolumns="6" order="120">
+        </group>
+        <group name="options2" numcolumns="3">
+            <column name="secompra" title="for-purchase" numcolumns="12" order="120">
+                <widget type="checkbox" fieldname="secompra" />
+            </column>
+            <column name="sevende" title="for-sale" numcolumns="12" order="130">
+                <widget type="checkbox" fieldname="sevende" />
+            </column>
+        </group>
+        <group name="options3" numcolumns="3">
+            <column name="publico" title="public" numcolumns="12" order="140">
+                <widget type="checkbox" fieldname="publico" />
+            </column> 
+            <column name="bloqueado" title="blocked" numcolumns="12" order="150">
                 <widget type="checkbox" fieldname="bloqueado"/>
             </column>
         </group>

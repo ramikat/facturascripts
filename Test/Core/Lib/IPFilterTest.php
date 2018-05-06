@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Test\Core\Lib;
@@ -26,7 +26,6 @@ use FacturaScripts\Core\Lib\IPFilter;
  */
 class IPFilterTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var IPFilter
      */
@@ -48,7 +47,6 @@ class IPFilterTest extends \PHPUnit_Framework_TestCase
      */
     protected function tearDown()
     {
-        
     }
 
     /**
@@ -60,7 +58,7 @@ class IPFilterTest extends \PHPUnit_Framework_TestCase
         $this->object->setAttempt('192.168.1.1');
 
         /// leemos directamente del archivo para ver si hay algo
-        $data = file_get_contents(FS_FOLDER . '/Cache/ip.list');
+        $data = file_get_contents(FS_FOLDER . '/MyFiles/Cache/ip.list');
         $this->assertNotEmpty($data);
     }
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,23 +10,24 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Base\Utils;
 
 /**
- * The fourth level of an accounting plan. It is related to a single account.
+ * Detail level of an accounting plan. It is related to a single account.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Subcuenta
+class Subcuenta extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -39,18 +40,18 @@ class Subcuenta
     public $idsubcuenta;
 
     /**
-     * Identificacion de la empresa
-     *
-     * @var int
-     */
-    public $idempresa;
-
-    /**
      * Sub-account code.
      *
      * @var string
      */
     public $codsubcuenta;
+
+    /**
+     * Description of the subaccount.
+     *
+     * @var string
+     */
+    public $descripcion;
 
     /**
      * ID of the account to which it belongs.
@@ -74,11 +75,11 @@ class Subcuenta
     public $codejercicio;
 
     /**
-     * Currency code.
+     * Identifier of the special account.
      *
      * @var string
      */
-    public $coddivisa;
+    public $codcuentaesp;
 
     /**
      * Tax code.
@@ -86,13 +87,6 @@ class Subcuenta
      * @var string
      */
     public $codimpuesto;
-
-    /**
-     * Description of the subaccount.
-     *
-     * @var string
-     */
-    public $descripcion;
 
     /**
      * Amount of credit.
@@ -116,27 +110,13 @@ class Subcuenta
     public $saldo;
 
     /**
-     * Surcharge amount.
-     *
-     * @var float|int
-     */
-    public $recargo;
-
-    /**
-     * VAT amount.
-     *
-     * @var float|int
-     */
-    public $iva;
-
-    /**
      * Returns the name of the table that uses this model.
      *
      * @return string
      */
     public static function tableName()
     {
-        return 'co_subcuentas';
+        return 'subcuentas';
     }
 
     /**
@@ -144,7 +124,7 @@ class Subcuenta
      *
      * @return string
      */
-    public function primaryColumn()
+    public static function primaryColumn()
     {
         return 'idsubcuenta';
     }
@@ -158,9 +138,8 @@ class Subcuenta
      */
     public function install()
     {
-        new Ejercicio();
+        new CuentaEspecial();
         new Cuenta();
-
         return '';
     }
 
@@ -169,196 +148,61 @@ class Subcuenta
      */
     public function clear()
     {
-        $this->idsubcuenta = null;
-        $this->codsubcuenta = null;
-        $this->idcuenta = null;
-        $this->codcuenta = null;
-        $this->codejercicio = null;
-        $this->coddivisa = AppSettings::get('default', 'coddivisa');
-        $this->codimpuesto = null;
-        $this->descripcion = '';
+        parent::clear();
         $this->debe = 0.0;
         $this->haber = 0.0;
         $this->saldo = 0.0;
-        $this->recargo = 0.0;
-        $this->iva = 0.0;
+    }
+
+    public function getSpecialAccountCode()
+    {
+        $result = $this->codcuentaesp;
+        if (empty($result)) {
+            $account = new Cuenta();
+            if ($account->loadFromCode($this->idcuenta)) {
+                $result = $account->codcuentaesp;
+            }
+        }
+        return $result;
     }
 
     /**
-     * Returns the conversion rate for the currency.
+     * Load de ID for account
      *
      * @return int
      */
-    public function tasaconv()
+    private function getIdAccount(): int
     {
-        if ($this->coddivisa !== null) {
-            $divisaModel = new Divisa();
-            $div = $divisaModel->get($this->coddivisa);
-            if ($div) {
-                return $div->tasaconv;
-            }
-        }
+        $where = [
+            new DataBaseWhere('codejercicio', $this->codejercicio),
+            new DataBaseWhere('codcuenta', $this->codcuenta),
+        ];
 
-        return 1.0;
+        $account = new Cuenta();
+        $account->loadFromCode('', $where);
+        return $account->idcuenta;
     }
 
     /**
-     * Return the account.
-     *
-     * @return bool|mixed
-     */
-    public function getCuenta()
-    {
-        $cuenta = new Cuenta();
-
-        return $cuenta->get($this->idcuenta);
-    }
-
-    /**
-     * Returns the exercise.
-     *
-     * @return bool|mixed
-     */
-    public function getEjercicio()
-    {
-        $eje = new Ejercicio();
-
-        return $eje->get($this->codejercicio);
-    }
-
-    /**
-     * Returns all the items in a sub-account with offset.
-     *
-     * @param int $offset
-     *
-     * @return array
-     */
-    public function getPartidas($offset = 0)
-    {
-        $part = new Partida();
-
-        return $part->allFromSubcuenta($this->idsubcuenta, $offset);
-    }
-
-    /**
-     * Returns all the items in a sub-account.
-     *
-     * @return array
-     */
-    public function getPartidasFull()
-    {
-        $part = new Partida();
-
-        return $part->fullFromSubcuenta($this->idsubcuenta);
-    }
-
-    /**
-     * Counts the items of a sub-account.
-     *
-     * @return int
-     */
-    public function countPartidas()
-    {
-        $part = new Partida();
-
-        return $part->countFromSubcuenta($this->idsubcuenta);
-    }
-
-    /**
-     * Returns the totals of a sub-account.
-     *
-     * @return array
-     */
-    public function getTotales()
-    {
-        $part = new Partida();
-
-        return $part->totalesFromSubcuenta($this->idsubcuenta);
-    }
-
-    /**
-     * Returns all sub-accounts by code, exercise code.
-     *
-     * @param string $cod
-     * @param string $codejercicio
-     * @param bool   $crear
-     *
-     * @return bool|Subcuenta
-     */
-    public function getByCodigo($cod, $codejercicio, $crear = false)
-    {
-        foreach ($this->all([new DataBaseWhere('codsubcuenta', $cod), new DataBaseWhere('codejercicio', $codejercicio)]) as $subc) {
-            return $subc;
-        }
-
-        if ($crear) {
-            /// we look for the equivalent subaccount in another year
-            foreach ($this->all([new DataBaseWhere('codsubcuenta', $cod)], ['idsubcuenta' => 'DESC']) as $oldSc) {
-                /// we look for the equivalent account is THIS exercise
-                $cuentaModel = new Cuenta();
-                $newC = $cuentaModel->getByCodigo($oldSc->codcuenta, $codejercicio);
-                if ($newC) {
-                    $newSc = new self();
-                    $newSc->codcuenta = $newC->codcuenta;
-                    $newSc->coddivisa = $oldSc->coddivisa;
-                    $newSc->codejercicio = $codejercicio;
-                    $newSc->codimpuesto = $oldSc->codimpuesto;
-                    $newSc->codsubcuenta = $oldSc->codsubcuenta;
-                    $newSc->descripcion = $oldSc->descripcion;
-                    $newSc->idcuenta = $newC->idcuenta;
-                    $newSc->iva = $oldSc->iva;
-                    $newSc->recargo = $oldSc->recargo;
-                    if ($newSc->save()) {
-                        return $newSc;
-                    }
-
-                    return false;
-                }
-
-                self::$miniLog->alert(self::$i18n->trans('equivalent-account-not-found', ['%accountCode%' => $oldSc->codcuenta, '%exerciseCode%' => $codejercicio, '%link%' => 'index.php?page=ContabilidadEjercicio&cod=' . $codejercicio]));
-
-                return false;
-            }
-
-            self::$miniLog->alert(self::$i18n->trans('equivalent-subaccount-not-found', ['%subAccountCode%' => $cod]));
-
-            return false;
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns the first subaccount of the exercise $codeje whose parent account
-           * is marked as special account $id.
-     *
-     * @param int    $idcuesp
-     * @param string $codeje
-     *
-     * @return Subcuenta|bool
-     */
-    public function getCuentaesp($idcuesp, $codeje)
-    {
-        $sql = 'SELECT * FROM co_subcuentas WHERE idcuenta IN '
-            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp)
-            . ' AND codejercicio = ' . self::$dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            return new self($data[0]);
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns if a sub-account has a balance or not.
+     * Check if exists error in data of account
      *
      * @return bool
      */
-    public function tieneSaldo()
+    private function testErrorInData(): bool
     {
-        return !static::floatcmp($this->debe, $this->haber, FS_NF0, true);
+        return empty($this->codcuenta) || empty($this->codsubcuenta) || empty($this->descripcion) || empty($this->codejercicio);
+    }
+
+    /**
+     * Check if exists error in long of subaccount
+     *
+     * @return bool
+     */
+    private function testErrorInLengthSubAccount(): bool
+    {
+        $exercise = new Ejercicio();
+        $exercise->loadFromCode($this->codejercicio);
+        return empty($exercise->codejercicio) || (strlen($this->codsubcuenta) <> $exercise->longsubcuenta);
     }
 
     /**
@@ -368,130 +212,174 @@ class Subcuenta
      */
     public function test()
     {
-        $this->descripcion = self::noHtml($this->descripcion);
-        $totales = $this->getTotales();
+        $this->codcuenta = trim($this->codcuenta);
+        $this->codsubcuenta = trim($this->codsubcuenta);
+        $this->descripcion = Utils::noHtml($this->descripcion);
 
-        if (abs($this->debe - $totales['debe']) > .001) {
-            $this->debe = $totales['debe'];
-        }
-
-        if (abs($this->haber - $totales['haber']) > .001) {
-            $this->haber = $totales['haber'];
-        }
-
-        if (abs($this->saldo - $totales['saldo']) > .001) {
-            $this->saldo = $totales['saldo'];
-        }
-
-        if (strlen($this->codcuenta) === 0 || strlen($this->codejercicio) === 0) {
+        if ($this->testErrorInData()) {
             self::$miniLog->alert(self::$i18n->trans('account-data-missing'));
             return false;
         }
 
-        $where = [
-            new DataBaseWhere('codejercicio', $this->codejercicio),
-            new DataBaseWhere('codcuenta', $this->codcuenta)
-        ];
+        if ($this->testErrorInLengthSubAccount()) {
+            self::$miniLog->alert(self::$i18n->trans('account-length-error'));
+            return false;
+        }
 
-        $count = new Cuenta();
-        if ($count->loadFromCode(null, $where) === false) {
+        $this->idcuenta = $this->getIdAccount();
+        if (empty($this->idcuenta)) {
             self::$miniLog->alert(self::$i18n->trans('account-data-error'));
             return false;
         }
 
-        $this->idcuenta = $count->idcuenta;
+        return parent::test();
+    }
 
-        if (strlen($this->codsubcuenta) === 0 || strlen($this->descripcion) === 0) {
-            self::$miniLog->alert(self::$i18n->trans('missing-data-subaccount'));
+    /**
+     * Insert the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveInsert(array $values = [])
+    {
+        $accountDetail = new SubcuentaSaldo();
+        $inTransaction = self::$dataBase->inTransaction();
+        try {
+            if ($inTransaction === false) {
+                self::$dataBase->beginTransaction();
+            }
+
+            /// main insert
+            if (!parent::saveInsert($values)) {
+                return false;
+            }
+
+            /// add account detail balance
+            $accountDetail->idcuenta = $this->idcuenta;
+            $accountDetail->idsubcuenta = $this->idsubcuenta;
+            for ($index = 1; $index < 13; $index++) {
+                $accountDetail->mes = $index;
+                $accountDetail->id = null;
+                if (!$accountDetail->save()) {
+                    return false;
+                }
+            }
+
+            /// save transaction
+            if ($inTransaction === false) {
+                self::$dataBase->commit();
+            }
+        } catch (\Exception $e) {
+            self::$miniLog->error($e->getMessage());
             return false;
+        } finally {
+            if (!$inTransaction && self::$dataBase->inTransaction()) {
+                self::$dataBase->rollback();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Remove the model data from the database.
+     *
+     * @return bool
+     */
+    public function delete()
+    {
+        // Search for detail balance
+        $where = [new DataBaseWhere('idsubcuenta', $this->idsubcuenta)];
+        $accountDetail = new SubcuentaSaldo();
+        $inTransaction = self::$dataBase->inTransaction();
+        try {
+            if ($inTransaction === false) {
+                self::$dataBase->beginTransaction();
+            }
+
+            /// delete subaccount and detail via FK
+            if (!parent::delete()) {
+                return false;
+            }
+
+            /// save transaction
+            if ($inTransaction === false) {
+                self::$dataBase->commit();
+            }
+        } catch (\Exception $e) {
+            self::$miniLog->error($e->getMessage());
+            return false;
+        } finally {
+            if (!$inTransaction && self::$dataBase->inTransaction()) {
+                self::$dataBase->rollback();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Update account balance
+     *
+     * @param string $date
+     * @param float $debit
+     * @param float $credit
+     * @return bool
+     */
+    public function updateBalance(string $date, float $debit, float $credit): bool
+    {
+        $balance = $debit - $credit;
+        $month = (int) date("n", strtotime($date));
+        $detail = new SubcuentaSaldo();
+        $detail->idsubcuenta = $this->idsubcuenta;
+
+        $inTransaction = self::$dataBase->inTransaction();
+        try {
+            if ($inTransaction === false) {
+                self::$dataBase->beginTransaction();
+            }
+
+            if (!$detail->updateBalance($month, $debit, $credit)) {
+                return false;
+            }
+
+            $sql = 'UPDATE ' . static::tableName() . ' SET '
+                . ' debe = debe + ' . $debit
+                . ',haber = haber + ' . $credit
+                . ',saldo = saldo + ' . $balance
+                . ' WHERE idsubcuenta = ' . $this->idsubcuenta;
+            self::$dataBase->exec($sql);
+
+            /// save transaction
+            if ($inTransaction === false) {
+                self::$dataBase->commit();
+            }
+        } catch (Exception $e) {
+            self::$miniLog->error($e->getMessage());
+            return false;
+        } finally {
+            if (!$inTransaction && self::$dataBase->inTransaction()) {
+                self::$dataBase->rollback();
+                self::$miniLog->alert(self::$i18n->trans('update-account-balance-error'));
+                return false;
+            }
         }
 
         return true;
     }
 
     /**
-     * Returns the sub-accounts of the fiscal year $codeje whose parent account
-           * is marked as special account $id.
+     * Returns the url where to see / modify the data.
      *
-     * @param int    $idcuesp
-     * @param string $codeje
+     * @param string $type
+     * @param string $list
      *
-     * @return self[]
+     * @return string
      */
-    public function allFromCuentaesp($idcuesp, $codeje)
+    public function url(string $type = 'auto', string $list = 'List')
     {
-        $cuentas = [];
-        $sql = 'SELECT * FROM co_subcuentas WHERE idcuenta IN '
-            . '(SELECT idcuenta FROM co_cuentas WHERE idcuentaesp = ' . self::$dataBase->var2str($idcuesp)
-            . ' AND codejercicio = ' . self::$dataBase->var2str($codeje) . ') ORDER BY codsubcuenta ASC;';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $d) {
-                $cuentas[] = new self($d);
-            }
-        }
-
-        return $cuentas;
-    }
-
-    /**
-     * Returns an array with the combinations containing $query in its codsubcuenta
-           * or description.
-     *
-     * @param string $query
-     *
-     * @return self[]
-     */
-    public function search($query)
-    {
-        $sublist = [];
-        $query = mb_strtolower(self::noHtml($query), 'UTF8');
-        $sql = 'SELECT * FROM ' . static::tableName() . " WHERE codsubcuenta LIKE '" . $query . "%'"
-            . " OR codsubcuenta LIKE '%" . $query . "'"
-            . " OR lower(descripcion) LIKE '%" . $query . "%'"
-            . ' ORDER BY codejercicio DESC, codcuenta ASC;';
-
-        $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            foreach ($data as $s) {
-                $sublist[] = new self($s);
-            }
-        }
-
-        return $sublist;
-    }
-
-    /**
-     * Returns the results of the $ query search on the subaccounts of the
-           * exercise $codejercicio
-     *
-     * @param string $codejercicio
-     * @param string $query
-     *
-     * @return Subcuenta
-     */
-    public function searchByEjercicio($codejercicio, $query)
-    {
-        $query = self::$dataBase->escapeString(mb_strtolower(trim($query), 'UTF8'));
-
-        $sublist = self::$cache->get('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query);
-        if (count($sublist) < 1) {
-            $sql = 'SELECT * FROM ' . static::tableName()
-                . ' WHERE codejercicio = ' . self::$dataBase->var2str($codejercicio)
-                . " AND (codsubcuenta LIKE '" . $query . "%' OR codsubcuenta LIKE '%" . $query . "'"
-                . " OR lower(descripcion) LIKE '%" . $query . "%') ORDER BY codcuenta ASC;";
-
-            $data = self::$dataBase->select($sql);
-            if (!empty($data)) {
-                foreach ($data as $s) {
-                    $sublist[] = new self($s);
-                }
-            }
-
-            self::$cache->set('search_subcuenta_ejercicio_' . $codejercicio . '_' . $query, $sublist);
-        }
-
-        return $sublist;
+        return parent::url($type, 'ListCuenta?active=List');
     }
 }

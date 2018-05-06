@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,32 +10,26 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A Value for an article attribute.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class AtributoValor
+class AtributoValor extends Base\ModelClass
 {
 
     use Base\ModelTrait;
-
-    /**
-     * Primary key
-     *
-     * @var int
-     */
-    public $id;
 
     /**
      * Code of the related attribute.
@@ -45,56 +39,18 @@ class AtributoValor
     public $codatributo;
 
     /**
+     * Primary key
+     *
+     * @var int
+     */
+    public $id;
+
+    /**
      * Value of the attribute
      *
      * @var string
      */
     public $valor;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'atributos_valores';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'id';
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        new Atributo();
-
-        return '';
-    }
-
-    /**
-     * Check the delivery note data, return True if it is correct.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $this->valor = self::noHtml($this->valor);
-        return true;
-    }
 
     /**
      * Select all attributes of an attribute code
@@ -107,6 +63,53 @@ class AtributoValor
     {
         $where = [new DataBaseWhere('codatributo', $cod)];
         $order = ['valor' => 'ASC'];
+
         return $this->all($where, $order);
+    }
+
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
+     */
+    public function install()
+    {
+        new Atributo();
+
+        return '';
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'id';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'atributos_valores';
+    }
+
+    /**
+     * Check the delivery note data, return True if it is correct.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        $this->valor = Utils::noHtml($this->valor);
+
+        return parent::test();
     }
 }

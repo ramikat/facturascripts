@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base\DataBase;
@@ -80,8 +80,8 @@ interface DataBaseSQL
      * SQL statement to create a table
      *
      * @param string $tableName
-     * @param array $columns
-     * @param array $constraints
+     * @param array  $columns
+     * @param array  $constraints
      */
     public function sqlCreateTable($tableName, $columns, $constraints);
 
@@ -89,7 +89,7 @@ interface DataBaseSQL
      * SQL statement to add a given table column
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      */
     public function sqlAlterAddColumn($tableName, $colData);
 
@@ -97,7 +97,7 @@ interface DataBaseSQL
      * SQL statement to alter a given table column's definition
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      */
     public function sqlAlterModifyColumn($tableName, $colData);
 
@@ -105,7 +105,7 @@ interface DataBaseSQL
      * SQL statement to alter a given table column's default value
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      */
     public function sqlAlterConstraintDefault($tableName, $colData);
 
@@ -113,7 +113,7 @@ interface DataBaseSQL
      * SQL statement to alter a given table column's null constraint
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      */
     public function sqlAlterConstraintNull($tableName, $colData);
 
@@ -121,7 +121,7 @@ interface DataBaseSQL
      * SQL statement to delete a given table column's constraint
      *
      * @param string $tableName
-     * @param array $colData
+     * @param array  $colData
      */
     public function sqlDropConstraint($tableName, $colData);
 

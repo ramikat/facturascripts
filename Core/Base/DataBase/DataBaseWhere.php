@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,12 +10,13 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Base\DataBase;
 
 use FacturaScripts\Core\Base\DataBase;
@@ -28,7 +29,6 @@ use FacturaScripts\Core\Base\DataBase;
  */
 class DataBaseWhere
 {
-
     const MATCH_DATE = "/^([\d]{1,2})-([\d]{1,2})-([\d]{4})$/i";
     const MATCH_DATETIME = "/^([\d]{1,2})-([\d]{1,2})-([\d]{4}) ([\d]{1,2}):([\d]{1,2}):([\d]{1,2})$/i";
 
@@ -70,10 +70,10 @@ class DataBaseWhere
     /**
      * DataBaseWhere constructor.
      *
-     * @param string $fields
+     * @param string      $fields
      * @param string|bool $value
-     * @param string $operator
-     * @param string $operation
+     * @param string      $operator
+     * @param string      $operation
      */
     public function __construct($fields, $value, $operator = '=', $operation = 'AND')
     {
@@ -116,7 +116,7 @@ class DataBaseWhere
 
             case 'IS':
             case 'IS NOT':
-                $result = $this->value;
+                $result = (string) $this->value;
                 break;
 
             case 'IN':
@@ -154,12 +154,6 @@ class DataBaseWhere
         switch (gettype($this->value)) {
             case 'boolean':
                 $result = $this->value ? 'TRUE' : 'FALSE';
-                break;
-
-            case 'integer':
-            case 'double':
-            case 'float':
-                $result = $this->dataBase->escapeString($this->value);
                 break;
 
             /// DATE
@@ -271,6 +265,7 @@ class DataBaseWhere
                 }
             }
         }
+
         return $result;
     }
 }

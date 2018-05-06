@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  *
  * Initial description for the controller EditAlbaranProveedor
@@ -40,7 +40,7 @@
                 <widget type="text" fieldname="hora" required="true" />
             </column>
         </group>
-         <group name="supplier" title="supplier" numcolumns="12">
+        <group name="supplier" title="supplier" numcolumns="12">
             <column name="cifnif" title="cifnif" numcolumns="4" order="120">
                 <widget type="text" fieldname="cifnif" />
             </column>
@@ -59,12 +59,12 @@
                     <values source="series" fieldcode="codserie" fieldtitle="descripcion"></values>
                 </widget>
             </column>
-            <column name="payment" title="method-payment" numcolumns="3" titleurl="?page=ListFormaPago" order="120">
+            <column name="payment" title="method-payment" numcolumns="3" titleurl="ListFormaPago" order="120">
                 <widget type="select" fieldname="codpago">
                     <values source="formaspago" fieldcode="codpago" fieldtitle="descripcion"></values>
                 </widget>
             </column>
-            <column name="currency" title="currency" numcolumns="2" titleurl="?page=ListDivisa" order="120">
+            <column name="currency" title="currency" numcolumns="2" titleurl="ListDivisa" order="120">
                 <widget type="select" fieldname="coddivisa">
                     <values source="divisas" fieldcode="coddivisa" fieldtitle="descripcion"></values>
                 </widget>

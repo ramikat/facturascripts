@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,15 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model\Base;
+
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * This class groups the data and bank calculation methods
@@ -25,15 +27,22 @@ namespace FacturaScripts\Core\Model\Base;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-trait BankAccount
+abstract class BankAccount extends ModelClass
 {
 
     /**
-     * Bank account.
+     * Primary key. Varchar(10).
+     *
+     * @var int
+     */
+    public $codcuenta;
+
+    /**
+     * Descriptive identification for humans.
      *
      * @var string
      */
-    public $ccc;
+    public $descripcion;
 
     /**
      * Bank account international format.
@@ -50,33 +59,13 @@ trait BankAccount
     public $swift;
 
     /**
-     * Returns the CCC with or without spaces.
-     *
-     * @param bool $espacios
-     *
-     * @return string
-     */
-    public function getCcc($espacios = false)
-    {
-        $ccc = str_replace(' ', '', $this->ccc);
-        if ($espacios) {
-            $ccc = substr($ccc, 0, 4) . ' '
-                . substr($ccc, 4, 4) . ' '
-                . substr($ccc, 8, 2) . ' '
-                . substr($ccc, 10, 10);
-        }
-
-        return $ccc;
-    }
-
-    /**
      * Returns the IBAN with or without spaces.
      *
      * @param bool $espacios
      *
      * @return string
      */
-    public function getIban($espacios = false)
+    public function getIban(bool $espacios = false)
     {
         $iban = str_replace(' ', '', $this->iban);
         if ($espacios) {
@@ -92,26 +81,39 @@ trait BankAccount
     }
 
     /**
-     * Initialize the values of the bank fields.
+     * Returns True if there is no errors on properties values.
+     *
+     * @return bool
      */
-    private function clearBankAccount()
+    public function test()
     {
-        $this->ccc = null;
-        $this->iban = null;
-        $this->swift = null;
+        $this->descripcion = Utils::noHtml($this->descripcion);
+
+        if (!$this->testBankAccount()) {
+            self::$miniLog->alert(self::$i18n->trans('error-incorrect-bank-details'));
+            return false;
+        }
+
+        return parent::test();
     }
 
     /**
-     * Check the reported bank details.
+     * Check if the DC's of an IBAN are correct.
+     *
+     * @param string $iban
      *
      * @return boolean
      */
-    public function testBankAccount()
+    public function verificarIBAN(string $iban)
     {
-        $ibanOK = (empty($this->iban) || $this->verificarIBAN($this->iban));
-        $cccOK = (empty($this->ccc) || $this->verificarCCC($this->ccc));
+        if (strlen($iban) != 24) {
+            return false;
+        }
 
-        return $ibanOK && $cccOK;
+        $codpais = substr($iban, 0, 2);
+        $ccc = substr($iban, -20);
+
+        return $iban == $this->calcularIBAN($ccc, $codpais);
     }
 
     /**
@@ -122,7 +124,7 @@ trait BankAccount
      *
      * @return string
      */
-    private function calcularIBAN($ccc, $codpais = '')
+    private function calcularIBAN(string $ccc, string $codpais = '')
     {
         $pais = substr($codpais, 0, 2);
         $pesos = ['A' => '10', 'B' => '11', 'C' => '12', 'D' => '13', 'E' => '14', 'F' => '15',
@@ -142,93 +144,12 @@ trait BankAccount
     }
 
     /**
-     * Calculate the DC for the chain in base 11 with the indicated weights.
-     *
-     * @param string $cadena
-     * @param array  $pesos
-     *
-     * @return string
-     */
-    private function calcularDC($cadena, $pesos)
-    {
-        $totPeso = 0;
-        for ($i = 0; $i < $len = strlen($cadena); ++$i) {
-            $val = (int) $cadena[$i];
-            $totPeso += ($pesos[$i] * $val);
-        }
-
-        $result = 11 - \bcmod($totPeso, '11');
-        switch (true) {
-            case $result == 11:
-                $result = 0;
-                break;
-
-            case $result == 10:
-                $result = 1;
-                break;
-        }
-
-        return (string) $result;
-    }
-
-    /**
-     * Calculate the bank account for an entity, bank and account.
-     *
-     * @param string $entidad
-     * @param string $oficina
-     * @param string $cuenta
-     *
-     * @return string
-     */
-    private function calcularCCC($entidad, $oficina, $cuenta)
-    {
-        $banco = $entidad . $oficina;
-        if ((strlen($banco) != 8) || (strlen($cuenta) != 10)) {
-            return '';
-        }
-
-        $dc1 = $this->calcularDC($banco, [4, 8, 5, 10, 9, 7, 3, 6]);
-        $dc2 = $this->calcularDC($cuenta, [1, 2, 4, 8, 5, 10, 9, 7, 3, 6]);
-
-        return $banco . $dc1 . $dc2 . $cuenta;
-    }
-
-    /**
-     * Check if the DCs in a bank account are correct.
-     *
-     * @param string $ccc
+     * Check the reported bank details.
      *
      * @return boolean
      */
-    public function verificarCCC($ccc)
+    protected function testBankAccount()
     {
-        if (strlen($ccc) != 20) {
-            return false;
-        }
-
-        $entidad = substr($ccc, 0, 4);
-        $oficina = substr($ccc, 4, 4);
-        $cuenta = substr($ccc, 10, 10);
-
-        return $ccc == $this->calcularCCC($entidad, $oficina, $cuenta);
-    }
-
-    /**
-     * Check if the DC's of an IBAN are correct.
-     *
-     * @param string $iban
-     *
-     * @return boolean
-     */
-    public function verificarIBAN($iban)
-    {
-        if (strlen($iban) != 24) {
-            return false;
-        }
-
-        $codpais = substr($iban, 0, 2);
-        $ccc = substr($iban, -20);
-
-        return $iban == $this->calcularIBAN($ccc, $codpais);
+        return (empty($this->iban) || $this->verificarIBAN($this->iban));
     }
 }

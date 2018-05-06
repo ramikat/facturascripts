@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  carlos@facturascripts.com
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base\NumberTools;
@@ -28,12 +27,6 @@ use FacturaScripts\Core\Base\NumberTools;
  */
 class WidgetItemNumber extends WidgetItem
 {
-    /**
-     * Class that formats the display and provides tools to manage numeric values
-     *
-     * @var NumberTools
-     */
-    private static $numberTools;
 
     /**
      * Number of decimals for numeric types
@@ -41,13 +34,6 @@ class WidgetItemNumber extends WidgetItem
      * @var int
      */
     public $decimal;
-
-    /**
-     * Increment/decrement value
-     *
-     * @var string
-     */
-    public $step;
 
     /**
      * Maximum value
@@ -64,21 +50,80 @@ class WidgetItemNumber extends WidgetItem
     public $min;
 
     /**
-     * Class constructor
+     * Class that formats the display and provides tools to manage numeric values
+     *
+     * @var NumberTools
+     */
+    private static $numberTools;
+
+    /**
+     * Increment/decrement value
+     *
+     * @var string
+     */
+    public $step;
+
+    /**
+     * WidgetItemNumber constructor.
      */
     public function __construct()
     {
         parent::__construct();
 
-        $this->type = 'number';
         $this->decimal = 0;
-        $this->step = 'any';
         $this->max = '';
         $this->min = '';
+        $this->step = 'any';
+        $this->type = 'number';
 
         if (!isset(self::$numberTools)) {
             self::$numberTools = new NumberTools();
         }
+    }
+
+    /**
+     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public function getEditHTML($value)
+    {
+        $specialAttributes = $this->specialAttributes();
+        return $this->standardEditHTMLWidget($value, $specialAttributes);
+    }
+
+    /**
+     * Generates the HTML code to display the data in the List controller
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public function getListHTML($value)
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        $style = $this->getTextOptionsHTML($value);
+        return '<span' . $style . '>' . self::$numberTools->format($value, $this->decimal) . '</span>';
+    }
+
+    /**
+     * Loads the attributes structure from a JSON file
+     *
+     * @param array $widget
+     */
+    public function loadFromJSON($widget)
+    {
+        parent::loadFromJSON($widget);
+
+        $this->decimal = (int) $widget['decimal'];
+        $this->step = (string) $widget['step'];
+        $this->min = (string) $widget['min'];
+        $this->max = (string) $widget['max'];
     }
 
     /**
@@ -98,21 +143,6 @@ class WidgetItemNumber extends WidgetItem
     }
 
     /**
-     * Loads the attributes structure from a JSON file
-     *
-     * @param array $widget
-     */
-    public function loadFromJSON($widget)
-    {
-        parent::loadFromJSON($widget);
-
-        $this->decimal = (int) $widget['decimal'];
-        $this->step = (string) $widget['step'];
-        $this->min = (string) $widget['min'];
-        $this->max = (string) $widget['max'];
-    }
-
-    /**
      * Generates the HTML code for widget special attributes such as:
      *  - 'step': difference to increase/decrease
      *  - 'max': maximum value
@@ -126,37 +156,7 @@ class WidgetItemNumber extends WidgetItem
         $step = empty($this->step) ? ' step="any"' : ' step="' . $this->step . '"';
         $min = empty($this->min) ? '' : ' min="' . $this->min . '"';
         $max = empty($this->max) ? '' : ' max="' . $this->max . '"';
+
         return $base . $step . $min . $max;
-    }
-
-    /**
-     * Generates the HTML code to display the data in the List controller
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    public function getListHTML($value)
-    {
-        if ($value === null || $value === '') {
-            return '';
-        }
-
-        $style = $this->getTextOptionsHTML($value);
-        $html = '<span' . $style . '>' . self::$numberTools->format($value, $this->decimal) . '</span>';
-        return $html;
-    }
-
-    /**
-     * Generates the HTML code to display and edit  the data in the Edit / EditList controller
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    public function getEditHTML($value)
-    {
-        $specialAttributes = $this->specialAttributes();
-        return $this->standardEditHTMLWidget($value, $specialAttributes);
     }
 }

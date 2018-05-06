@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -24,12 +24,10 @@ namespace FacturaScripts\Core\Model;
  * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Dashboard
+class Dashboard extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        url as private traitUrl;
-    }
+    use Base\ModelTrait;
 
     /**
      * Name of visual component
@@ -39,13 +37,6 @@ class Dashboard
     public $component;
 
     /**
-     * id version of component.
-     *
-     * @var string
-     */
-    public $version;
-
-    /**
      * Position into dashboard.
      *
      * @var integer
@@ -53,36 +44,11 @@ class Dashboard
     public $location;
 
     /**
-     * Returns the name of the table that uses this model.
+     * id version of component.
      *
-     * @return string
+     * @var string
      */
-    public static function tableName()
-    {
-        return 'fs_dashboard';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'component';
-    }
-
-    /**
-     * Returns the url where to see/modify the data.
-     *
-     * @param string $type
-     *
-     * @return string
-     */
-    public function url($type = 'auto')
-    {
-        return $this->traitUrl($type, '');
-    }
+    public $version;
 
     /**
      * This function is called when creating the model table.
@@ -96,5 +62,38 @@ class Dashboard
         return 'INSERT INTO ' . static::tableName() . " (component, version, location) VALUES ('Messages','1.0 (Beta)', 0);"
             . 'INSERT INTO ' . static::tableName() . " (component, version, location) VALUES ('Tasks','1.0 (Beta)', 0);"
             . 'INSERT INTO ' . static::tableName() . " (component, version, location) VALUES ('InfoState','1.0 (Beta)', 0);";
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'component';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'dashboard';
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return parent::url($type, '');
     }
 }

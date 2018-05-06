@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -23,21 +23,10 @@ namespace FacturaScripts\Core\Model;
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class CuentaBancoCliente
+class CuentaBancoCliente extends Base\BankAccount
 {
 
-    use Base\ModelTrait {
-        save as private traitSave;
-    }
-
-    use Base\BankAccount;
-
-    /**
-     * Primary key. Varchar(6).
-     *
-     * @var int
-     */
-    public $codcuenta;
+    use Base\ModelTrait;
 
     /**
      * Customer code.
@@ -45,13 +34,6 @@ class CuentaBancoCliente
      * @var string
      */
     public $codcliente;
-
-    /**
-     * Descriptive identification for humans.
-     *
-     * @var string
-     */
-    public $descripcion;
 
     /**
      * Is it the customer's main account?
@@ -82,7 +64,7 @@ class CuentaBancoCliente
      *
      * @return string
      */
-    public function primaryColumn()
+    public static function primaryColumn()
     {
         return 'codcuenta';
     }
@@ -92,8 +74,8 @@ class CuentaBancoCliente
      */
     public function clear()
     {
+        parent::clear();
         $this->principal = true;
-        $this->clearBankAccount();
     }
 
     /**
@@ -119,26 +101,10 @@ class CuentaBancoCliente
                     . ' AND codcuenta <> ' . self::$dataBase->var2str($this->codcuenta) . ';';
                 $allOK = self::$dataBase->exec($sql);
             }
+
             return $allOK;
         }
 
         return false;
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
-     *
-     * @return boolean
-     */
-    public function test()
-    {
-        $this->descripcion = self::noHtml($this->descripcion);
-        if (!$this->testBankAccount()) {
-            self::$miniLog->alert(self::$i18n->trans('error-incorrect-bank-details'));
-
-            return false;
-        }
-
-        return true;
     }
 }

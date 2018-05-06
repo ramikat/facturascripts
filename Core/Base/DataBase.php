@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base;
@@ -31,7 +31,6 @@ use FacturaScripts\Core\Base\DataBase\Postgresql;
  */
 class DataBase
 {
-
     /**
      * The link with de database.
      *
@@ -101,6 +100,7 @@ class DataBase
      * Gets the operator for the database engine
      *
      * @param string $operator
+     *
      * @return string
      */
     public function getOperator($operator)
@@ -147,7 +147,7 @@ class DataBase
      * Returns an array with the constraints of a table.
      *
      * @param string $tableName
-     * @param bool $extended
+     * @param bool   $extended
      *
      * @return array
      */
@@ -311,8 +311,8 @@ class DataBase
      * number from which you want it to start.
      *
      * @param string $sql
-     * @param int $limit
-     * @param int $offset
+     * @param int    $limit
+     * @param int    $offset
      *
      * @return array
      */
@@ -406,7 +406,7 @@ class DataBase
      * Returns True if the table exists, False otherwise.
      *
      * @param string $tableName
-     * @param array $list
+     * @param array  $list
      *
      * @return bool
      */

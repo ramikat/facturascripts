@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,13 +10,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base;
@@ -52,26 +51,6 @@ class MegaSearch extends Base\Controller
      * @var array
      */
     public $sections;
-    
-    /**
-     * Runs the controller's private logic.
-     *
-     * @param Response $response
-     * @param Model\User $user
-     * @param Base\ControllerPermissions $permissions
-     */
-    public function privateCore(&$response, $user, $permissions)
-    {
-        parent::privateCore($response, $user, $permissions);
-        
-        $this->query = mb_strtolower($this->request->request->get('query', ''), 'UTF8');
-        $this->results = ['pages' => []];
-        $this->sections = [];
-
-        if ($this->query !== '') {
-            $this->pageSearch();
-        }
-    }
 
     /**
      * Returns basic page attributes
@@ -81,9 +60,30 @@ class MegaSearch extends Base\Controller
     public function getPageData()
     {
         $pageData = parent::getPageData();
+        $pageData['menu'] = 'reports';
         $pageData['showonmenu'] = false;
 
         return $pageData;
+    }
+
+    /**
+     * Runs the controller's private logic.
+     *
+     * @param Response                   $response
+     * @param Model\User                 $user
+     * @param Base\ControllerPermissions $permissions
+     */
+    public function privateCore(&$response, $user, $permissions)
+    {
+        parent::privateCore($response, $user, $permissions);
+
+        $this->query = mb_strtolower($this->request->request->get('query', ''), 'UTF8');
+        $this->results = ['pages' => []];
+        $this->sections = [];
+
+        if ($this->query !== '') {
+            $this->pageSearch();
+        }
     }
 
     /**
@@ -101,7 +101,7 @@ class MegaSearch extends Base\Controller
 
             /// Is it a ListController that could return more results?
             if ($page->showonmenu && strpos($page->name, 'List') === 0) {
-                $this->sections[$page->name] = $page->url() . '&action=megasearch&query=' . $this->query;
+                $this->sections[$page->name] = $page->url() . '?action=megasearch&query=' . $this->query;
             }
         }
     }

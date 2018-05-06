@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib;
 
@@ -25,6 +25,7 @@ namespace FacturaScripts\Core\Lib;
  */
 class IPFilter
 {
+
     /**
      * Maximum number of access attempts.
      */
@@ -54,7 +55,7 @@ class IPFilter
      */
     public function __construct()
     {
-        $this->filePath = FS_FOLDER . '/Cache/ip.list';
+        $this->filePath = FS_FOLDER . '/MyFiles/Cache/ip.list';
         $this->ipList = [];
 
         if (file_exists($this->filePath)) {

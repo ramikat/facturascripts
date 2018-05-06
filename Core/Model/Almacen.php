@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,17 +10,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
-use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * The warehouse where the items are physically.
@@ -28,11 +27,10 @@ use FacturaScripts\Core\Lib\Import\CSVImport;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Almacen
+class Almacen extends Base\Address
 {
 
     use Base\ModelTrait;
-    use Base\ContactInformation;
 
     /**
      * Primary key. Varchar (4).
@@ -49,43 +47,11 @@ class Almacen
     public $nombre;
 
     /**
-     * Store contact person.
+     * Store phone number.
      *
      * @var string
      */
-    public $contacto;
-
-    /**
-     * Still unused.
-     *
-     * @var string
-     */
-    public $observaciones;
-
-    /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'almacenes';
-    }
-
-    /**
-     * Returns the name of the column that is the primary key of the model.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codalmacen';
-    }
-
-    public function primaryDescriptionColumn() 
-    {
-        return 'nombre';
-    }
+    public $telefono;
 
     /**
      * Returns True if is the default wharehouse for the company.
@@ -98,44 +64,49 @@ class Almacen
     }
 
     /**
+     * Returns the name of the column that is the primary key of the model.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codalmacen';
+    }
+
+    /**
+     * Returns the description of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'nombre';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'almacenes';
+    }
+
+    /**
      * Returns True if there is no erros on properties values.
      *
      * @return bool
      */
     public function test()
     {
-        $status = false;
+        $this->nombre = Utils::noHtml($this->nombre);
+        $this->telefono = Utils::noHtml($this->telefono);
 
-        $this->codalmacen = trim($this->codalmacen);
-        $this->nombre = self::noHtml($this->nombre);
-        $this->provincia = self::noHtml($this->provincia);
-        $this->poblacion = self::noHtml($this->poblacion);
-        $this->direccion = self::noHtml($this->direccion);
-        $this->codpostal = self::noHtml($this->codpostal);
-        $this->telefono = self::noHtml($this->telefono);
-        $this->fax = self::noHtml($this->fax);
-        $this->contacto = self::noHtml($this->contacto);
-
-        if (!preg_match('/^[A-Z0-9]{1,4}$/i', $this->codalmacen)) {
-            self::$miniLog->alert(self::$i18n->trans('store-cod-invalid'));
-        } elseif (!(strlen($this->nombre) > 1) && !(strlen($this->nombre) < 100)) {
-            self::$miniLog->alert(self::$i18n->trans('store-name-invalid'));
-        } else {
-            $status = true;
+        if (empty($this->codalmacen)) {
+            return false;
         }
 
-        return $status;
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        return CSVImport::importTableSQL(static::tableName());
+        return parent::test();
     }
 }

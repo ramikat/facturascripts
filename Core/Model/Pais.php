@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,23 +10,23 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
-use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Base\Utils;
 
 /**
  * A country, for example Spain.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class Pais
+class Pais extends Base\ModelClass
 {
 
     use Base\ModelTrait;
@@ -55,26 +55,6 @@ class Pais
     public $nombre;
 
     /**
-     * Returns the name of the table that uses this model.
-     *
-     * @return string
-     */
-    public static function tableName()
-    {
-        return 'paises';
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public function primaryColumn()
-    {
-        return 'codpais';
-    }
-
-    /**
      * Returns True if the country is the default of the company.
      *
      * @return bool
@@ -85,6 +65,36 @@ class Pais
     }
 
     /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'codpais';
+    }
+
+    /**
+     * Returns the name of the column that is the model's description.
+     *
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'nombre';
+    }
+
+    /**
+     * Returns the name of the table that uses this model.
+     *
+     * @return string
+     */
+    public static function tableName()
+    {
+        return 'paises';
+    }
+
+    /**
      * Check the country's data, return True if they are correct.
      *
      * @return bool
@@ -92,32 +102,18 @@ class Pais
     public function test()
     {
         $this->codpais = trim($this->codpais);
-        $this->nombre = self::noHtml($this->nombre);
+        $this->nombre = Utils::noHtml($this->nombre);
 
         if (!preg_match('/^[A-Z0-9]{1,20}$/i', $this->codpais)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-country-code', ['%countryCode%' => $this->codpais]));
-
+            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'codpais', '%min%' => '1', '%max%' => '20']));
             return false;
         }
 
         if (!(strlen($this->nombre) > 1) && !(strlen($this->nombre) < 100)) {
-            self::$miniLog->alert(self::$i18n->trans('country-name-invalid'));
-
+            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'nombre', '%min%' => '1', '%max%' => '100']));
             return false;
         }
 
-        return true;
-    }
-
-    /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
-     * @return string
-     */
-    public function install()
-    {
-        return CSVImport::importTableSQL(static::tableName());
+        return parent::test();
     }
 }

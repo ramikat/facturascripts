@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\Dashboard;
 
@@ -27,14 +27,17 @@ use FacturaScripts\Core\Model;
  */
 class TasksComponent extends BaseComponent implements ComponentInterface
 {
+
     /**
      * List of tasks
+     *
      * @var Model\DashboardData[]
      */
     public $tasks;
 
     /**
      * List of completed tasks
+     *
      * @var Model\DashboardData[]
      */
     public $completed;
@@ -43,7 +46,7 @@ class TasksComponent extends BaseComponent implements ComponentInterface
      * TasksComponent constructor.
      *
      * @param Model\DashboardData $data
-     * @param string $userNick
+     * @param string              $userNick
      */
     public function __construct($data, $userNick)
     {
@@ -114,9 +117,9 @@ class TasksComponent extends BaseComponent implements ComponentInterface
         }
 
         $newItem->properties = [
-                'color' => $data['color'],
-                'description' => $data['description'],
-                'enddate' => $data['enddate']
+            'color' => $data['color'],
+            'description' => $data['description'],
+            'enddate' => $data['enddate'],
         ];
 
         $newItem->save();
@@ -131,9 +134,14 @@ class TasksComponent extends BaseComponent implements ComponentInterface
      */
     public function url($id)
     {
-        return 'index.php?page=EditDashboardData&code=' . $id;
+        return 'EditDashboardData?code=' . $id;
     }
 
+    /**
+     * Return the class for render the card.
+     *
+     * @return string
+     */
     public function getCardClass()
     {
         return 'task-card';

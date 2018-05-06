@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2017  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model;
 
@@ -24,22 +24,10 @@ namespace FacturaScripts\Core\Model;
  * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class DashboardData
+class DashboardData extends Base\ModelClass
 {
 
-    use Base\ModelTrait {
-        clear as private traitClear;
-        loadFromData as traitLoadFromData;
-        saveInsert as traitSaveInsert;
-        saveUpdate as traitSaveUpdate;
-    }
-
-    /**
-     * Primary key.
-     *
-     * @var int
-     */
-    public $id;
+    use Base\ModelTrait;
 
     /**
      * Name of visual component
@@ -47,13 +35,6 @@ class DashboardData
      * @var string
      */
     public $component;
-
-    /**
-     * Nick of the user to whom the card is addressed.
-     *
-     * @var string
-     */
-    public $nick;
 
     /**
      * Date creation of the card.
@@ -70,6 +51,20 @@ class DashboardData
     public $displaydate;
 
     /**
+     * Primary key.
+     *
+     * @var int
+     */
+    public $id;
+
+    /**
+     * Nick of the user to whom the card is addressed.
+     *
+     * @var string
+     */
+    public $nick;
+
+    /**
      * Set of configuration values
      *
      * @var array
@@ -77,23 +72,32 @@ class DashboardData
     public $properties;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Check an array of data so that it has the correct structure of the model.
      *
-     * @return string
+     * @param array $data
      */
-    public static function tableName()
+    public function checkArrayData(array &$data)
     {
-        return 'fs_dashboard_data';
+        $properties = [];
+        foreach ($data as $key => $value) {
+            if (!in_array($key, ['id', 'nick', 'creationdate', 'displaydate', 'action'])) {
+                $properties[$key] = $value;
+                unset($data[$key]);
+            }
+        }
+        $data['properties'] = json_encode($properties);
+        unset($properties);
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
+     * Reset the values of all model properties.
      */
-    public function primaryColumn()
+    public function clear()
     {
-        return 'id';
+        parent::clear();
+        $this->creationdate = date('d-m-Y');
+        $this->displaydate = date('d-m-Y');
+        $this->properties = [];
     }
 
     /**
@@ -112,83 +116,78 @@ class DashboardData
     }
 
     /**
-     * Reset the values of all model properties.
-     */
-    public function clear()
-    {
-        $this->traitClear();
-        $this->creationdate = date('d-m-Y');
-        $this->displaydate = date('d-m-Y');
-        $this->properties = [];
-    }
-
-    /**
-     * Check that a data array have correct struct of model
+     * Assign the values of the $data array to the model properties.
      *
      * @param array $data
+     * @param array $exclude
      */
-    public function checkArrayData(&$data)
+    public function loadFromData(array $data = [], array $exclude = [])
     {
-        $properties = [];
-        foreach ($data as $key => $value) {
-            if (!in_array($key, ['id', 'nick', 'creationdate', 'displaydate', 'action'])) {
-                $properties[$key] = $value;
-                unset($data[$key]);
-            }
-        }
-        $data['properties'] = json_encode($properties);
-        unset($properties);
-    }
-
-    /**
-     * Load data from array
-     *
-     * @param array $data
-     */
-    public function loadFromData($data)
-    {
-        $this->traitLoadFromData($data, ['properties']);
+        parent::loadFromData($data, ['properties']);
         $this->properties = isset($data['properties']) ? json_decode($data['properties'], true) : [];
+    }
+
+    /**
+     * Returns the name of the column that is the model's primary key.
+     *
+     * @return string
+     */
+    public static function primaryColumn()
+    {
+        return 'id';
     }
 
     /**
      * Insert the model data in the database.
      *
+     * @param array $values
+     *
      * @return bool
      */
-    private function saveInsert()
+    protected function saveInsert(array $values = [])
     {
-        $values = ['properties' => json_encode($this->properties)];
-        return $this->traitSaveInsert($values);
+        return parent::saveInsert(['properties' => json_encode($this->properties)]);
     }
 
     /**
      * Update the model data in the database.
      *
+     * @param array $values
+     *
      * @return bool
      */
-    private function saveUpdate()
+    protected function saveUpdate(array $values = [])
     {
-        $values = ['properties' => json_encode($this->properties)];
-        return $this->traitSaveUpdate($values);
+        return parent::saveUpdate(['properties' => json_encode($this->properties)]);
     }
 
     /**
-     * Returns the url where to see/modify the data.
-     *
-     * @param string $type
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
-    public function url($type = 'auto')
+    public static function tableName()
+    {
+        return 'dashboard_data';
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
     {
         $value = $this->primaryColumnValue();
         $model = $this->modelClassName();
-        $result = 'index.php?page=';
+        $result = '';
 
         switch ($type) {
             case 'edit':
-                $result .= 'Edit' . $model . '&code=' . $value;
+                $result .= 'Edit' . $model . '?code=' . $value;
                 break;
 
             case 'new':
@@ -198,6 +197,7 @@ class DashboardData
             default:
                 $result .= 'Dashboard';
         }
+
         return $result;
     }
 }

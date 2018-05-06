@@ -10,11 +10,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 namespace FacturaScripts\Core\Base;
@@ -30,7 +30,6 @@ use FacturaScripts\Core\Base\Cache\MemcacheAdapter;
  */
 class Cache
 {
-
     /**
      * The engine used for cache
      *
@@ -75,7 +74,7 @@ class Cache
      * Saves contents in the cache and associates them to $key
      *
      * @param string $key
-     * @param mixed $content
+     * @param mixed  $content
      *
      * @return bool
      */
