@@ -1,3 +1,4 @@
+# BEGIN FacturaScripts code
 Options -Indexes
 
 <IfModule mod_php7.c>
@@ -8,7 +9,6 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
    RewriteEngine On
-   RewriteCond %{REQUEST_FILENAME} !-f
    RewriteRule . index.php [L]
 </IfModule>
 
@@ -22,3 +22,4 @@ Options -Indexes
       ExpiresActive Off
    </FilesMatch>
 </IfModule>
+# END FacturaScripts code

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\API\Base;
 
 use FacturaScripts\Core\Base\MiniLog;
@@ -31,6 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 abstract class APIResourceClass
 {
+
     /**
      * Contains the HTTP method (GET, PUT, PATCH, POST, DELETE).
      * PUT, PATCH and POST used in the same way.
@@ -38,6 +38,7 @@ abstract class APIResourceClass
      * @var string $method
      */
     protected $method;
+
     /**
      * HTTP response object.
      *
@@ -102,7 +103,19 @@ abstract class APIResourceClass
     }
 
     /**
-     * Process the POST/PUT/PATCH request. Overwrite this function to implement is functionality.
+     * Process the PUT request. Overwrite this function to implement is functionality.
+     * It is not defined as abstract because descendants may not need this method if
+     * they overwrite processResource.
+     *
+     * @return bool
+     */
+    public function doPUT(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Process the POST request. Overwrite this function to implement is functionality.
      * It is not defined as abstract because descendants may not need this method if
      * they overwrite processResource.
      *
@@ -140,12 +153,12 @@ abstract class APIResourceClass
 
             // http://www.restapitutorial.com/lessons/httpmethods.html
             switch ($this->method) {
+                case 'POST':
+                    return $this->doPOST();
                 case 'GET':
                     return $this->doGET();
                 case 'PUT':
-                case 'PATCH':
-                case 'POST':
-                    return $this->doPOST();
+                    return $this->doPUT();
                 case 'DELETE':
                     return $this->doDELETE();
             }

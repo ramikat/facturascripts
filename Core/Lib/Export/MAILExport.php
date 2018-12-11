@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -28,6 +28,19 @@ use Symfony\Component\HttpFoundation\Response;
 class MAILExport extends PDFExport
 {
 
+    /**
+     *
+     * @var array
+     */
+    protected $sendParams = [];
+
+    public function generateBusinessDocPage($model)
+    {
+        parent::generateBusinessDocPage($model);
+        $this->sendParams['modelClassName'] = $model->modelClassName();
+        $this->sendParams['modelCode'] = $model->primaryColumnValue();
+    }
+
     public function getDoc()
     {
         if ($this->pdf === null) {
@@ -44,6 +57,7 @@ class MAILExport extends PDFExport
         $filePath = FS_FOLDER . '/MyFiles/' . $fileName;
         file_put_contents($filePath, $this->getDoc());
 
-        $response->headers->set('Refresh', '0; SendMail?fileName=' . $fileName);
+        $this->sendParams['fileName'] = $fileName;
+        $response->headers->set('Refresh', '0; SendMail?' . http_build_query($this->sendParams));
     }
 }

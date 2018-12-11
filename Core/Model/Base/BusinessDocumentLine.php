@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,10 +18,12 @@
  */
 namespace FacturaScripts\Core\Model\Base;
 
+use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
-use FacturaScripts\Dinamic\Model\Articulo;
+use FacturaScripts\Dinamic\Model\Impuesto;
 use FacturaScripts\Dinamic\Model\Stock;
+use FacturaScripts\Dinamic\Model\Variante;
 
 /**
  * Description of BusinessDocumentLine
@@ -32,13 +34,14 @@ abstract class BusinessDocumentLine extends ModelClass
 {
 
     /**
-     * True if this states must update product stock.
+     * True if this state must update product stock.
      *
      * @var int
      */
     public $actualizastock;
 
     /**
+     * Previus value of $actualizastock.
      *
      * @var int
      */
@@ -52,17 +55,17 @@ abstract class BusinessDocumentLine extends ModelClass
     public $cantidad;
 
     /**
+     * Served.
+     *
+     * @var float|int
+     */
+    public $servido;
+
+    /**
      *
      * @var float|int
      */
     private $cantidadAnt;
-
-    /**
-     * Code of the selected combination, in the case of articles with attributes.
-     *
-     * @var string
-     */
-    public $codcombinacion;
 
     /**
      * Code of the related tax.
@@ -148,6 +151,8 @@ abstract class BusinessDocumentLine extends ModelClass
      */
     public $referencia;
 
+    abstract public function documentColumn();
+
     /**
      * Class constructor.
      *
@@ -171,12 +176,17 @@ abstract class BusinessDocumentLine extends ModelClass
         $this->descripcion = '';
         $this->dtopor = 0.0;
         $this->irpf = 0.0;
-        $this->iva = 0.0;
         $this->orden = 0;
         $this->pvpsindto = 0.0;
         $this->pvptotal = 0.0;
         $this->pvpunitario = 0.0;
-        $this->recargo = 0.0;
+        $this->servido = 0.0;
+
+        /// default tax
+        $impuesto = $this->getDefaultTax();
+        $this->codimpuesto = $impuesto->codimpuesto;
+        $this->iva = $impuesto->iva;
+        $this->recargo = $impuesto->recargo;
     }
 
     /**
@@ -192,6 +202,15 @@ abstract class BusinessDocumentLine extends ModelClass
         }
 
         return false;
+    }
+
+    /**
+     * 
+     * @return int
+     */
+    public function documentColumnValue()
+    {
+        return $this->{$this->documentColumn()};
     }
 
     /**
@@ -231,15 +250,18 @@ abstract class BusinessDocumentLine extends ModelClass
             return true;
         }
 
-        $articulo = new Articulo();
-        if (!empty($this->referencia) && $articulo->loadFromCode($this->referencia)) {
-            if ($articulo->nostock) {
+        $variante = new Variante();
+        $where = [new DataBaseWhere('referencia', $this->referencia)];
+        if (!empty($this->referencia) && $variante->loadFromCode('', $where)) {
+            $producto = $variante->getProducto();
+            if ($producto->nostock) {
                 return true;
             }
 
             $stock = new Stock();
             if (!$stock->loadFromCode('', [new DataBaseWhere('codalmacen', $codalmacen), new DataBaseWhere('referencia', $this->referencia)])) {
                 $stock->codalmacen = $codalmacen;
+                $stock->idproducto = $producto->idproducto;
                 $stock->referencia = $this->referencia;
             }
 
@@ -268,7 +290,7 @@ abstract class BusinessDocumentLine extends ModelClass
             return 'Edit' . $name;
         }
 
-        return parent::url($type, 'List' . $name . '?active=List');
+        return parent::url($type, 'List' . $name . '?activetab=List');
     }
 
     /**
@@ -294,5 +316,17 @@ abstract class BusinessDocumentLine extends ModelClass
                 $stock->reservada += $quantity;
                 break;
         }
+    }
+
+    /**
+     * 
+     * @return Impuesto
+     */
+    private function getDefaultTax()
+    {
+        $codimpuesto = AppSettings::get('default', 'codimpuesto');
+        $impuesto = new Impuesto();
+        $impuesto->loadFromCode($codimpuesto);
+        return $impuesto;
     }
 }

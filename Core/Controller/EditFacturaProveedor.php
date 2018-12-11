@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,14 +19,16 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
  * Controller to edit a single item from the AlbaranCliente model
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
- * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * @author Carlos García Gómez      <carlos@facturascripts.com>
+ * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
+ * @author Rafael San José Tovar    <rafael.sanjose@x-netdigital.com>
  */
-class EditFacturaProveedor extends ExtendedController\BusinessDocumentController
+class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
 {
 
     /**
@@ -39,7 +41,7 @@ class EditFacturaProveedor extends ExtendedController\BusinessDocumentController
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'invoice';
         $pagedata['menu'] = 'purchases';
-        $pagedata['icon'] = 'fa-files-o';
+        $pagedata['icon'] = 'fas fa-copy';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
@@ -51,10 +53,7 @@ class EditFacturaProveedor extends ExtendedController\BusinessDocumentController
     protected function createViews()
     {
         parent::createViews();
-
-        $modelName = $this->getModelClassName();
-        $viewName = 'Edit' . $modelName;
-        $this->addEditView($viewName, $modelName, 'invoice');
+        $this->addListView('EditAsiento', 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
     }
 
     /**
@@ -75,11 +74,17 @@ class EditFacturaProveedor extends ExtendedController\BusinessDocumentController
      */
     protected function loadData($viewName, $view)
     {
-        if ($viewName === 'EditFacturaProveedor') {
-            $idfactura = $this->getViewModelValue('Document', 'idfactura');
-            $view->loadData($idfactura);
-        }
+        switch ($viewName) {
+            case 'EditAsiento':
+                $where = [
+                    new DataBaseWhere('idasiento', $this->getViewModelValue($this->getLineXMLView(), 'idasiento')),
+                    new DataBaseWhere('idasiento', $this->getViewModelValue($this->getLineXMLView(), 'idasientop'), '=', 'OR')
+                ];
+                $view->loadData('', $where);
+                break;
 
-        parent::loadData($viewName, $view);
+            default:
+                parent::loadData($viewName, $view);
+        }
     }
 }

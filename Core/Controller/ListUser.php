@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -37,7 +37,7 @@ class ListUser extends ExtendedController\ListController
     {
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'users';
-        $pagedata['icon'] = 'fa-users';
+        $pagedata['icon'] = 'fas fa-users';
         $pagedata['menu'] = 'admin';
 
         return $pagedata;
@@ -48,18 +48,18 @@ class ListUser extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('ListUser', 'User', 'users', 'fa-users');
+        $this->addView('ListUser', 'User', 'users', 'fas fa-users');
         $this->addSearchFields('ListUser', ['nick', 'email']);
-
-        $this->addOrderBy('ListUser', 'nick');
-        $this->addOrderBy('ListUser', 'email');
-        $this->addOrderBy('ListUser', 'lastactivity', 'last-activity');
+        $this->addOrderBy('ListUser', ['nick'], 'nick', 1);
+        $this->addOrderBy('ListUser', ['email'], 'email');
+        $this->addOrderBy('ListUser', ['level'], 'level');
+        $this->addOrderBy('ListUser', ['lastactivity'], 'last-activity');
+        $this->addFilterNumber('ListUser', 'level');
 
         /* Roles */
-        $this->addView('ListRole', 'Role', 'roles', 'fa-address-card-o');
+        $this->addView('ListRole', 'Role', 'roles', 'fas fa-address-card');
         $this->addSearchFields('ListRole', ['codrole', 'descripcion']);
-
-        $this->addOrderBy('ListRole', 'descripcion', 'description');
-        $this->addOrderBy('ListRole', 'codrole', 'code');
+        $this->addOrderBy('ListRole', ['descripcion'], 'description');
+        $this->addOrderBy('ListRole', ['codrole'], 'code');
     }
 }

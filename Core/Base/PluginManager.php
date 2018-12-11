@@ -18,7 +18,6 @@
  */
 namespace FacturaScripts\Core\Base;
 
-use FacturaScripts\Core\Base\FileManager;
 use ZipArchive;
 
 /**
@@ -32,9 +31,9 @@ class PluginManager
 {
 
     /**
-     * Minimum version required of FacturaScripts.
+     * FacturaScripts core version.
      */
-    const MIN_VERSION = 2018;
+    const CORE_VERSION = 2018.013;
 
     /**
      * Path to list plugins on file.
@@ -77,6 +76,14 @@ class PluginManager
             self::$i18n = new Translator();
             self::$minilog = new MiniLog();
         }
+
+        if (!defined('FS_DISABLE_ADD_PLUGINS')) {
+            define('FS_DISABLE_ADD_PLUGINS', false);
+        }
+
+        if (!defined('FS_DISABLE_RM_PLUGINS')) {
+            define('FS_DISABLE_RM_PLUGINS', false);
+        }
     }
 
     /**
@@ -84,6 +91,7 @@ class PluginManager
      * with the autoloader, but following the priority system of FacturaScripts.
      *
      * @param bool $clean
+     * @param bool $initControllers
      */
     public function deploy(bool $clean = true, bool $initControllers = false)
     {
@@ -111,7 +119,7 @@ class PluginManager
             $this->disableByDependecy($pluginName);
             $this->save();
             $this->deploy(true, true);
-            self::$minilog->info(self::$i18n->trans('plugin-disabled', ['%pluginName%' => $pluginName]));
+            self::$minilog->notice(self::$i18n->trans('plugin-disabled', ['%pluginName%' => $pluginName]));
             break;
         }
     }
@@ -139,7 +147,8 @@ class PluginManager
                 self::$enabledPlugins[] = $plugin;
                 $this->save();
                 $this->deploy(false, true);
-                self::$minilog->info(self::$i18n->trans('plugin-enabled', ['%pluginName%' => $pluginName]));
+                $this->initPlugin($pluginName);
+                self::$minilog->notice(self::$i18n->trans('plugin-enabled', ['%pluginName%' => $pluginName]));
             }
             break;
         }
@@ -170,6 +179,10 @@ class PluginManager
      */
     public function install(string $zipPath, string $zipName = 'plugin.zip'): bool
     {
+        if (FS_DISABLE_ADD_PLUGINS) {
+            return false;
+        }
+
         $zipFile = new ZipArchive();
         $result = $zipFile->open($zipPath, ZipArchive::CHECKCONS);
         if (true !== $result) {
@@ -208,7 +221,7 @@ class PluginManager
             rename(self::PLUGIN_PATH . $folderPluginZip[0], self::PLUGIN_PATH . $info['name']);
         }
 
-        self::$minilog->info(self::$i18n->trans('plugin-installed', ['%pluginName%' => $info['name']]));
+        self::$minilog->notice(self::$i18n->trans('plugin-installed', ['%pluginName%' => $info['name']]));
         return true;
     }
 
@@ -222,7 +235,7 @@ class PluginManager
         $plugins = [];
 
         foreach (FileManager::scanFolder(self::PLUGIN_PATH, false) as $folder) {
-            $iniPath = self::PLUGIN_PATH . $folder . '/facturascripts.ini';
+            $iniPath = self::PLUGIN_PATH . $folder . DIRECTORY_SEPARATOR . 'facturascripts.ini';
             $iniContent = file_exists($iniPath) ? file_get_contents($iniPath) : '';
             $plugins[] = $this->getPluginInfo($folder, $iniContent);
         }
@@ -239,6 +252,10 @@ class PluginManager
      */
     public function remove(string $pluginName): bool
     {
+        if (FS_DISABLE_RM_PLUGINS) {
+            return false;
+        }
+
         /// can't remove enabled plugins
         if (in_array($pluginName, self::$enabledPlugins)) {
             self::$minilog->error(self::$i18n->trans('plugin-enabled', ['%pluginName%' => $pluginName]));
@@ -248,19 +265,19 @@ class PluginManager
         $pluginPath = self::PLUGIN_PATH . $pluginName;
         if (is_dir($pluginPath) || is_file($pluginPath)) {
             FileManager::delTree($pluginPath);
-            self::$minilog->info(self::$i18n->trans('plugin-deleted', ['%pluginName%' => $pluginName]));
+            self::$minilog->notice(self::$i18n->trans('plugin-deleted', ['%pluginName%' => $pluginName]));
             return true;
         }
 
-        self::$minilog->info(self::$i18n->trans('plugin-delete-error', ['%pluginName%' => $pluginName]));
+        self::$minilog->notice(self::$i18n->trans('plugin-delete-error', ['%pluginName%' => $pluginName]));
         return false;
     }
 
     /**
      * Check for plugins needed.
-     * 
+     *
      * @param array $require
-     * 
+     *
      * @return bool
      */
     private function checkRequire(array $require): bool
@@ -289,7 +306,7 @@ class PluginManager
 
     /**
      * Disables plugins that depends on $pluginDisabled
-     * 
+     *
      * @param string $pluginDisabled
      */
     private function disableByDependecy(string $pluginDisabled)
@@ -326,24 +343,37 @@ class PluginManager
         $ini = parse_ini_string($iniContent);
         if ($ini !== false) {
             foreach (['name', 'version', 'description', 'min_version'] as $key) {
-                $info[$key] = isset($ini[$key]) ? $ini[$key] : $info[$key];
+                $info[$key] = $ini[$key] ?? $info[$key];
             }
 
             if (isset($ini['require'])) {
                 $info['require'] = explode(',', $ini['require']);
             }
 
-            if ($info['min_version'] >= 2018 && $info['min_version'] <= self::MIN_VERSION) {
+            if ($info['min_version'] >= 2018 && $info['min_version'] <= self::CORE_VERSION) {
                 $info['compatible'] = true;
                 $info['description'] = ('Incompatible' === $info['description']) ? self::$i18n->trans('compatible') : $info['description'];
             } else {
-                $info['description'] = self::$i18n->trans('incompatible-with-facturascripts', ['%version%' => self::MIN_VERSION]);
+                $info['description'] = self::$i18n->trans('incompatible-with-facturascripts', ['%version%' => self::CORE_VERSION]);
             }
 
             $info['enabled'] = in_array($info['name'], $this->enabledPlugins());
         }
 
         return $info;
+    }
+
+    /**
+     * 
+     * @param string $pluginName
+     */
+    private function initPlugin(string $pluginName)
+    {
+        $pluginClass = "FacturaScripts\\Plugins\\{$pluginName}\\Init";
+        if (class_exists($pluginClass)) {
+            $initObject = new $pluginClass();
+            $initObject->update();
+        }
     }
 
     /**

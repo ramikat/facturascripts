@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -95,7 +95,7 @@ class DocumentReports extends Controller
         ];
 
         $this->filters = [
-            'employee' => new DocumentReportsBase\DocumentReportsFilterList('\FacturaScripts\Dinamic\Model\Agente', '', 'fa-users'),
+            'employee' => new DocumentReportsBase\DocumentReportsFilterList('\FacturaScripts\Dinamic\Model\Agente', '', 'fas fa-users'),
             'serie' => new DocumentReportsBase\DocumentReportsFilterList('\FacturaScripts\Dinamic\Model\Serie', AppSettings::get('default', 'codserie')),
             'currency' => new DocumentReportsBase\DocumentReportsFilterList('\FacturaScripts\Dinamic\Model\Divisa', AppSettings::get('default', 'coddivisa')),
             'payment-method' => new DocumentReportsBase\DocumentReportsFilterList('\FacturaScripts\Dinamic\Model\FormaPago'),
@@ -233,7 +233,7 @@ class DocumentReports extends Controller
         ];
 
         foreach ($this->filters as $filter) {
-            $where[] = $filter->getWhere();
+            $filter->getWhere($where);
         }
 
         return $where;
@@ -325,7 +325,7 @@ class DocumentReports extends Controller
         $pageData = parent::getPageData();
         $pageData['menu'] = 'reports';
         $pageData['title'] = 'document-reports';
-        $pageData['icon'] = 'fa-area-chart';
+        $pageData['icon'] = 'fas fa-chart-area';
 
         return $pageData;
     }

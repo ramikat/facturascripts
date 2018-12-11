@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,6 +20,7 @@ namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Dinamic\Model\LineaFacturaCliente;
+use FacturaScripts\Core\Lib\Accounting\InvoiceToAccounting;
 
 /**
  * Invoice of a client.
@@ -39,7 +40,6 @@ class FacturaCliente extends Base\SalesDocument
     {
         parent::clear();
         $this->anulada = false;
-        $this->pagada = false;
     }
 
     /**
@@ -58,18 +58,21 @@ class FacturaCliente extends Base\SalesDocument
 
     /**
      * Returns a new line for the document.
-     * 
+     *
      * @param array $data
-     * 
+     *
      * @return LineaFacturaCliente
      */
     public function getNewLine(array $data = [])
     {
         $newLine = new LineaFacturaCliente($data);
         $newLine->idfactura = $this->idfactura;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
@@ -83,10 +86,9 @@ class FacturaCliente extends Base\SalesDocument
      */
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new Asiento();
-
-        return '';
+        return $sql;
     }
 
     /**
@@ -107,5 +109,42 @@ class FacturaCliente extends Base\SalesDocument
     public static function tableName()
     {
         return 'facturascli';
+    }
+
+    /**
+     * Generates the accounting entry for the document
+     *
+     * @return bool
+     */
+    private function accountingDocument()
+    {
+        $accounting = new InvoiceToAccounting($this);
+        return $accounting->accountSales();
+    }
+
+    /**
+     * Insert the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveInsert(array $values = array())
+    {
+        $this->accountingDocument();
+        return parent::saveInsert($values);
+    }
+
+    /**
+     * Update the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveUpdate(array $values = array())
+    {
+        $this->accountingDocument();
+        return parent::saveUpdate($values);
     }
 }

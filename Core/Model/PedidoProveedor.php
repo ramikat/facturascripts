@@ -31,13 +31,6 @@ class PedidoProveedor extends Base\PurchaseDocument
     use Base\ModelTrait;
 
     /**
-     * Related delivery note ID.
-     *
-     * @var int
-     */
-    public $idalbaran;
-
-    /**
      * Primary key.
      *
      * @var int
@@ -69,19 +62,21 @@ class PedidoProveedor extends Base\PurchaseDocument
     {
         $newLine = new LineaPedidoProveedor($data);
         $newLine->idpedido = $this->idpedido;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
 
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new AlbaranProveedor();
-
-        return '';
+        return $sql;
     }
 
     /**

@@ -36,8 +36,22 @@ class LineaPresupuestoCliente extends Base\SalesDocumentLine
      */
     public $idpresupuesto;
 
+    /**
+     * 
+     * @return string
+     */
+    public function documentColumn()
+    {
+        return 'idpresupuesto';
+    }
+
+    /**
+     * 
+     * @return string
+     */
     public function install()
     {
+        /// needed dependency
         new PresupuestoCliente();
 
         return parent::install();
@@ -51,5 +65,21 @@ class LineaPresupuestoCliente extends Base\SalesDocumentLine
     public static function tableName()
     {
         return 'lineaspresupuestoscli';
+    }
+
+    /**
+     * 
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        if (null !== $this->idpresupuesto) {
+            return 'EditPresupuestoCliente?code=' . $this->idpresupuesto;
+        }
+
+        return parent::url($type, $list);
     }
 }

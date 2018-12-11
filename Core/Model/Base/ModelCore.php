@@ -133,6 +133,29 @@ abstract class ModelCore
     }
 
     /**
+     * Change the value of the primary column in the model and the database.
+     *
+     * @param mixed $newValue
+     *
+     * @return boolean
+     */
+    public function changePrimaryColumnValue($newValue)
+    {
+        if (empty($newValue) || $newValue == $this->primaryColumnValue()) {
+            return true;
+        }
+
+        $sql = "UPDATE " . $this->tableName() . " SET " . $this->primaryColumn() . " = " . self::$dataBase->var2str($newValue)
+            . " WHERE " . $this->primaryColumn() . " = " . self::$dataBase->var2str($this->primaryColumnValue()) . ";";
+        if (self::$dataBase->exec($sql)) {
+            $this->{$this->primaryColumn()} = $newValue;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Reset the values of all model properties.
      */
     public function clear()
@@ -225,7 +248,7 @@ abstract class ModelCore
         $xmlCons = [];
 
         if (!$dbTools->getXmlTable(static::tableName(), $xmlCols, $xmlCons)) {
-            self::$miniLog->critical(self::$i18n->trans('error-on-xml-file'));
+            self::$miniLog->critical(self::$i18n->trans('error-on-xml-file', ['%fileName%' => static::tableName() . '.xml']));
             return false;
         }
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -40,7 +40,7 @@ class ListBalance extends ExtendedController\ListController
     {
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'balances';
-        $pagedata['icon'] = 'fa-clipboard';
+        $pagedata['icon'] = 'fas fa-clipboard';
         $pagedata['menu'] = 'accounting';
 
         return $pagedata;
@@ -66,12 +66,12 @@ class ListBalance extends ExtendedController\ListController
         ];
         $this->addSearchFields($viewName, $fields);
 
-        $this->addOrderBy($viewName, 'codbalance', 'code');
-        $this->addOrderBy($viewName, 'descripcion1', 'description-1');
-        $this->addOrderBy($viewName, 'descripcion2', 'description-2');
-        $this->addOrderBy($viewName, 'descripcion3', 'description-3');
-        $this->addOrderBy($viewName, 'descripcion4', 'description-4');
-        $this->addOrderBy($viewName, 'descripcion4ba', 'description-4ba');
+        $this->addOrderBy($viewName, ['codbalance'], 'code');
+        $this->addOrderBy($viewName, ['descripcion1'], 'description-1');
+        $this->addOrderBy($viewName, ['descripcion2'], 'description-2');
+        $this->addOrderBy($viewName, ['descripcion3'], 'description-3');
+        $this->addOrderBy($viewName, ['descripcion4'], 'description-4');
+        $this->addOrderBy($viewName, ['descripcion4ba'], 'description-4ba');
     }
 
     /**
@@ -86,31 +86,36 @@ class ListBalance extends ExtendedController\ListController
     }
 
     /**
-     * Load data for view
-     *
-     * @param string $viewName
-     * @param array $where
-     * @param int $offset
+     * 
+     * @param string                      $viewName
+     * @param ExtendedController\BaseView $view
      */
-    protected function loadData($viewName, $where, $offset)
+    protected function loadData($viewName, $view)
     {
+        $where = [];
         switch ($viewName) {
             case 'ListBalance-1':
                 $where[] = new DataBaseWhere('naturaleza', 'A');
+                $view->loadData(false, $where);
                 break;
 
             case 'ListBalance-2':
                 $where[] = new DataBaseWhere('naturaleza', 'P');
+                $view->loadData(false, $where);
                 break;
 
             case 'ListBalance-3':
                 $where[] = new DataBaseWhere('naturaleza', 'PG');
+                $view->loadData(false, $where);
                 break;
 
             case 'ListBalance-4':
                 $where[] = new DataBaseWhere('naturaleza', 'IG');
+                $view->loadData(false, $where);
                 break;
+
+            default:
+                parent::loadData($viewName, $view);
         }
-        parent::loadData($viewName, $where, $offset);
     }
 }

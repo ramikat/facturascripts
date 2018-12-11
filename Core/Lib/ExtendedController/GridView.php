@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,9 +19,13 @@
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use Exception;
-use FacturaScripts\Core\Base;
 use FacturaScripts\Core\Base\DataBase;
-use FacturaScripts\Core\Lib\ExportManager;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Base\DivisaTools;
+use FacturaScripts\Core\Lib\AssetManager;
+use FacturaScripts\Core\Lib\Widget\ColumnItem;
+use FacturaScripts\Core\Lib\Widget\WidgetAutocomplete;
+use FacturaScripts\Core\Lib\Widget\WidgetSelect;
 use FacturaScripts\Core\Model\Base\ModelClass;
 
 /**
@@ -29,22 +33,30 @@ use FacturaScripts\Core\Model\Base\ModelClass;
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class GridView extends BaseView
+class GridView extends EditView
 {
 
+    const GRIDVIEW_TEMPLATE = 'Master/GridView.html.twig';
+
     /**
-     * Parent container of grid data
+     * Detail view
      *
      * @var BaseView
      */
-    private $parentView;
+    public $detailView;
 
     /**
-     * Model of parent data
      *
      * @var ModelClass
      */
-    private $parentModel;
+    public $detailModel;
+
+    /**
+     * Template for edit master data
+     *
+     * @var string
+     */
+    public $editTemplate = self::EDITVIEW_TEMPLATE;
 
     /**
      * Grid data configuration and data
@@ -54,34 +66,44 @@ class GridView extends BaseView
     private $gridData;
 
     /**
-     * EditView constructor and initialization.
+     * GridView constructor and initialization.
+     * Master/Detail params:
+     *   ['name' = 'viewName', 'model' => 'modelName']
      *
-     * @param BaseView $parent
-     * @param string   $title
-     * @param string   $modelName
-     * @param string   $viewName
-     * @param string   $userNick
+     * @param array   $master
+     * @param array   $detail
+     * @param string  $title
+     * @param string  $icon
      */
-    public function __construct(&$parent, $title, $modelName, $viewName, $userNick)
+    public function __construct($master, $detail, $title, $icon)
     {
-        parent::__construct($title, $modelName);
+        parent::__construct($master['name'], $title, $master['model'], $icon);
 
-        // Join the parent view
-        $this->parentView = $parent;
-        $this->parentModel = $parent->model;
+        // Create detail view
+        $this->detailView = new EditView($detail['name'], $title, $detail['model'], $icon);
+        $this->detailModel = $this->detailView->model;
 
-        // Loads the view configuration for the user
-        $this->pageOption->getForUser($viewName, $userNick);
+        // custom template
+        $this->template = self::GRIDVIEW_TEMPLATE;
     }
 
     /**
-     * Method to export the view data.
+     * Returns detail column configuration
      *
-     * @param ExportManager $exportManager
+     * @param string $key
+     *
+     * @return ColumnItem[]
      */
-    public function export(&$exportManager)
+    public function getDetailColumns($key = '')
     {
-        /// TODO: complete this method
+        if (!array_key_exists($key, $this->detailView->columns)) {
+            if ($key == 'master') {
+                return [];
+            }
+            $key = array_keys($this->detailView->columns)[0];
+        }
+
+        return $this->detailView->columns[$key]->columns;
     }
 
     /**
@@ -95,138 +117,143 @@ class GridView extends BaseView
     }
 
     /**
-     * Configure autocomplete column with data to Grid component
+     * Load the data in the model property, according to the code specified.
      *
-     * @param array $values
-     *
-     * @return array
+     * @param string          $code
+     * @param DataBaseWhere[] $where
+     * @param array           $order
+     * @param int             $offset
+     * @param int             $limit
      */
-    private function getAutocompleteSource($values): array
+    public function loadData($code = '', $where = array(), $order = array(), $offset = 0, $limit = FS_ITEM_LIMIT)
     {
-        // Calculate url for grid controller
-        $url = $this->parentModel->url('edit');
+        parent::loadData($code, $where, $order, $offset, $limit);
 
-        return [
-            'url' => $url,
-            'source' => $values['source'],
-            'field' => $values['fieldcode'],
-            'title' => $values['fieldtitle']
-        ];
-    }
-
-    /**
-     * Determines whether the user's selection should be strictly
-     * a value from the list of values
-     *
-     * @param array $values
-     *
-     * @return bool
-     */
-    private function getAutocompeteStrict($values): bool
-    {
-        return isset($values['strict']) ? $values['strict'] === 'true' : true;
-    }
-
-    /**
-     * Return grid column configuration
-     *
-     * @param ColumnItem $column
-     *
-     * @return array
-     */
-    private function getItemForColumn($column): array
-    {
-        $item = ['data' => $column->widget->fieldName];
-        switch ($column->widget->type) {
-            case 'autocomplete':
-                $item['type'] = 'autocomplete';
-                $item['visibleRows'] = 5;
-                $item['allowInvalid'] = true;
-                $item['trimDropdown'] = false;
-                $item['strict'] = $this->getAutocompeteStrict($column->widget->values[0]);
-                $item['data-source'] = $this->getAutocompleteSource($column->widget->values[0]);
-                break;
-
-            case 'number':
-            case 'money':
-                $item['type'] = 'numeric';
-                $item['numericFormat'] = Base\DivisaTools::gridMoneyFormat();
-                break;
-
-            default:
-                $item['type'] = $column->widget->type;
-                break;
-        }
-
-        return $item;
-    }
-
-    /**
-     * Return grid columns configuration
-     *
-     * @return array
-     */
-    private function getColumns(): array
-    {
-        $data = [
-            'headers' => [],
-            'columns' => [],
-            'hidden' => []
-        ];
-
-        $columns = $this->pageOption->columns['root']->columns;
-        foreach ($columns as $col) {
-            $item = $this->getItemForColumn($col);
-            switch ($col->display) {
-                case 'none':
-                    $data['hidden'][] = $item;
-                    break;
-
-                default:
-                    $data['headers'][] = self::$i18n->trans($col->title);
-                    $data['columns'][] = $item;
-                    break;
+        if ($this->count == 0) {
+            $this->template = self::EDITVIEW_TEMPLATE;
+        } else {
+            if ($this->newCode !== null) {
+                $code = $this->newCode;
             }
-        }
 
-        return $data;
+            $where = [new DataBaseWhere($this->model->primaryColumn(), $code)];
+            $orderby = [$this->detailView->model->primaryColumn() => 'ASC'];
+            $this->loadGridData($where, $orderby);
+        }
     }
 
     /**
-     * Load the data in the cursor property, according to the where filter specified.
+     * Load detail data and set grid configuration
      *
      * @param DataBaseWhere[] $where
      * @param array           $order
      */
-    public function loadData($where = [], $order = [])
+    public function loadGridData($where = array(), $order = array())
     {
         // load columns configuration
-        $this->gridData = $this->getColumns();
+        $this->gridData = $this->getGridColumns();
 
-        // load model data
+        // load detail model data
         $this->gridData['rows'] = [];
-        $count = $this->model->count($where);
-        if ($count > 0) {
-            foreach ($this->model->all($where, $order, 0, 0) as $line) {
+        $this->detailView->count = $this->detailView->model->count($where);
+        if ($this->detailView->count > 0) {
+            foreach ($this->detailView->model->all($where, $order, 0, 0) as $line) {
                 $this->gridData['rows'][] = (array) $line;
             }
         }
     }
 
     /**
-     * Load data of master document and set data from array
      *
-     * @param string $fieldPK
-     * @param array $data
-     * @return bool
+     * @param array $lines
+     * @return array
      */
-    private function loadDocumentDataFromArray($fieldPK, &$data): bool
+    public function processFormLines(&$lines): array
     {
-        if ($this->parentModel->loadFromCode($data[$fieldPK])) {    // old data
-            $this->parentModel->loadFromData($data, ['action', 'active']);  // new data (the web form may not have all the fields)
-            return $this->parentModel->test();
+        $result = [];
+        $primaryKey = $this->detailView->model->primaryColumn();
+        foreach ($lines as $data) {
+            if (!isset($data[$primaryKey])) {
+                foreach ($this->getDetailColumns('detail') as $col) {
+                    if (!isset($data[$col->widget->fieldname])) {
+                        // TODO: maybe the widget can have a default value method instead of null
+                        $data[$col->widget->fieldname] = null;
+                    }
+                }
+            }
+            $result[] = $data;
         }
-        return false;
+
+        return $result;
+    }
+
+    public function saveData($data): array
+    {
+        $result = [
+            'error' => false,
+            'message' => '',
+            'url' => ''
+        ];
+
+        try {
+            // load master document data and test it's ok
+            if (!$this->loadDocumentDataFromArray('code', $data['document'])) {
+                throw new Exception(self::$i18n->trans('parent-document-test-error'));
+            }
+
+            // load detail document data (old)
+            $primaryKey = $this->model->primaryColumn();
+            $primaryKeyValue = $this->model->primaryColumnValue();
+            $linesOld = $this->detailView->model->all([new DataBaseWhere($primaryKey, $primaryKeyValue)]);
+
+            // start transaction
+            $dataBase = new DataBase();
+            $dataBase->beginTransaction();
+
+            // delete old lines not used
+            if (!$this->deleteLinesOld($linesOld, $data['lines'])) {
+                throw new Exception(self::$i18n->trans('lines-delete-error'));
+            }
+
+            // Proccess detail document data (new)
+            $this->model->initTotals(); // Master Model must implement GridModelInterface
+            foreach ($data['lines'] as $newLine) {
+                $this->detailView->model->loadFromData($newLine);
+                if (empty($this->detailView->model->primaryColumnValue())) {
+                    $this->detailView->model->{$primaryKey} = $primaryKeyValue;
+                }
+                if (!$this->detailView->model->save()) {
+                    throw new Exception(self::$i18n->trans('lines-save-error'));
+                }
+                $this->model->accumulateAmounts($newLine);
+            }
+
+            // save master document
+            if (!$this->model->save()) {
+                throw new Exception(self::$i18n->trans('parent-document-save-error'));
+            }
+
+            // confirm save data into database
+            $dataBase->commit();
+
+            // URL for refresh data
+            $result['url'] = $this->model->url('edit') . '&action=save-ok';
+        } catch (Exception $e) {
+            $result['error'] = true;
+            $result['message'] = $e->getMessage();
+        } finally {
+            if ($dataBase->inTransaction()) {
+                $dataBase->rollback();
+            }
+            return $result;
+        }
+    }
+
+    protected function assets()
+    {
+        AssetManager::add('css', FS_ROUTE . '/node_modules/handsontable/dist/handsontable.full.min.css');
+        AssetManager::add('js', FS_ROUTE . '/node_modules/handsontable/dist/handsontable.full.min.js');
+        AssetManager::add('js', FS_ROUTE . '/Dinamic/Assets/JS/GridView.js');
     }
 
     /**
@@ -240,14 +267,15 @@ class GridView extends BaseView
     private function deleteLinesOld(&$linesOld, &$linesNew): bool
     {
         if (!empty($linesOld)) {
-            $fieldPK = $this->model->primaryColumn();
+            $model = $this->detailView->model;
+            $fieldPK = $model->primaryColumn();
             $oldIDs = array_column($linesOld, $fieldPK);
             $newIDs = array_column($linesNew, $fieldPK);
             $deletedIDs = array_diff($oldIDs, $newIDs);
 
             foreach ($deletedIDs as $idKey) {
-                $this->model->{$fieldPK} = $idKey;
-                if (!$this->model->delete()) {
+                $model->loadFromCode($idKey);
+                if (!$model->delete()) {
                     return false;
                 }
             }
@@ -255,85 +283,124 @@ class GridView extends BaseView
         return true;
     }
 
-    public function saveData($data): array
+    /**
+     * Configure autocomplete column with data to Grid component
+     *
+     * @param WidgetAutocomplete $widget
+     *
+     * @return array
+     */
+    private function getAutocompleteSource($widget): array
     {
-        $result = [
-            'error' => false,
-            'message' => '',
-            'url' => ''
+        $url = $this->model->url('edit');
+        $datasource = $widget->getDataSource();
+
+        return [
+            'url' => $url,
+            'source' => $datasource['source'],
+            'field' => $datasource['fieldcode'],
+            'title' => $datasource['fieldtitle']
         ];
-
-        try {
-            // load master document data and test it's ok
-            $parentPK = $this->parentModel->primaryColumn();
-            if (!$this->loadDocumentDataFromArray($parentPK, $data['document'])) {
-                throw new Exception(self::$i18n->trans('parent-document-test-error'));
-            }
-
-            // load detail document data (old)
-            $parentValue = $this->parentModel->primaryColumnValue();
-            $linesOld = $this->model->all([new DataBase\DataBaseWhere($parentPK, $parentValue)]);
-
-            // start transaction
-            $dataBase = new DataBase();
-            $dataBase->beginTransaction();
-
-            // delete old lines not used
-            if (!$this->deleteLinesOld($linesOld, $data['lines'])) {
-                throw new Exception(self::$i18n->trans('lines-delete-error'));
-            }
-
-            // Proccess detail document data (new)
-            $this->parentModel->initTotals();
-            foreach ($data['lines'] as $newLine) {
-                $this->model->loadFromData($newLine);
-                if (empty($this->model->primaryColumnValue())) {
-                    $this->model->{$parentPK} = $parentValue;
-                }
-                if (!$this->model->save()) {
-                    throw new Exception(self::$i18n->trans('lines-save-error'));
-                }
-                $this->parentModel->accumulateAmounts($newLine);
-            }
-
-            // save master document
-            if (!$this->parentModel->save()) {
-                throw new Exception(self::$i18n->trans('parent-document-save-error'));
-            }
-
-            // confirm save data into database
-            $dataBase->commit();
-
-            // URL for refresh data
-            $result['url'] = $this->parentView->getURL('edit') . '&action=save-ok';
-        } catch (Exception $e) {
-            $result['error'] = true;
-            $result['message'] = $e->getMessage();
-        } finally {
-            if ($dataBase->inTransaction()) {
-                $dataBase->rollback();
-            }
-            return $result;
-        }
     }
 
-    public function processFormLines(&$lines): array
+    /**
+     * Return grid columns configuration
+     * from pages_options of columns
+     *
+     * @return array
+     */
+    private function getGridColumns(): array
     {
-        $result = [];
-        $primaryKey = $this->model->primaryColumn();
-        foreach ($lines as $data) {
-            if (!isset($data[$primaryKey])) {
-                foreach ($this->pageOption->columns as $group) {
-                    foreach ($group->columns as $col) {
-                        if (!isset($data[$col->widget->fieldName])) {
-                            $data[$col->widget->fieldName] = null;   // TODO: maybe the widget can have a default value method instead of null
-                        }
-                    }
-                }
+        $data = [
+            'headers' => [],
+            'columns' => [],
+            'hidden' => [],
+            'colwidths' => []
+        ];
+
+        foreach ($this->getDetailColumns('detail') as $col) {
+            $item = $this->getItemForColumn($col);
+            if ($col->hidden()) {
+                $data['hidden'][] = $item;
+            } else {
+                $data['columns'][] = $item;
+                $data['colwidths'][] = $col->htmlWidth();
+                $data['headers'][] = self::$i18n->trans($col->title);
             }
-            $result[] = $data;
         }
 
+        return $data;
+    }
+
+    /**
+     * Return grid column configuration
+     *
+     * @param ColumnItem $column
+     *
+     * @return array
+     */
+    private function getItemForColumn($column): array
+    {
+        $item = [
+            'data' => $column->widget->fieldname,
+            'type' => $column->widget->getType()
+        ];
+        switch ($item['type']) {
+            case 'autocomplete':
+                $item['visibleRows'] = 5;
+                $item['allowInvalid'] = true;
+                $item['trimDropdown'] = false;
+                $item['strict'] = $column->widget->strict;
+                $item['data-source'] = $this->getAutocompleteSource($column->widget);
+                break;
+
+            case 'select':
+                $item['editor'] = 'select';
+                $item['selectOptions'] = $this->getSelectSource($column->widget);
+                break;
+
+            case 'number':
+            case 'money':
+                $item['type'] = 'numeric';
+                $item['numericFormat'] = DivisaTools::gridMoneyFormat();
+                break;
+        }
+
+        return $item;
+    }
+
+    /**
+     * Return array of values to select
+     *
+     * @param WidgetSelect $widget
+     */
+    private function getSelectSource($widget): array
+    {
+        $result = [];
+        if (!$widget->required) {
+            $result[] = '';
+        }
+
+        foreach ($widget->values as $value) {
+            $result[] = $value['title'];
+        }
         return $result;
+    }
+
+    /**
+     * Load data of master document and set data from array
+     *
+     * @param string $field
+     * @param array  $data
+     *
+     * @return bool
+     */
+    private function loadDocumentDataFromArray($field, &$data): bool
+    {
+        if ($this->model->loadFromCode($data[$field])) {    // old data
+            $this->model->loadFromData($data, ['action', 'activetab', 'code']);  // new data (the web form may be not have all the fields)
+            return $this->model->test();
+        }
+        return false;
     }
 }

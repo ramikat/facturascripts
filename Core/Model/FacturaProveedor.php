@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,6 +20,7 @@ namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Dinamic\Model\LineaFacturaProveedor;
+use FacturaScripts\Core\Lib\Accounting\InvoiceToAccounting;
 
 /**
  * Invoice from a supplier.
@@ -39,7 +40,6 @@ class FacturaProveedor extends Base\PurchaseDocument
     {
         parent::clear();
         $this->anulada = false;
-        $this->pagada = false;
     }
 
     /**
@@ -58,18 +58,21 @@ class FacturaProveedor extends Base\PurchaseDocument
 
     /**
      * Returns a new line for the document.
-     * 
+     *
      * @param array $data
-     * 
+     *
      * @return LineaFacturaProveedor
      */
     public function getNewLine(array $data = [])
     {
         $newLine = new LineaFacturaProveedor($data);
         $newLine->idfactura = $this->idfactura;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
@@ -83,10 +86,9 @@ class FacturaProveedor extends Base\PurchaseDocument
      */
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new Asiento();
-
-        return '';
+        return $sql;
     }
 
     /**
@@ -107,5 +109,42 @@ class FacturaProveedor extends Base\PurchaseDocument
     public static function tableName()
     {
         return 'facturasprov';
+    }
+
+    /**
+     * Generates the accounting entry for the document
+     *
+     * @return bool
+     */
+    private function accountingDocument()
+    {
+        $accounting = new InvoiceToAccounting($this);
+        return $accounting->accountPurchase();
+    }
+
+    /**
+     * Insert the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveInsert(array $values = array())
+    {
+        $this->accountingDocument();
+        return parent::saveInsert($values);
+    }
+
+    /**
+     * Update the model data in the database.
+     *
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveUpdate(array $values = array())
+    {
+        $this->accountingDocument();
+        return parent::saveUpdate($values);
     }
 }

@@ -31,13 +31,6 @@ class PedidoCliente extends Base\SalesDocument
     use Base\ModelTrait;
 
     /**
-     * Related delivery note ID.
-     *
-     * @var integer
-     */
-    public $idalbaran;
-
-    /**
      * Primary key.
      *
      * @var integer
@@ -76,19 +69,21 @@ class PedidoCliente extends Base\SalesDocument
     {
         $newLine = new LineaPedidoCliente($data);
         $newLine->idpedido = $this->idpedido;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
 
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new AlbaranCliente();
-
-        return '';
+        return $sql;
     }
 
     /**

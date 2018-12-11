@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,11 +19,14 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Model\LogMessage;
 
 /**
  * Controller to list the items in the LogMessage model
  *
- * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * @author Carlos García Gómez          <carlos@facturascripts.com>
+ * @author Francesc Pineda Segarra      <francesc.pineda.segarra@gmail.com>
+ * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
 class ListLogMessage extends ExtendedController\ListController
 {
@@ -37,7 +40,7 @@ class ListLogMessage extends ExtendedController\ListController
     {
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'logs';
-        $pagedata['icon'] = 'fa-file-text-o';
+        $pagedata['icon'] = 'fas fa-file-medical-alt';
         $pagedata['menu'] = 'admin';
         $pagedata['submenu'] = 'control-panel';
 
@@ -49,21 +52,104 @@ class ListLogMessage extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('ListLogMessage', 'LogMessage');
-        $this->addSearchFields('ListLogMessage', ['level', 'message']);
+        $this->createLogMessageView();
+        $this->createCronJobView();
+    }
 
-        $this->addOrderBy('ListLogMessage', 'time', 'time', 2);
-        $this->addOrderBy('ListLogMessage', 'level', 'level');
+    /**
+     * Create view to view all information about crons.
+     *
+     * @return void
+     */
+    private function createCronJobView()
+    {
+        $this->addView('ListCronJob', 'CronJob', 'crons', 'fas fa-cogs');
+        $this->addSearchFields('ListCronJob', ['jobname', 'pluginname']);
+        $this->addOrderBy('ListCronJob', ['jobname'], 'jobname');
+        $this->addOrderBy('ListCronJob', ['pluginname'], 'pluginname');
+        $this->addOrderBy('ListCronJob', ['date'], 'date');
+        $this->addFilterDatePicker('ListCronJob', 'fromdate', 'from-date', 'date', '>=');
+        $this->addFilterDatePicker('ListCronJob', 'untildate', 'until-date', 'date', '<=');
 
-        $values = [
-            ['code' => 'info', 'description' => $this->i18n->trans('type-info')],
-            ['code' => 'notice', 'description' => $this->i18n->trans('type-notice')],
-            ['code' => 'warning', 'description' => $this->i18n->trans('type-warning')],
-            ['code' => 'error', 'description' => $this->i18n->trans('type-error')],
-            ['code' => 'critical', 'description' => $this->i18n->trans('type-critical')],
-            ['code' => 'alert', 'description' => $this->i18n->trans('type-alert')],
-            ['code' => 'emergency', 'description' => $this->i18n->trans('type-emergency')]
-        ];
+        $this->setSettings('ListCronJob', 'btnNew', false);
+    }
+
+    /**
+     * Create view to get information about all logs.
+     *
+     * @return void
+     */
+    private function createLogMessageView()
+    {
+        $this->addView('ListLogMessage', 'LogMessage', 'logs', 'fas fa-file-medical-alt');
+        $this->addSearchFields('ListLogMessage', ['message', 'uri']);
+        $this->addOrderBy('ListLogMessage', ['time'], 'date', 2);
+        $this->addOrderBy('ListLogMessage', ['level'], 'level');
+
+        $values = $this->codeModel->all('logs', 'level', 'level');
         $this->addFilterSelect('ListLogMessage', 'level', 'level', 'level', $values);
+        $this->addFilterAutocomplete('ListLogMessage', 'nick', 'user', 'nick', 'users');
+        $this->addFilterAutocomplete('ListLogMessage', 'ip', 'ip', 'ip', 'logs');
+        $this->addFilterDatePicker('ListLogMessage', 'fromdate', 'from-date', 'time', '>=');
+        $this->addFilterDatePicker('ListLogMessage', 'untildate', 'until-date', 'time', '<=');
+
+        $this->setSettings('ListLogMessage', 'btnNew', false);
+    }
+
+    /**
+     * Run the actions that alter data before reading it.
+     *
+     * @param string $action
+     *
+     * @return bool
+     */
+    protected function execPreviousAction($action)
+    {
+        switch ($action) {
+            case 'delete-selected-filters':
+                $this->deleteWithFilters();
+                return true;
+
+            default:
+                return parent::execPreviousAction($action);
+        }
+    }
+
+    /**
+     * Delete logs based on active filters.
+     */
+    private function deleteWithFilters()
+    {
+        // start transaction
+        $this->dataBase->beginTransaction();
+
+        // main save process
+        try {
+            $logMessage = new LogMessage();
+
+            $this->views['ListLogMessage']->processFormData($this->request, 'load');
+            $where = $this->views['ListLogMessage']->where;
+            $allFilteredLogs = $logMessage->all($where, [], 0, 0);
+            $counter = 0;
+            foreach ($allFilteredLogs as $log) {
+                if ($log->delete()) {
+                    $counter++;
+                } else {
+                    $this->miniLog->alert('cant-delete-item', ['%modelName%' => 'LogMessage', '%code%' => $log->primaryColumnValue()]);
+                    break;
+                }
+            }
+            // confirm data
+            $this->dataBase->commit();
+            if ($counter > 0) {
+                $this->miniLog->notice('total-items-deleted', ['%total%' => $counter]);
+            }
+        } catch (\Exception $e) {
+            $this->miniLog->alert($e->getMessage());
+        } finally {
+            if ($this->dataBase->inTransaction()) {
+                $this->dataBase->rollback();
+            }
+        }
     }
 }

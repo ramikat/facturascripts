@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,20 +16,30 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\App;
 
 use FacturaScripts\Core\Model\ApiKey;
+use FacturaScripts\Core\Model\ApiAccess;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * AppAPI is the class used for API.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Ángel Guzmán Maeso <angel@guzmanmaeso.com>
  * @author Rafael San José Tovar (http://www.x-netdigital.com) <info@rsanjoseo.com>
  */
 class AppAPI extends App
 {
+
+    /**
+     * Contains the ApiKey model
+     *
+     * @var ApiKey $apiKey
+     */
+    protected $apiKey;
+
     /**
      * Runs the API.
      *
@@ -40,6 +50,15 @@ class AppAPI extends App
         $this->response->headers->set('Access-Control-Allow-Origin', '*');
         $this->response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         $this->response->headers->set('Content-Type', 'application/json');
+
+        if ($this->request->server->get('REQUEST_METHOD') == "OPTIONS") {
+            if (!is_null($this->request->server->get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS'))) {
+                $allowHeaders = $this->request->server->get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS');
+                $this->response->headers->set('Access-Control-Allow-Headers', $allowHeaders);
+            }
+
+            return true;
+        }
 
         if ($this->isDisabled()) {
             $this->fatalError('API-DISABLED', Response::HTTP_NOT_FOUND);
@@ -61,24 +80,75 @@ class AppAPI extends App
             return false;
         }
 
+        if (!$this->isAllowed()) {
+            $this->fatalError('FORBIDDEN', Response::HTTP_FORBIDDEN);
+            return false;
+        }
+
         return $this->selectVersion();
     }
 
     /**
-     * Returns true if the client is authenticated with the header token.
+     * Check authentication using one of the supported tokens.
+     * In the header you have to pass a token using the header 'Token' or the
+     * standard 'X-Auth-Token', returning true if the token passed by any of
+     * those headers is valid.
      *
-     * @author Ángel Guzmán Maeso <angel@guzmanmaeso.com>
-     *
-     * @return boolean
+     * @return bool
      */
     private function checkAuthToken(): bool
     {
-        $token = $this->request->headers->get('Token', '');
+        $this->apiKey = new ApiKey();
+        $altToken = $this->request->headers->get('Token', '');
+        $token = $this->request->headers->get('X-Auth-Token', $altToken);
         if (empty($token)) {
             return false;
         }
 
-        return (new ApiKey())->checkAuthToken($token);
+        $where = [
+            new DataBaseWhere('apikey', $token),
+            new DataBaseWhere('enabled', true)
+        ];
+        return $this->apiKey->loadFromCode('', $where);
+    }
+
+    /**
+     * Returns true if the token has the requested access to the resource.
+     *
+     * @return bool
+     */
+    public function isAllowed(): bool
+    {
+        $resource = $this->getUriParam(2);
+        if ($resource === '') {
+            return true;
+        }
+
+        $apiAccess = new ApiAccess();
+        $where = [
+            new DataBaseWhere('idapikey', $this->apiKey->id),
+            new DataBaseWhere('resource', $resource)
+        ];
+        if ($apiAccess->loadFromCode('', $where)) {
+            $method = $this->request->getMethod();
+            if ($method == 'DELETE' && $apiAccess->allowdelete) {
+                return true;
+            }
+
+            if ($method == 'GET' && $apiAccess->allowget) {
+                return true;
+            }
+
+            if ($method == 'POST' && $apiAccess->allowpost) {
+                return true;
+            }
+
+            if ($method == 'PUT' && $apiAccess->allowput) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -86,12 +156,10 @@ class AppAPI extends App
      *
      * @param array $map
      * @throws \UnexpectedValueException
-     * @return void
      */
     private function exposeResources(&$map)
     {
         $json = ['resources' => []];
-
         foreach (array_keys($map) as $key) {
             $json['resources'][] = $key;
         }
@@ -100,35 +168,50 @@ class AppAPI extends App
     }
 
     /**
-     * Load resource map
+     * Go through all the files in the /Dinamic/Lib/API, collecting the name of
+     * all available resources in each of them, and adding them to an array that
+     * is returned.
      *
      * @return array
      */
     private function getResourcesMap(): array
     {
         $resources = [[]];
+        // Loop all controllers in /Dinamic/Lib/API
         foreach (scandir(FS_FOLDER . DIRECTORY_SEPARATOR . 'Dinamic' . DIRECTORY_SEPARATOR . 'Lib' . DIRECTORY_SEPARATOR . 'API', SCANDIR_SORT_NONE) as $resource) {
-            if (substr($resource, -4) === '.php') {
-                $class = substr('FacturaScripts\\Dinamic\\Lib\\API\\' . $resource, 0, -4);
-                $APIClass = new $class($this->response, $this->request, $this->miniLog, $this->i18n, []);
+            if (substr($resource, -4) !== '.php') {
+                continue;
+            }
+
+            // The name of the class will be the same as that of the file without the php extension.
+            // Classes will be descendants of Base/APIResourceClass.
+            $class = substr('FacturaScripts\\Dinamic\\Lib\\API\\' . $resource, 0, -4);
+            $APIClass = new $class($this->response, $this->request, $this->miniLog, $this->i18n, []);
+            if (isset($APIClass) && method_exists($APIClass, 'getResources')) {
+                // getResources obtains an associative array of arrays generated
+                // with setResource ('name'). These arrays keep the name of the class
+                // and the resource so that they can be invoked later.
+                //
+                // This allows using different API extensions, and not just the
+                // usual Lib/API/APIModel.
                 $resources[] = $APIClass->getResources();
-                unset($APIClass);
             }
         }
-        $resources = array_merge(...$resources);
-        ksort($resources);
 
-        return $resources;
+        // Returns an ordered array with all available resources.
+        $finalResources = array_merge(...$resources);
+        ksort($finalResources);
+        return $finalResources;
     }
 
     /**
      * Check if API is disabled
      *
-     * @return mixed
+     * @return bool
      */
     private function isDisabled(): bool
     {
-        return $this->settings->get('default', 'enable_api', false) !== 'true';
+        return $this->settings->get('default', 'enable_api', false) == false;
     }
 
     /**
@@ -144,7 +227,6 @@ class AppAPI extends App
         // If no command, expose resources and exit
         if ($resourceName === '') {
             $this->exposeResources($map);
-
             return true;
         }
 
@@ -155,10 +237,16 @@ class AppAPI extends App
             $param++;
         }
 
-        $APIClass = new $map[$resourceName]['API']($this->response, $this->request, $this->miniLog, $this->i18n, $params);
-        if (isset($APIClass)) {
-            return $APIClass->processResource($map[$resourceName]['Name'], $params);
+        if (!isset($map[$resourceName]['API'])) {
+            $this->fatalError('invalid-resource', Response::HTTP_BAD_REQUEST);
+            return false;
         }
+
+        $APIClass = new $map[$resourceName]['API']($this->response, $this->request, $this->miniLog, $this->i18n, $params);
+        if (isset($APIClass) && method_exists($APIClass, 'processResource')) {
+            return $APIClass->processResource($map[$resourceName]['Name']);
+        }
+
         $this->fatalError('database-error', Response::HTTP_INTERNAL_SERVER_ERROR);
         return false;
     }
@@ -182,8 +270,7 @@ class AppAPI extends App
      * Return an array with the error message, and the corresponding status.
      *
      * @param string $text
-     * @param int $status
-     * @return void
+     * @param int    $status
      */
     protected function fatalError(string $text, int $status)
     {

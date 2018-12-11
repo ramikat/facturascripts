@@ -88,7 +88,7 @@ class User extends Base\ModelClass
     public $lastip;
 
     /**
-     * Indicates the level of security that the user can access
+     * Indicates the level of security that the user can access.
      *
      * @var integer
      */
@@ -138,7 +138,7 @@ class User extends Base\ModelClass
         $this->enabled = true;
         $this->idempresa = AppSettings::get('default', 'idempresa', 1);
         $this->langcode = FS_LANG;
-        $this->level = 1;
+        $this->level = 2;
     }
 
     /**
@@ -262,6 +262,12 @@ class User extends Base\ModelClass
                 $this->setPassword($value);
             }
 
+            return true;
+        }
+
+        // To ensure that any user of facturascripts_2015 can login and rehash its password
+        if (sha1($value) === $this->password) {
+            $this->setPassword($value);
             return true;
         }
 

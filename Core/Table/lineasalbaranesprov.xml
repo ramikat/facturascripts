@@ -18,8 +18,10 @@
         <null>NO</null>
     </column>
     <column>
-        <name>codcombinacion</name>
-        <type>character varying(18)</type>
+        <name>servido</name>
+        <type>double precision</type>
+        <null>NO</null>
+        <default>0</default>
     </column>
     <column>
         <name>codimpuesto</name>
@@ -44,14 +46,6 @@
         <type>serial</type>
         <null>NO</null>
         <default>nextval('lineasalbaranesprov_idlinea_seq'::regclass)</default>
-    </column>
-    <column>
-        <name>idlineapedido</name>
-        <type>integer</type>
-    </column>
-    <column>
-        <name>idpedido</name>
-        <type>integer</type>
     </column>
     <column>
         <name>irpf</name>
@@ -94,6 +88,10 @@
     <constraint>
         <name>ca_lineasalbaranesprov_albaranesprov2</name>
         <type>FOREIGN KEY (idalbaran) REFERENCES albaranesprov (idalbaran) ON DELETE CASCADE ON UPDATE CASCADE</type>
+    </constraint>
+    <constraint>
+        <name>ca_lineasalbaranesprov_impuestos</name>
+        <type>FOREIGN KEY (codimpuesto) REFERENCES impuestos (codimpuesto) ON DELETE RESTRICT ON UPDATE CASCADE</type>
     </constraint>
     <constraint>
         <name>lineasalbaranesprov_pkey</name>

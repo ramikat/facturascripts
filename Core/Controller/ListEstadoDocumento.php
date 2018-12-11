@@ -38,7 +38,7 @@ class ListEstadoDocumento extends ExtendedController\ListController
     {
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'document-states';
-        $pagedata['icon'] = 'fa-tags';
+        $pagedata['icon'] = 'fas fa-tags';
         $pagedata['menu'] = 'admin';
 
         return $pagedata;
@@ -49,10 +49,10 @@ class ListEstadoDocumento extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('ListEstadoDocumento', 'EstadoDocumento', 'states', 'fa-tags');
+        $this->addView('ListEstadoDocumento', 'EstadoDocumento', 'states', 'fas fa-tags');
         $this->addSearchFields('ListEstadoDocumento', ['nombre']);
-        $this->addOrderBy('ListEstadoDocumento', 'idestado', 'id');
-        $this->addOrderBy('ListEstadoDocumento', 'nombre', 'name');
+        $this->addOrderBy('ListEstadoDocumento', ['idestado'], 'id');
+        $this->addOrderBy('ListEstadoDocumento', ['nombre'], 'name');
 
         $types = $this->codeModel->all('estados_documentos', 'tipodoc', 'tipodoc');
         $this->addFilterSelect('ListEstadoDocumento', 'tipodoc', 'doc-type', 'tipodoc', $types);

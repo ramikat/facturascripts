@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,13 +20,11 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base;
 use FacturaScripts\Dinamic\Lib\BusinessDocumentTools;
-use FacturaScripts\Dinamic\Model\Cliente;
-use FacturaScripts\Dinamic\Model\Proveedor;
 
 /**
  * Description of BusinessDocumentController
  *
- * @author Carlos García Gómez
+ * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 abstract class BusinessDocumentController extends PanelController
 {
@@ -43,11 +41,31 @@ abstract class BusinessDocumentController extends PanelController
     private $documentTools;
 
     /**
-     * Return the document class name.
+     * Returns the document class name.
      *
      * @return string
      */
     abstract protected function getModelClassName();
+
+    /**
+     * Retuns an url to create a new subject.
+     */
+    abstract public function getNewSubjectUrl();
+
+    /**
+     * Returns an array of columns needed for subject.
+     */
+    abstract public function getSubjectColumns();
+
+    /**
+     * 
+     */
+    abstract protected function loadCustomContactsWidget(&$view);
+
+    /**
+     * Sets subject for this document.
+     */
+    abstract protected function setSubject(&$view, $formData);
 
     /**
      * Starts all the objects and properties.
@@ -74,7 +92,7 @@ abstract class BusinessDocumentController extends PanelController
     public function getSelectValues($modelName)
     {
         $values = [];
-        $modelName = '\FacturaScripts\Dinamic\Model\\' . $modelName;
+        $modelName = self::MODEL_NAMESPACE . $modelName;
         $model = new $modelName();
 
         $order = [$model->primaryDescriptionColumn() => 'ASC'];
@@ -90,11 +108,17 @@ abstract class BusinessDocumentController extends PanelController
      */
     protected function createViews()
     {
-        $modelName = '\\FacturaScripts\\Dinamic\\Model\\' . $this->getModelClassName();
-        $view = new BusinessDocumentView('new', $modelName, $this->getLineXMLView(), $this->user->nick);
-        $this->addView('Document', $view, 'fa-file');
+        /// document tab
+        $fullModelName = self::MODEL_NAMESPACE . $this->getModelClassName();
+        $view = new BusinessDocumentView($this->getLineXMLView(), 'new', $fullModelName);
+        $this->addCustomView($view->getViewName(), $view);
 
-        $this->setTemplate('Master/BusinessDocumentController');
+        /// edit tab
+        $viewName = 'Edit' . $this->getModelClassName();
+        $this->addEditView($viewName, $this->getModelClassName(), 'detail', 'fas fa-edit');
+
+        /// tabs on top
+        $this->setTabsPosition('top');
     }
 
     /**
@@ -136,11 +160,6 @@ abstract class BusinessDocumentController extends PanelController
                 $this->exportManager->show($this->response);
                 break;
 
-            case 'insert':
-                parent::execAfterAction($action);
-                $this->views['Document']->model->updateSubject();
-                break;
-
             default:
                 parent::execAfterAction($action);
         }
@@ -164,19 +183,47 @@ abstract class BusinessDocumentController extends PanelController
      */
     protected function loadData($viewName, $view)
     {
-        $iddoc = $this->request->get('code', '');
-        if ($viewName === 'Document' && !empty($iddoc)) {
-            $view->loadData($iddoc);
+        /**
+         * We need the identifier to load the model. It's almost always code,
+         * but sometimes it's not.
+         */
+        $primaryKey = $this->request->request->get($view->model->primaryColumn());
+        $code = $this->request->get('code', $primaryKey);
+        if (empty($code)) {
+            return;
+        }
+
+        $documentView = $this->getLineXMLView();
+        $editViewName = 'Edit' . $this->getModelClassName();
+        switch ($viewName) {
+            case $editViewName:
+                $view->loadData($code);
+                $this->loadCustomContactsWidget($view);
+                break;
+
+            case $documentView:
+                $view->loadData($code);
+                /// data not found?
+                $action = $this->request->request->get('action', '');
+                if (!empty($code) && !$view->model->exists() && '' === $action) {
+                    $this->miniLog->warning($this->i18n->trans('record-not-found'));
+                }
+                break;
         }
     }
 
+    /**
+     * Recalculate the document total based on lines.
+     *
+     * @return bool
+     */
     protected function recalculateDocumentAction(): bool
     {
         $this->setTemplate(false);
         $view = $this->views[$this->active];
 
         /// gets data form and separate lines data
-        $data = $this->getFormData();
+        $data = $this->request->request->all();
         $newLines = isset($data['lines']) ? $view->processFormLines($data['lines']) : [];
         unset($data['lines']);
 
@@ -189,13 +236,23 @@ abstract class BusinessDocumentController extends PanelController
         return false;
     }
 
+    /**
+     * Saves the document.
+     *
+     * @return bool
+     */
     protected function saveDocumentAction(): bool
     {
         $this->setTemplate(false);
+        if (!$this->permissions->allowUpdate) {
+            $this->response->setContent($this->i18n->trans('not-allowed-modify'));
+            return false;
+        }
+
         $view = $this->views[$this->active];
 
         /// gets data form and separate date, hour, codcliente, codproveedor and lines data
-        $data = $this->getFormData();
+        $data = $this->request->request->all();
         $codcliente = isset($data['codcliente']) ? $data['codcliente'] : '';
         $codproveedor = isset($data['codproveedor']) ? $data['codproveedor'] : '';
         $fecha = isset($data['fecha']) ? $data['fecha'] : $view->model->fecha;
@@ -208,15 +265,23 @@ abstract class BusinessDocumentController extends PanelController
         $view->lines = empty($view->model->primaryColumnValue()) ? [] : $view->model->getLines();
 
         /// save
-        $data['codcliente'] = $codcliente;
-        $data['codproveedor'] = $codproveedor;
         $data['fecha'] = $fecha;
         $data['hora'] = $hora;
+        $data['codcliente'] = $codcliente;
+        $data['codproveedor'] = $codproveedor;
         $result = $this->saveDocumentResult($view, $data, $newLines);
         $this->response->setContent($result);
         return false;
     }
 
+    /**
+     * 
+     * @param BusinessDocumentView $view
+     * @param array                $data
+     * @param array                $newLines
+     *
+     * @return string
+     */
     protected function saveDocumentResult(BusinessDocumentView &$view, array &$data, array &$newLines): string
     {
         if (!$view->model->setDate($data['fecha'], $data['hora'])) {
@@ -224,19 +289,16 @@ abstract class BusinessDocumentController extends PanelController
         }
 
         /// sets subjects
-        $result = 'OK';
-        if (in_array('codcliente', $view->model->getSubjectColumns())) {
-            $result = $this->setCustomer($view, $data['codcliente'], $data['new_cliente'], $data['new_cifnif']);
-        }
-        if (in_array('codproveedor', $view->model->getSubjectColumns())) {
-            $result = $this->setSupplier($view, $data['codproveedor'], $data['new_proveedor'], $data['new_cifnif']);
-        }
-
+        $result = $this->setSubject($view, $data);
         if ($result !== 'OK') {
             return $result;
         }
 
         $exists = $view->model->exists();
+        if (!$exists) {
+            $view->model->nick = $this->user->nick;
+        }
+
         if ($view->model->save()) {
             $result = ($view->model->editable || !$exists) ? $this->saveLines($view, $newLines) : 'OK';
         } else {
@@ -255,6 +317,14 @@ abstract class BusinessDocumentController extends PanelController
         return $result;
     }
 
+    /**
+     * Save the lines of the document.
+     *
+     * @param BusinessDocumentView $view
+     * @param array                $newLines
+     *
+     * @return string
+     */
     protected function saveLines(BusinessDocumentView &$view, array &$newLines): string
     {
         $result = 'OK';
@@ -302,52 +372,6 @@ abstract class BusinessDocumentController extends PanelController
         }
 
         return $result;
-    }
-
-    protected function setCustomer(BusinessDocumentView &$view, string $codcliente, string $newCliente = '', string $newCifnif = ''): string
-    {
-        if ($view->model->codcliente === $codcliente && !empty($view->model->codcliente)) {
-            return 'OK';
-        }
-
-        $cliente = new Cliente();
-        if ($cliente->loadFromCode($codcliente)) {
-            $view->model->setSubject([$cliente]);
-            return 'OK';
-        }
-
-        if ($newCliente !== '') {
-            $cliente->nombre = $cliente->razonsocial = $newCliente;
-            $cliente->cifnif = $newCifnif;
-            if ($cliente->save()) {
-                return $this->setCustomer($view, $cliente->codcliente);
-            }
-        }
-
-        return 'ERROR: NO CUSTOMER';
-    }
-
-    protected function setSupplier(BusinessDocumentView &$view, string $codproveedor, string $newProveedor = '', string $newCifnif = ''): string
-    {
-        if ($view->model->codproveedor === $codproveedor && !empty($view->model->codproveedor)) {
-            return 'OK';
-        }
-
-        $proveedor = new Proveedor();
-        if ($proveedor->loadFromCode($codproveedor)) {
-            $view->model->setSubject([$proveedor]);
-            return 'OK';
-        }
-
-        if ($newProveedor !== '') {
-            $proveedor->nombre = $proveedor->razonsocial = $newProveedor;
-            $proveedor->cifnif = $newCifnif;
-            if ($proveedor->save()) {
-                return $this->setSupplier($view, $proveedor->codproveedor);
-            }
-        }
-
-        return 'ERROR: NO SUPPLIER';
     }
 
     /**

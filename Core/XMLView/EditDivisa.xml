@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -26,7 +26,7 @@
     <columns>
         <group name="data" numcolumns="12">
             <column name="code" numcolumns="3" order="100">
-                <widget type="text" fieldname="coddivisa" icon="fa-object-group" required="true" />
+                <widget type="text" fieldname="coddivisa" icon="fas fa-hashtag" required="true" />
             </column>
             <column name="symbol" numcolumns="3" order="100" description="symbol">
                 <widget type="text" fieldname="simbolo" />
@@ -36,13 +36,13 @@
             </column>
         </group>
         <group name="seccondary" numcolumns="12">
-            <column name="iso-code-number" numcolumns="4" order="100">
+            <column name="iso" numcolumns="4" order="100">
                 <widget type="number" decimal="0" fieldname="codiso" />
             </column>
-            <column name="conversion-rate" numcolumns="4" order="100">
+            <column name="sales-rate" numcolumns="4" order="100">
                 <widget type="text" fieldname="tasaconv" />
             </column>
-            <column name="purchase-conversion-rate" numcolumns="4" order="100">
+            <column name="purchase-rate" numcolumns="4" order="100">
                 <widget type="text" fieldname="tasaconvcompra" />
             </column>
         </group>

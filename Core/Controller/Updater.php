@@ -36,7 +36,6 @@ class Updater extends Controller
 {
 
     const CORE_PROJECT_ID = 1;
-    const CORE_VERSION = 2018.002;
     const UPDATE_CORE_URL = 'https://beta.facturascripts.com/DownloadBuild';
 
     /**
@@ -56,14 +55,19 @@ class Updater extends Controller
         $pageData['menu'] = 'admin';
         $pageData['submenu'] = 'control-panel';
         $pageData['title'] = 'updater';
-        $pageData['icon'] = 'fa-cloud-download';
+        $pageData['icon'] = 'fas fa-cloud-download-alt';
 
         return $pageData;
     }
 
+    /**
+     * Returns FacturaScripts core version.
+     * 
+     * @return float
+     */
     public function getVersion()
     {
-        return self::CORE_VERSION;
+        return PluginManager::CORE_VERSION;
     }
 
     /**
@@ -85,8 +89,6 @@ class Updater extends Controller
             }
             return;
         }
-
-        $this->updaterItems = $this->getUpdateItems();
 
         $action = $this->request->get('action', '');
         $this->execAction($action);
@@ -125,6 +127,7 @@ class Updater extends Controller
     {
         switch ($action) {
             case 'download':
+                $this->updaterItems = $this->getUpdateItems();
                 $this->download();
                 break;
 
@@ -132,6 +135,10 @@ class Updater extends Controller
                 $this->update();
                 $pluginManager = new PluginManager();
                 $pluginManager->deploy(true, true);
+                break;
+
+            default:
+                $this->updaterItems = $this->getUpdateItems();
                 break;
         }
     }
@@ -163,7 +170,7 @@ class Updater extends Controller
     private function getUpdateItemsCore(array &$items, array $projectData)
     {
         foreach ($projectData['builds'] as $build) {
-            if ($build['stable'] && $build['version'] > self::CORE_VERSION) {
+            if ($build['stable'] && $build['version'] > PluginManager::CORE_VERSION) {
                 $items[] = [
                     'id' => 'CORE',
                     'description' => 'Core component v' . $build['version'],
@@ -199,11 +206,14 @@ class Updater extends Controller
             $dest = FS_FOLDER . DIRECTORY_SEPARATOR . $folder;
             if (!file_exists($origin)) {
                 $this->miniLog->critical('COPY ERROR: ' . $origin);
-                break;
+                return false;
             }
 
             FileManager::delTree($dest);
-            FileManager::recurseCopy($origin, $dest);
+            if (!FileManager::recurseCopy($origin, $dest)) {
+                $this->miniLog->critical('COPY ERROR2: ' . $origin);
+                return false;
+            }
         }
 
         FileManager::delTree(FS_FOLDER . DIRECTORY_SEPARATOR . 'facturascripts');

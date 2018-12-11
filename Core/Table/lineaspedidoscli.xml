@@ -18,8 +18,10 @@
         <null>NO</null>
     </column>
     <column>
-        <name>codcombinacion</name>
-        <type>character varying(18)</type>
+        <name>servido</name>
+        <type>double precision</type>
+        <null>NO</null>
+        <default>0</default>
     </column>
     <column>
         <name>codimpuesto</name>
@@ -41,17 +43,9 @@
         <default>nextval('lineaspedidoscli_idlinea_seq'::regclass)</default>
     </column>
     <column>
-        <name>idlineapresupuesto</name>
-        <type>integer</type>
-    </column>
-    <column>
         <name>idpedido</name>
         <type>integer</type>
         <null>NO</null>
-    </column>
-    <column>
-        <name>idpresupuesto</name>
-        <type>integer</type>
     </column>
     <column>
         <name>irpf</name>
@@ -104,6 +98,10 @@
     <constraint>
         <name>lineaspedidoscli_pkey</name>
         <type>PRIMARY KEY (idlinea)</type>
+    </constraint>
+    <constraint>
+        <name>ca_lineaspedidoscli_impuestos</name>
+        <type>FOREIGN KEY (codimpuesto) REFERENCES impuestos (codimpuesto) ON DELETE RESTRICT ON UPDATE CASCADE</type>
     </constraint>
     <constraint>
         <name>ca_lineaspedidoscli_pedidoscli</name>

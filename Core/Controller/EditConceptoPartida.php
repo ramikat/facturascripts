@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,7 +21,7 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Lib\ExtendedController;
 
 /**
- * Controller to edit a single item from the Serie model
+ * Controller to edit a single item from the Concepto Partida model
  *
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
@@ -46,7 +46,7 @@ class EditConceptoPartida extends ExtendedController\EditController
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'predefined-concepts';
         $pagedata['menu'] = 'accounting';
-        $pagedata['icon'] = 'fa-indent';
+        $pagedata['icon'] = 'fas fa-indent';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;

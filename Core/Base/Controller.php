@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -31,13 +31,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class Controller
 {
-
-    /**
-     * Contains a list of extra files to load: javascript, css, etc.
-     *
-     * @var array
-     */
-    public $assets;
 
     /**
      * Cache access manager.
@@ -127,9 +120,9 @@ class Controller
     /**
      * User logged in.
      *
-     * @var Model\User
+     * @var Model\User|false
      */
-    public $user;
+    public $user = false;
 
     /**
      * Initialize all objects and properties.
@@ -142,7 +135,6 @@ class Controller
      */
     public function __construct(&$cache, &$i18n, &$miniLog, $className, $uri = '')
     {
-        $this->assets = AssetManager::getAssetsForPage($className);
         $this->cache = &$cache;
         $this->className = $className;
         $this->dataBase = new DataBase();
@@ -153,7 +145,10 @@ class Controller
         $this->uri = $uri;
 
         $pageData = $this->getPageData();
-        $this->title = empty($pageData) ? $this->className : $pageData['title'];
+        $this->title = empty($pageData) ? $this->className : $this->i18n->trans($pageData['title']);
+
+        AssetManager::clear();
+        AssetManager::setAssetsForPage($className);
     }
 
     /**
@@ -176,7 +171,7 @@ class Controller
         return [
             'name' => $this->className,
             'title' => $this->className,
-            'icon' => 'fa-circle-o',
+            'icon' => 'fas fa-circle',
             'menu' => 'new',
             'submenu' => null,
             'showonmenu' => true,
@@ -244,14 +239,7 @@ class Controller
      */
     public function setTemplate($template)
     {
-        if ($template === false) {
-            $this->template = false;
-
-            return true;
-        }
-
-        $this->template = $template . '.html.twig';
-
+        $this->template = ($template === false) ? false : $template . '.html.twig';
         return true;
     }
 

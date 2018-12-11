@@ -38,13 +38,6 @@ class PresupuestoCliente extends Base\SalesDocument
     public $idpresupuesto;
 
     /**
-     * Related order ID, if any.
-     *
-     * @var integer
-     */
-    public $idpedido;
-
-    /**
      * Date on which the validity of the estimation ends.
      *
      * @var string
@@ -85,19 +78,27 @@ class PresupuestoCliente extends Base\SalesDocument
     {
         $newLine = new LineaPresupuestoCliente($data);
         $newLine->idpresupuesto = $this->idpresupuesto;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
 
+    /**
+     * 
+     * @return string
+     */
     public function install()
     {
-        parent::install();
+        /// parent dependencies
+        $sql = parent::install();
         new PedidoCliente();
 
-        return '';
+        return $sql;
     }
 
     /**

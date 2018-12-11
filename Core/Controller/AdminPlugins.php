@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -59,7 +59,7 @@ class AdminPlugins extends Base\Controller
         $pageData['menu'] = 'admin';
         $pageData['submenu'] = 'control-panel';
         $pageData['title'] = 'plugins';
-        $pageData['icon'] = 'fa-plug';
+        $pageData['icon'] = 'fas fa-plug';
 
         return $pageData;
     }

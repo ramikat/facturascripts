@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -70,7 +70,7 @@ class AccountingPlanImport
     public function importCSV(string $filePath, string $codejercicio)
     {
         if (!$this->ejercicio->loadFromCode($codejercicio)) {
-            $this->miniLog->error($this->i18n->trans('error'));
+            $this->miniLog->error($this->i18n->trans('exercise-not-found'));
             return;
         }
 
@@ -86,7 +86,7 @@ class AccountingPlanImport
     public function importXML(string $filePath, string $codejercicio)
     {
         if (!$this->ejercicio->loadFromCode($codejercicio)) {
-            $this->miniLog->error($this->i18n->trans('error'));
+            $this->miniLog->error($this->i18n->trans('exercise-not-found'));
             return;
         }
 
@@ -101,7 +101,7 @@ class AccountingPlanImport
 
     /**
      * Insert/update and account in accounting plan.
-     * 
+     *
      * @param string $code
      * @param string $definition
      * @param string $parentCode
@@ -109,7 +109,7 @@ class AccountingPlanImport
     private function createAccount(string $code, string $definition, string $parentCode = '')
     {
         $account = new Model\Cuenta();
-        $parent = new Model\Cuenta();
+        $account->disableAditionalTest();
 
         /// the account exists?
         $where = [
@@ -123,11 +123,13 @@ class AccountingPlanImport
                 new DatabaseWhere('codejercicio', $this->ejercicio->codejercicio),
                 new DataBaseWhere('codcuenta', $parentCode)
             ];
+            $parent = new Model\Cuenta();
             if ($parent->loadFromCode('', $whereParent)) {
                 $account->parent_codcuenta = $parent->codcuenta;
                 $account->parent_idcuenta = $parent->idcuenta;
             } else {
                 $this->miniLog->alert($this->i18n->trans('parent-error'));
+                return;
             }
         }
 
@@ -148,6 +150,9 @@ class AccountingPlanImport
     {
         $subaccount = new Model\Subcuenta();
         $account = new Model\Cuenta();
+
+        $subaccount->disableAditionalTest();
+
         $whereAccount = [
             new DataBaseWhere('codejercicio', $this->ejercicio->codejercicio),
             new DataBaseWhere('codcuenta', $parentCode)
@@ -155,7 +160,7 @@ class AccountingPlanImport
 
         /// the account exist?
         if (!$account->loadFromCode('', $whereAccount)) {
-            $this->miniLog->error($this->i18n->trans('error'));
+            $this->miniLog->error($this->i18n->trans('error', ['%error%' => 'account "' . $parentCode . '" not found']));
             return;
         }
 
@@ -225,7 +230,7 @@ class AccountingPlanImport
     {
         foreach ($data as $xmlAccount) {
             $accountElement = (array) $xmlAccount;
-            $this->createSubaccount($accountElement['codcuenta'], base64_decode($accountElement['descripcion']), $accountElement['codepigrafe']);
+            $this->createAccount($accountElement['codcuenta'], base64_decode($accountElement['descripcion']), $accountElement['codepigrafe']);
         }
     }
 
@@ -250,7 +255,7 @@ class AccountingPlanImport
     private function processCsvData(string $filePath)
     {
         if (!file_exists($filePath)) {
-            $this->miniLog->error($this->i18n->trans('error'));
+            $this->miniLog->alert($this->i18n->trans('file-not-found', ['%fileName%' => $filePath]));
         }
 
         $csv = new Csv();
@@ -271,7 +276,7 @@ class AccountingPlanImport
         $maxLength = max($lengths);
         $keys = array_keys($accountPlan);
         ksort($accountPlan);
-        
+
         foreach ($accountPlan as $key => $value) {
             switch (strlen($key)) {
                 case $minLength:
@@ -293,10 +298,10 @@ class AccountingPlanImport
 
     /**
      * Search the parent of account in a accounting Plan.
-     * 
+     *
      * @param array  $accountCodes
      * @param string $account
-     * 
+     *
      * @return string
      */
     private function searchParent(array &$accountCodes, string $account): string

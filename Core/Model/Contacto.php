@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,6 +19,7 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
 
 /**
@@ -37,6 +38,13 @@ class Contacto extends Base\Contact
      * @var bool
      */
     public $admitemarketing;
+
+    /**
+     * Post office box of the address.
+     *
+     * @var string
+     */
+    public $apartado;
 
     /**
      * Last name.
@@ -60,11 +68,18 @@ class Contacto extends Base\Contact
     public $ciudad;
 
     /**
-     * Associated employee has this contact. Agent model.
+     * Associated agente to this contact. Agent model.
      *
      * @var string
      */
     public $codagente;
+
+    /**
+     * Associated customer to this contact. Customer model.
+     *
+     * @var string
+     */
+    public $codcliente;
 
     /**
      * Contact country.
@@ -79,6 +94,20 @@ class Contacto extends Base\Contact
      * @var string
      */
     public $codpostal;
+
+    /**
+     * Associated supplier to this contact. Supplier model.
+     *
+     * @var string
+     */
+    public $codproveedor;
+
+    /**
+     * Description of the contact.
+     *
+     * @var string
+     */
+    public $descripcion;
 
     /**
      * Address of the contact.
@@ -116,11 +145,25 @@ class Contacto extends Base\Contact
     public $lastip;
 
     /**
+     * Indicates the level of security that the contact can access.
+     *
+     * @var integer
+     */
+    public $level;
+
+    /**
      * Session key, saved also in cookie. Regenerated when user log in.
      *
      * @var string
      */
     public $logkey;
+
+    /**
+     * Password hashed with password_hash()
+     *
+     * @var string
+     */
+    public $password;
 
     /**
      * Contact province.
@@ -130,11 +173,32 @@ class Contacto extends Base\Contact
     public $provincia;
 
     /**
+     *
+     * @var integer
+     */
+    public $puntos;
+
+    /**
      * TRUE if contact is verified.
      *
      * @var bool
      */
     public $verificado;
+
+    /**
+     * Returns an unique alias for this contact.
+     *
+     * @return string
+     */
+    public function alias()
+    {
+        if (empty($this->email)) {
+            return (string) $this->idcontacto;
+        }
+
+        $aux = explode('@', $this->email);
+        return (count($aux) == 2) ? $aux[0] . '_' . $this->idcontacto : (string) $this->idcontacto;
+    }
 
     /**
      * Reset the values of all model properties.
@@ -144,7 +208,112 @@ class Contacto extends Base\Contact
         parent::clear();
         $this->admitemarketing = false;
         $this->codpais = AppSettings::get('default', 'codpais');
+        $this->level = 1;
+        $this->puntos = 0;
         $this->verificado = false;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function country()
+    {
+        $country = new Pais();
+        $where = [new DataBaseWhere('codiso', $this->codpais)];
+        if ($country->loadFromCode($this->codpais) || $country->loadFromCode('', $where)) {
+            return Utils::fixHtml($country->nombre);
+        }
+
+        return $this->codpais;
+    }
+
+    /**
+     * Returns full name.
+     *
+     * @return string
+     */
+    public function fullName()
+    {
+        return $this->nombre . ' ' . $this->apellidos;
+    }
+
+    /**
+     * 
+     * @return Cliente
+     */
+    public function getCustomer()
+    {
+        $cliente = new Cliente();
+        if ($this->codcliente && $cliente->loadFromCode($this->codcliente)) {
+            return $cliente;
+        }
+
+        /// creates a new customer
+        $cliente->idcontactoenv = $this->idcontacto;
+        $cliente->idcontactofact = $this->idcontacto;
+        $cliente->cifnif = $this->cifnif;
+        $cliente->codproveedor = $this->codproveedor;
+        $cliente->email = $this->email;
+        $cliente->fax = $this->fax;
+        $cliente->nombre = $this->fullName();
+        $cliente->observaciones = $this->observaciones;
+        $cliente->personafisica = $this->personafisica;
+        $cliente->razonsocial = empty($this->empresa) ? $this->fullName() : $this->empresa;
+        $cliente->telefono1 = $this->telefono1;
+        $cliente->telefono2 = $this->telefono2;
+        if ($cliente->save()) {
+            $this->codcliente = $cliente->codcliente;
+            $this->save();
+        }
+
+        return $cliente;
+    }
+
+    /**
+     * 
+     * @return Proveedor
+     */
+    public function getSupplier()
+    {
+        $proveedor = new Proveedor();
+        if ($this->codproveedor && $proveedor->loadFromCode($this->codproveedor)) {
+            return $proveedor;
+        }
+
+        /// creates a new supplier
+        $proveedor->cifnif = $this->cifnif;
+        $proveedor->codcliente = $this->codcliente;
+        $proveedor->email = $this->email;
+        $proveedor->fax = $this->fax;
+        $proveedor->nombre = $this->fullName();
+        $proveedor->observaciones = $this->observaciones;
+        $proveedor->personafisica = $this->personafisica;
+        $proveedor->razonsocial = empty($this->empresa) ? $this->fullName() : $this->empresa;
+        $proveedor->telefono1 = $this->telefono1;
+        $proveedor->telefono2 = $this->telefono2;
+        if ($proveedor->save()) {
+            $this->codproveedor = $proveedor->codproveedor;
+            $this->save();
+        }
+
+        return $proveedor;
+    }
+
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
+     */
+    public function install()
+    {
+        /// we need this models to be checked before
+        new Cliente();
+        new Proveedor();
+
+        return parent::install();
     }
 
     /**
@@ -176,12 +345,22 @@ class Contacto extends Base\Contact
 
     /**
      * Returns the name of the column used to describe this item.
-     * 
+     *
      * @return string
      */
     public function primaryDescriptionColumn()
     {
-        return 'email';
+        return 'descripcion';
+    }
+
+    /**
+     * Asigns the new password to the contact.
+     *
+     * @param string $pass
+     */
+    public function setPassword(string $pass)
+    {
+        $this->password = password_hash($pass, PASSWORD_DEFAULT);
     }
 
     /**
@@ -201,6 +380,11 @@ class Contacto extends Base\Contact
      */
     public function test()
     {
+        if (empty($this->descripcion)) {
+            $this->descripcion = $this->direccion ?? $this->fullName();
+        }
+
+        $this->descripcion = Utils::noHtml($this->descripcion);
         $this->apellidos = Utils::noHtml($this->apellidos);
         $this->cargo = Utils::noHtml($this->cargo);
         $this->ciudad = Utils::noHtml($this->ciudad);
@@ -209,6 +393,19 @@ class Contacto extends Base\Contact
         $this->provincia = Utils::noHtml($this->provincia);
 
         return parent::test();
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return parent::url($type, 'ListCliente?activetab=List');
     }
 
     /**
@@ -221,5 +418,25 @@ class Contacto extends Base\Contact
     public function verifyLogkey($value)
     {
         return $this->logkey === $value;
+    }
+
+    /**
+     * Verifies password. It also rehash the password if needed.
+     *
+     * @param string $pass
+     *
+     * @return bool
+     */
+    public function verifyPassword(string $pass): bool
+    {
+        if (password_verify($pass, $this->password)) {
+            if (password_needs_rehash($this->password, PASSWORD_DEFAULT)) {
+                $this->setPassword($pass);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

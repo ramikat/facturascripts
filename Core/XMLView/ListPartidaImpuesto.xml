@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -55,12 +55,12 @@
             <widget type="text" fieldname="documento" />
         </column>
         <column name="date" order="140" display="none">
-            <widget type="text" fieldname="fecha" />
+            <widget type="date" fieldname="fecha" />
         </column>
         <column name="subaccount" order="150" display="none">
             <widget type="text" fieldname="codcontrapartida" />
         </column>
-        <column name="vat-id" order="160" display="none">
+        <column name="fiscal-number" order="160" display="none">
             <widget type="text" fieldname="cifnif" />
         </column>
         <column name="accounting-concept" order="170">
@@ -68,7 +68,7 @@
         </column>
         <column name="tax-base" display="right" order="200">
             <widget type="money" fieldname="baseimponible">
-                <option color="red">&lt;0</option>
+                <option color="danger">&lt;0</option>
             </widget>
         </column>
         <column name="pct-vat" display="right" order="210">
@@ -76,15 +76,15 @@
         </column>
         <column name="vat" display="right" order="220">
             <widget type="money" fieldname="cuotaiva">
-                <option color="red">&lt;0</option>
+                <option color="danger">&lt;0</option>
             </widget>
         </column>
-        <column name="pct-surcharge" display="right" order="230">
+        <column name="surcharge" display="right" order="230">
             <widget type="number" decimal="2" fieldname="recargo" />
         </column>
         <column name="surcharge" display="right" order="240">
             <widget type="money" fieldname="cuotarecargo">
-                <option color="red">&lt;0</option>
+                <option color="danger">&lt;0</option>
             </widget>
         </column>
     </columns>

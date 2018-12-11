@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -25,14 +25,17 @@ namespace FacturaScripts\Core\Model;
  */
 class PartidaImpuestoResumen extends Base\ModelView
 {
+
     /**
-     * Return Group By clausule
+     * Return Group By fields
+     *
+     * @return string
      */
-    protected function getGroupBy(): string
+    protected function getGroupFields(): string
     {
-        return 'GROUP BY asientos.codejercicio, subcuentas.codcuentaesp,'
-                      . 'cuentasesp.descripcion, subcuentas.codimpuesto,'
-                      . 'partidas.iva, partidas.recargo';
+        return 'asientos.codejercicio, subcuentas.codcuentaesp,'
+            . 'cuentasesp.descripcion, subcuentas.codimpuesto,'
+            . 'partidas.iva, partidas.recargo';
     }
 
     /**

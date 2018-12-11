@@ -36,8 +36,22 @@ class LineaPedidoProveedor extends Base\BusinessDocumentLine
      */
     public $idpedido;
 
+    /**
+     * 
+     * @return string
+     */
+    public function documentColumn()
+    {
+        return 'idpedido';
+    }
+
+    /**
+     * 
+     * @return string
+     */
     public function install()
     {
+        /// needed dependency
         new PedidoProveedor();
 
         return parent::install();
@@ -51,5 +65,21 @@ class LineaPedidoProveedor extends Base\BusinessDocumentLine
     public static function tableName()
     {
         return 'lineaspedidosprov';
+    }
+
+    /**
+     * 
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        if (null !== $this->idpedido) {
+            return 'EditPedidoProveedor?code=' . $this->idpedido;
+        }
+
+        return parent::url($type, $list);
     }
 }

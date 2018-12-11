@@ -18,8 +18,10 @@
         <null>NO</null>
     </column>
     <column>
-        <name>codcombinacion</name>
-        <type>character varying(18)</type>
+        <name>servido</name>
+        <type>double precision</type>
+        <null>NO</null>
+        <default>0</default>
     </column>
     <column>
         <name>codimpuesto</name>
@@ -35,10 +37,6 @@
         <null>NO</null>
     </column>
     <column>
-        <name>idalbaran</name>
-        <type>integer</type>
-    </column>
-    <column>
         <name>idfactura</name>
         <type>integer</type>
         <null>NO</null>
@@ -48,10 +46,6 @@
         <type>serial</type>
         <null>NO</null>
         <default>nextval('lineasfacturascli_idlinea_seq'::regclass)</default>
-    </column>
-    <column>
-        <name>idlineaalbaran</name>
-        <type>integer</type>
     </column>
     <column>
         <name>irpf</name>
@@ -108,6 +102,10 @@
     <constraint>
         <name>ca_linea_facturascli2</name>
         <type>FOREIGN KEY (idfactura) REFERENCES facturascli (idfactura) ON DELETE CASCADE ON UPDATE CASCADE</type>
+    </constraint>
+    <constraint>
+        <name>ca_lineasfacturascli_impuestos</name>
+        <type>FOREIGN KEY (codimpuesto) REFERENCES impuestos (codimpuesto) ON DELETE RESTRICT ON UPDATE CASCADE</type>
     </constraint>
     <constraint>
         <name>lineasfacturascli_pkey</name>

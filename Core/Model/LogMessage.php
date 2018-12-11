@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -38,6 +38,13 @@ class LogMessage extends Base\ModelClass
     public $id;
 
     /**
+     * IP address.
+     *
+     * @var string
+     */
+    public $ip;
+
+    /**
      * The type level of message.
      *
      * @var string
@@ -64,6 +71,12 @@ class LogMessage extends Base\ModelClass
      * @var string
      */
     public $time;
+
+    /**
+     *
+     * @var string
+     */
+    public $uri;
 
     /**
      * Reset the values of all model properties.
@@ -102,6 +115,8 @@ class LogMessage extends Base\ModelClass
     public function test()
     {
         $this->message = Utils::noHtml($this->message);
+        $this->uri = Utils::noHtml($this->uri);
+
         return empty($this->message) ? false : parent::test();
     }
 }

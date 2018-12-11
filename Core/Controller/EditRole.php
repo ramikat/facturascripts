@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -40,7 +40,7 @@ class EditRole extends ExtendedController\PanelController
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'role';
         $pagedata['menu'] = 'admin';
-        $pagedata['icon'] = 'fa-id-card-o';
+        $pagedata['icon'] = 'fas fa-id-card';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
@@ -59,7 +59,7 @@ class EditRole extends ExtendedController\PanelController
     {
         // add Pages to Rol
         if (!Model\RoleAccess::addPagesToRole($codrole, $pages)) {
-            throw new \Exception(self::$i18n->trans('cancel-process'));
+            throw new \Exception($this->i18n->trans('cancel-process'));
         }
     }
 
@@ -68,9 +68,9 @@ class EditRole extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        $this->addEditView('EditRole', 'Role', 'rol', 'fa-id-card');
-        $this->addEditListView('EditRoleAccess', 'RoleAccess', 'rules', 'fa fa-check-square');
-        $this->addEditListView('EditRoleUser', 'RoleUser', 'users', 'fa-address-card-o');
+        $this->addEditView('EditRole', 'Role', 'rol', 'fas fa-id-card');
+        $this->addEditListView('EditRoleAccess', 'RoleAccess', 'rules', 'fas fa-check-square');
+        $this->addEditListView('EditRoleUser', 'RoleUser', 'users', 'fas fa-address-card');
 
         /// Disable columns
         $this->views['EditRoleAccess']->disableColumn('role', true);

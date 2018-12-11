@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017  Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
+ * Copyright (C) 2017-2018  Carlos Garcia Gomez     <carlos@facturascripts.com>
+ * Copyright (C) 2017       Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -26,22 +27,27 @@
 <view>
     <columns>
         <group name="data" numcolumns="12">
+            <column name="component" numcolumns="3" order="100" >
+                <widget type="select" fieldname="component" readonly="true">
+                    <values title="Tasks">Task</values>
+                    <values title="Messages">Messages</values>                   
+                </widget>
+            </column>
             <column name="id" display="none" order="100">
                 <widget type="text" fieldname="id" readonly="true" required="true" />
             </column>
             <column name="creation-date" numcolumns="4" order="100">
-                <widget type="datepicker" fieldname="creationdate" readonly="true" />
+                <widget type="date" fieldname="creationdate" readonly="true" />
             </column>
             <column name="user" numcolumns="4" order="110">
-                <widget type="select" fieldname="nick" icon="fa-user" required="true">
+                <widget type="select" fieldname="nick" icon="fas fa-user" required="true">
                     <values source="users" fieldcode="nick" fieldtitle="nick" ></values>
                 </widget>
             </column>
             <column name="display-date" numcolumns="4" order="120">
-                <widget type="datepicker" fieldname="displaydate" required="true" />
+                <widget type="date" fieldname="displaydate" required="true" />
             </column>
         </group>
-
         <group name="options" numcolumns="12">
             <column name="description" order="130">
                 <widget type="textarea" fieldname="description" />
@@ -55,7 +61,7 @@
                 </widget>
             </column>
             <column name="end-date" numcolumns="2" order="150">
-                <widget type="datepicker" fieldname="enddate" />
+                <widget type="date" fieldname="enddate" />
             </column>
             <column name="link" numcolumns="4" order="160">
                 <widget type="text" fieldname="link" />

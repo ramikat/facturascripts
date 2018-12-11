@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -34,7 +34,7 @@
             <widget type="text" fieldname="codsubcuenta" />
         </column>
         <column name="description" order="130">
-            <widget type="text" fieldname="descripcion" />
+            <widget type="textarea" fieldname="descripcion" />
         </column>
         <column name="special-account" order="140">
             <widget type="select" fieldname="codcuentaesp" onclick="EditCuentaEspecial">
@@ -52,8 +52,8 @@
     </columns>
     <rows>
         <row type="status" fieldname="saldo">
-            <option color="table-danger">&lt;0</option>
-            <option color="table-success">&gt;0</option>
+            <option color="danger">&lt;0</option>
+            <option color="success">&gt;0</option>
         </row>
     </rows>
 </view>

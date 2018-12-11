@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,15 +21,21 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Model;
+use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * Controller to edit a single item from the User model
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
- * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author Carlos García Gómez  <carlos@facturascripts.com>
+ * @author Artex Trading sa     <jcuello@artextrading.com>
  */
-class EditUser extends ExtendedController\PanelController
+class EditUser extends ExtendedController\EditController
 {
+
+    public function getModelClassName()
+    {
+        return 'User';
+    }
 
     /**
      * Returns basic page attributes
@@ -40,7 +46,7 @@ class EditUser extends ExtendedController\PanelController
     {
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'user';
-        $pagedata['icon'] = 'fa-user';
+        $pagedata['icon'] = 'fas fa-user-tie';
         $pagedata['menu'] = 'admin';
         $pagedata['showonmenu'] = false;
 
@@ -52,9 +58,8 @@ class EditUser extends ExtendedController\PanelController
      */
     protected function createViews()
     {
-        /// Add all views
-        $this->addEditView('EditUser', 'User', 'user', 'fa-user');
-        $this->addEditListView('EditRoleUser', 'RoleUser', 'roles', 'fa-address-card-o');
+        parent::createViews();
+        $this->addEditListView('EditRoleUser', 'RoleUser', 'roles', 'fas fa-address-card');
 
         /// Load values for input selects
         $this->loadHomepageValues();
@@ -62,6 +67,19 @@ class EditUser extends ExtendedController\PanelController
 
         /// Disable column
         $this->views['EditRoleUser']->disableColumn('user', true);
+    }
+
+    protected function editAction()
+    {
+        parent::editAction();
+
+        // Are we changing user language?
+        if ($this->views['EditUser']->model->nick === $this->user->nick) {
+            $this->i18n->setLangCode($this->views['EditUser']->model->nick);
+
+            $expire = time() + FS_COOKIES_EXPIRE;
+            $this->response->headers->setCookie(new Cookie('fsLang', $this->views['EditUser']->model->langcode, $expire));
+        }
     }
 
     /**
@@ -76,7 +94,7 @@ class EditUser extends ExtendedController\PanelController
         $pageList = [];
         if ($user->admin) {
             $pageModel = new Model\Page();
-            foreach ($pageModel->all([], ['name' => 'ASC'], 0, 500) as $page) {
+            foreach ($pageModel->all([], ['name' => 'ASC'], 0, 0) as $page) {
                 if (!$page->showonmenu) {
                     continue;
                 }
@@ -106,16 +124,14 @@ class EditUser extends ExtendedController\PanelController
     protected function loadData($viewName, $view)
     {
         switch ($viewName) {
-            case 'EditUser':
-                $code = $this->request->get('code');
-                $view->loadData($code);
-                break;
-
             case 'EditRoleUser':
                 $nick = $this->getViewModelValue('EditUser', 'nick');
                 $where = [new DataBaseWhere('nick', $nick)];
                 $view->loadData('', $where, [], 0, 0);
                 break;
+
+            default:
+                parent::loadData($viewName, $view);
         }
     }
 
@@ -128,7 +144,7 @@ class EditUser extends ExtendedController\PanelController
         $code = $this->request->get('code');
 
         $userPages = [
-            ['value' => '---null---', 'title' => '------'],
+            ['value' => '', 'title' => '------'],
         ];
         if ($user->loadFromCode($code)) {
             $userPages = $this->getUserPages($user);
@@ -154,6 +170,6 @@ class EditUser extends ExtendedController\PanelController
             return strcmp($objA['title'], $objB['title']);
         });
 
-        $columnLangCode->widget->setValuesFromArray($langs);
+        $columnLangCode->widget->setValuesFromArray($langs, false);
     }
 }

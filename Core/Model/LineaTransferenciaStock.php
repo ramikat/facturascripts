@@ -1,7 +1,8 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2016-2018    Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2014-2018  Carlos Garcia Gomez       <carlos@facturascripts.com>
+ * Copyright (C) 2014-2015  Francesc Pineda Segarra   <shawe.ewahs@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,10 +19,12 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+
 /**
- * Description of linea_transferencia_stock
+ * Transfers stock lines.
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Cristo M. Estévez Hernández <cristom.estevez@gmail.com>
  */
 class LineaTransferenciaStock extends Base\ModelClass
 {
@@ -29,39 +32,54 @@ class LineaTransferenciaStock extends Base\ModelClass
     use Base\ModelTrait;
 
     /**
-     * Quantity.
+     * Quantity of product transfered
      *
      * @var float|int
      */
     public $cantidad;
 
     /**
-     * Description of the transfer.
      *
-     * @var string
+     * @var float|int
      */
-    public $descripcion;
+    private $cantidadAnt;
 
     /**
-     * Primary key. Integer.
+     * Primary key of line transfer stock. Autoincremental
      *
      * @var int
      */
     public $idlinea;
 
     /**
-     * Transfer identifier.
+     * Foreign key with Productos table.
+     *
+     * @var int
+     */
+    public $idproducto;
+
+    /**
+     * Foreign key with head of this transfer line.
      *
      * @var int
      */
     public $idtrans;
 
     /**
-     * Reference.
      *
      * @var string
      */
     public $referencia;
+
+    /**
+     * 
+     * @param array $data
+     */
+    public function __construct(array $data = [])
+    {
+        parent::__construct($data);
+        $this->cantidadAnt = isset($this->cantidad) ? $this->cantidad : 0;
+    }
 
     /**
      * Reset the values of all model properties.
@@ -72,19 +90,59 @@ class LineaTransferenciaStock extends Base\ModelClass
         $this->cantidad = 0.0;
     }
 
+    public function delete()
+    {
+        if (parent::delete()) {
+            $this->cantidad = 0.0;
+            $this->updateStock();
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getTransference()
+    {
+        $transf = new TransferenciaStock();
+        $transf->loadFromCode($this->idtrans);
+        return $transf;
+    }
+
+    public function getVariant()
+    {
+        $variant = new Variante();
+        $where = [new DataBaseWhere('referencia', $this->referencia)];
+        $variant->loadFromCode('', $where);
+        return $variant;
+    }
+
     /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
-     *
+     * 
      * @return string
      */
     public function install()
     {
-        /// we force the check of the stock transfers table
         new TransferenciaStock();
+        new Variante();
+        return parent::install();
+    }
 
-        return '';
+    /**
+     * 
+     * @param string $cod
+     * @param array  $where
+     * @param array  $orderby
+     * 
+     * @return boolean
+     */
+    public function loadFromCode($cod, array $where = [], array $orderby = [])
+    {
+        if (parent::loadFromCode($cod, $where, $orderby)) {
+            $this->cantidadAnt = $this->cantidad;
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -97,6 +155,26 @@ class LineaTransferenciaStock extends Base\ModelClass
         return 'idlinea';
     }
 
+    public function save()
+    {
+        if (parent::save()) {
+            $this->updateStock();
+            return true;
+        }
+
+        return false;
+    }
+
+    public function test()
+    {
+        if (is_null($this->idproducto)) {
+            $variant = $this->getVariant();
+            $this->idproducto = $variant->idproducto;
+        }
+
+        return parent::test();
+    }
+
     /**
      * Returns the name of the table that uses this model.
      *
@@ -104,6 +182,28 @@ class LineaTransferenciaStock extends Base\ModelClass
      */
     public static function tableName()
     {
-        return 'lineastransstock';
+        return 'lineastransferenciasstock';
+    }
+
+    protected function updateStock()
+    {
+        $transfer = $this->getTransference();
+        $variant = $this->getVariant();
+
+        $stock1 = new Stock();
+        $where1 = [
+            new DataBaseWhere('referencia', $this->referencia),
+            new DataBaseWhere('codalmacen', $transfer->codalmacenorigen),
+        ];
+
+        if (!$stock1->loadFromCode('', $where1)) {
+            $stock1->codalmacen = $transfer->codalmacenorigen;
+            $stock1->idproducto = $variant->idproducto;
+            $stock1->referencia = $this->referencia;
+            $stock1->save();
+        }
+
+        $quantity = $this->cantidad - $this->cantidadAnt;
+        $stock1->transferTo($transfer->codalmacendestino, $quantity);
     }
 }

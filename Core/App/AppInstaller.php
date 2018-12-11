@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,6 +19,7 @@
 namespace FacturaScripts\Core\App;
 
 use FacturaScripts\Core\Base\MiniLog;
+use FacturaScripts\Core\Base\FileManager;
 use FacturaScripts\Core\Base\PluginManager;
 use FacturaScripts\Core\Base\Translator;
 use Symfony\Component\HttpFoundation\Request;
@@ -76,6 +77,7 @@ class AppInstaller
         } elseif ($installed) {
             header('Location: ' . $this->getUri());
         } elseif ('TRUE' === $this->request->get('phpinfo', '')) {
+            /** @noinspection ForgottenDebugOutputInspection */
             phpinfo();
         } else {
             $this->render();
@@ -85,7 +87,7 @@ class AppInstaller
     /**
      * Check database connection and creates the database if needed.
      *
-     * @return boolean
+     * @return bool
      */
     private function createDataBase()
     {
@@ -97,7 +99,14 @@ class AppInstaller
             'name' => $this->request->request->get('fs_db_name'),
             'socket' => $this->request->request->get('mysql_socket', '')
         ];
-        switch ($this->request->request->get('fs_db_type')) {
+
+        $dbType = $this->request->request->get('fs_db_type');
+        if ('postgresql' == $dbType && strtolower($dbData['name']) != $dbData['name']) {
+            $this->miniLog->alert($this->i18n->trans('database-name-must-be-lowercase'));
+            return false;
+        }
+
+        switch ($dbType) {
             case 'mysql':
                 if (class_exists('mysqli')) {
                     return $this->testMysql($dbData);
@@ -130,14 +139,17 @@ class AppInstaller
     {
         // Check each needed folder to deploy
         foreach (['Plugins', 'Dinamic', 'MyFiles'] as $folder) {
-            if (!file_exists($folder) && !mkdir($folder) && !is_dir($folder)) {
+            if (!FileManager::createFolder($folder)) {
                 $this->miniLog->critical($this->i18n->trans('cant-create-folders', ['%folder%' => $folder]));
                 return false;
             }
         }
 
-        chmod('Plugins', octdec(777));
         $pluginManager = new PluginManager();
+        $hiddenPlugins = \explode(',', $this->request->request->get('hidden_plugins', ''));
+        foreach ($hiddenPlugins as $pluginName) {
+            $pluginManager->enable($pluginName);
+        }
         $pluginManager->deploy();
         return true;
     }
@@ -150,11 +162,7 @@ class AppInstaller
     private function getUri()
     {
         $uri = $this->request->getBasePath();
-        if ('/' === substr($uri, -1)) {
-            return substr($uri, 0, -1);
-        }
-
-        return $uri;
+        return ('/' === substr($uri, -1)) ? substr($uri, 0, -1) : $uri;
     }
 
     /**
@@ -167,9 +175,7 @@ class AppInstaller
     {
         $dataLanguage = explode(';', filter_input(INPUT_SERVER, 'HTTP_ACCEPT_LANGUAGE'));
         $userLanguage = str_replace('-', '_', explode(',', $dataLanguage[0])[0]);
-        $translationExists = file_exists(FS_FOLDER . '/Core/Translation/' . $userLanguage . '.json');
-
-        return ($translationExists) ? $userLanguage : 'en_EN';
+        return file_exists(FS_FOLDER . '/Core/Translation/' . $userLanguage . '.json') ? $userLanguage : 'en_EN';
     }
 
     /**
@@ -211,7 +217,7 @@ class AppInstaller
     {
         /// HTML template variables
         $templateVars = [
-            'license' => file_get_contents(FS_FOLDER . '/COPYING'),
+            'license' => file_get_contents(FS_FOLDER . DIRECTORY_SEPARATOR . 'COPYING'),
             'memcache_prefix' => $this->randomString(8),
             'timezones' => $this->getTimezoneList()
         ];
@@ -231,12 +237,8 @@ class AppInstaller
      */
     private function saveHtaccess()
     {
-        if (!file_exists(FS_FOLDER . '/.htaccess')) {
-            $txt = file_get_contents(FS_FOLDER . '/htaccess-sample');
-            file_put_contents(FS_FOLDER . '/.htaccess', \is_string($txt) ? $txt : '');
-        }
-
-        return true;
+        $contentFile = FileManager::extractFromMarkers(FS_FOLDER . DIRECTORY_SEPARATOR . 'htaccess-sample', 'FacturaScripts code');
+        return FileManager::insertWithMarkers($contentFile, FS_FOLDER . DIRECTORY_SEPARATOR . '.htaccess', 'FacturaScripts code');
     }
 
     /**
@@ -250,20 +252,28 @@ class AppInstaller
         if (\is_resource($file)) {
             fwrite($file, "<?php\n");
             fwrite($file, "define('FS_COOKIES_EXPIRE', " . $this->request->request->get('fs_cookie_expire', 604800) . ");\n");
-            fwrite($file, "define('FS_DEBUG', " . $this->request->request->get('fs_debug', 'false') . ");\n");
             fwrite($file, "define('FS_ROUTE', '" . $this->request->request->get('fs_route', $this->getUri()) . "');\n");
             fwrite($file, "define('FS_DB_FOREIGN_KEYS', true);\n");
             fwrite($file, "define('FS_DB_INTEGER', 'INTEGER');\n");
             fwrite($file, "define('FS_DB_TYPE_CHECK', true);\n");
 
-            foreach (['lang', 'timezone', 'db_type', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'cache_host', 'cache_port', 'cache_prefix'] as $field) {
-                fwrite($file, "define('FS_" . strtoupper($field) . "', '" . $this->request->request->get('fs_' . $field) . "');\n");
+            $fields = [
+                'lang', 'timezone', 'db_type', 'db_host', 'db_port', 'db_name', 'db_user',
+                'db_pass', 'cache_host', 'cache_port', 'cache_prefix', 'hidden_plugins'
+            ];
+            foreach ($fields as $field) {
+                fwrite($file, "define('FS_" . strtoupper($field) . "', '" . $this->request->request->get('fs_' . $field, '') . "');\n");
             }
 
-            fwrite($file, "define('FS_HIDDEN_PLUGINS', '" . \implode(',', $this->request->request->get('hidden_plugins', [])) . "');\n");
+            $booleanFields = ['debug', 'disable_add_plugins', 'disable_rm_plugins'];
+            foreach ($booleanFields as $field) {
+                fwrite($file, "define('FS_" . strtoupper($field) . "', " . $this->request->request->get('fs_' . $field, 'false') . ");\n");
+            }
+
             if ($this->request->request->get('db_type') === 'MYSQL' && $this->request->request->get('mysql_socket') !== '') {
                 fwrite($file, "\nini_set('mysqli.default_socket', '" . $this->request->request->get('mysql_socket') . "');\n");
             }
+
             fwrite($file, "\n");
             fclose($file);
             return true;
@@ -287,16 +297,16 @@ class AppInstaller
             $errors = true;
         }
 
-        if (!function_exists('mb_substr')) {
-            $this->miniLog->critical($this->i18n->trans('mb-string-not-fount'));
-            $errors = true;
-        }
-
-        foreach (['bcmath', 'curl', 'simplexml', 'openssl', 'zip'] as $extension) {
+        foreach (['bcmath', 'curl', 'gd', 'mbstring', 'openssl', 'simplexml', 'zip'] as $extension) {
             if (!extension_loaded($extension)) {
                 $this->miniLog->critical($this->i18n->trans('php-extension-not-found', ['%extension%' => $extension]));
                 $errors = true;
             }
+        }
+
+        if (function_exists('apache_get_modules') && !in_array('mod_rewrite', apache_get_modules())) {
+            $this->miniLog->critical($this->i18n->trans('apache-module-not-found', ['%module%' => 'mod_rewrite']));
+            $errors = true;
         }
 
         if (!is_writable(FS_FOLDER)) {

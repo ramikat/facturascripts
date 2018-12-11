@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace FacturaScripts\Core\Lib\API;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
@@ -32,6 +31,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class APIModel extends APIResourceClass
 {
+
     /**
      * ModelClass object.
      *
@@ -132,22 +132,17 @@ class APIModel extends APIResourceClass
 
     protected function listAll(): bool
     {
-        if ($this->method === 'GET') {
-            $offset = (int) $this->request->get('offset', 0);
-            $limit = (int) $this->request->get('limit', 50);
-            $operation = $this->getRequestArray('operation');
-            $filter = $this->getRequestArray('filter');
-            $order = $this->getRequestArray('sort');
-            $where = $this->getWhereValues($filter, $operation);
+        $offset = (int) $this->request->get('offset', 0);
+        $limit = (int) $this->request->get('limit', 50);
+        $operation = $this->getRequestArray('operation');
+        $filter = $this->getRequestArray('filter');
+        $order = $this->getRequestArray('sort');
+        $where = $this->getWhereValues($filter, $operation);
 
-            $data = $this->model->all($where, $order, $offset, $limit);
+        $data = $this->model->all($where, $order, $offset, $limit);
 
-            $this->returnResult($data);
-            return true;
-        }
-
-        $this->setError('List all only in GET method');
-        return false;
+        $this->returnResult($data);
+        return true;
     }
 
     /**
@@ -157,6 +152,10 @@ class APIModel extends APIResourceClass
      */
     public function doGET(): bool
     {
+        if (empty($this->params)) {
+            return $this->listAll();
+        }
+
         if ($this->params[0] === 'schema') {
             $data = [];
             foreach ($this->model->getModelFields() as $key => $value) {
@@ -185,28 +184,37 @@ class APIModel extends APIResourceClass
     }
 
     /**
-     * Process the GET request. Overwrite this function to implement is functionality.
-     *
-     * @return bool
+     * Load the model and replace the past data in the loaded model.
+     * Returns true if the record already exists in the model, and false if not.
+     * If the id is passed as data and parameter, verify that both match, 
+     * returning error if there is inconsistency.
+     * 
+     * @return bool true if the resource exists in the model
      */
-    public function doPOST(): bool
+    private function getResource(): bool
     {
         $cod = $this->model->primaryColumn();
+        $code = $this->params[0] ?? null;
+        $method = $this->request->getMethod();
 
         // If editing, retrieve the current data
-        $this->model->loadFromCode($this->params[0]);
-        $this->model->{$cod} = $this->params[0];
+        $exist = $this->model->loadFromCode($code);
 
         // Retrieve the past data, and replace the changes
         $values = $this->request->request->all();
-        if (isset($values[$cod]) && $values[$cod] !== $this->params[0]) {
-            $this->setError("Can't change the key. Key '$cod'' changed from {$this->params[0]} to {$values[$cod]}.", $values);
-            return false;
+        if ($method !== 'POST') {
+            $this->model->{$cod} = $code;
+            $values[$cod] = $code;
         }
         foreach ($values as $key => $value) {
             $this->model->{$key} = $value;
         }
 
+        return $exist;
+    }
+
+    private function saveResource(): bool
+    {
         $this->fixTypes();
         if ($this->model->save()) {
             $this->setOk('data-saved', (array) $this->model);
@@ -217,8 +225,38 @@ class APIModel extends APIResourceClass
             $this->params[] = $message['message'];
         }
 
-        $this->setError('bad-request', $values);
+        $this->setError('bad-request', $this->request->request->all());
         return false;
+    }
+
+    /**
+     * Process the POST (create) request. Overwrite this function to implement is functionality.
+     *
+     * @return bool
+     */
+    public function doPOST(): bool
+    {
+        if ($this->getResource()) {
+            $this->setError('existing-record', (array) $this->model);
+            return false;
+        }
+
+        return $this->saveResource();
+    }
+
+    /**
+     * Process the PUT (update) request. Overwrite this function to implement is functionality.
+     *
+     * @return bool
+     */
+    public function doPUT(): bool
+    {
+        if (!$this->getResource()) {
+            $this->setError('not-existing-record', (array) $this->model);
+            return false;
+        }
+
+        return $this->saveResource();
     }
 
     /**
@@ -251,10 +289,6 @@ class APIModel extends APIResourceClass
         try {
             $modelName = 'FacturaScripts\\Dinamic\\Model\\' . $name;
             $this->model = new $modelName();
-
-            if (count($this->params) === 0) {
-                return $this->listAll();
-            }
 
             return parent::processResource($name);
         } catch (\Exception $ex) {

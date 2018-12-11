@@ -21,9 +21,10 @@ namespace FacturaScripts\Core\App;
 use FacturaScripts\Core\Base\MiniLog;
 use FacturaScripts\Core\Base\PluginManager;
 use FacturaScripts\Core\Base\Translator;
-use FacturaScripts\Dinamic\Lib\AssetManager;
+use FacturaScripts\Core\Base\Utils;
 use Twig_Environment;
 use Twig_Extension_Debug;
+use Twig_Filter;
 use Twig_Function;
 use Twig_Loader_Filesystem;
 
@@ -99,15 +100,19 @@ class WebRender
 
         /// asset functions
         $assetFunction = new Twig_Function('asset', function ($string) {
-            return FS_ROUTE . '/' . $string;
+            $path = FS_ROUTE . '/';
+            if (substr($string, 0, strlen($path)) == $path) {
+                return $string;
+            }
+            return str_replace('//', '/', $path . $string);
         });
         $twig->addFunction($assetFunction);
 
-        /// assetCombine functions
-        $assetCombineFunction = new Twig_Function('assetCombine', function ($fileList) {
-            return AssetManager::combine($fileList);
+        /// fixHtml functions
+        $fixHtmlFunction = new Twig_Filter('fixHtml', function ($string) {
+            return Utils::fixHtml($string);
         });
-        $twig->addFunction($assetCombineFunction);
+        $twig->addFilter($fixHtmlFunction);
 
         /// debug extension
         $twig->addExtension(new Twig_Extension_Debug());
@@ -145,7 +150,7 @@ class WebRender
      *
      * @return string
      */
-    public function render($template, $params)
+    public function render($template, $params = [])
     {
         $templateVars = [
             'i18n' => $this->i18n,

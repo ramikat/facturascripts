@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -41,13 +41,6 @@ class AlbaranProveedor extends Base\PurchaseDocument
     public $idalbaran;
 
     /**
-     * ID of the related invoice, if any.
-     *
-     * @var int
-     */
-    public $idfactura;
-
-    /**
      * Returns the lines associated with the delivery note.
      *
      * @return LineaAlbaranProveedor[]
@@ -72,9 +65,12 @@ class AlbaranProveedor extends Base\PurchaseDocument
     {
         $newLine = new LineaAlbaranProveedor($data);
         $newLine->idalbaran = $this->idalbaran;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
@@ -88,10 +84,9 @@ class AlbaranProveedor extends Base\PurchaseDocument
      */
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new FacturaProveedor();
-
-        return '';
+        return $sql;
     }
 
     /**

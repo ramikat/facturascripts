@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2014-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2014-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -35,13 +35,6 @@ class Cuenta extends Base\ModelClass
     use Base\ModelTrait;
 
     /**
-     * Primary key.
-     *
-     * @var int
-     */
-    public $idcuenta;
-
-    /**
      * Code of the exercise of this account.
      *
      * @var string
@@ -56,13 +49,6 @@ class Cuenta extends Base\ModelClass
     public $codcuenta;
 
     /**
-     * Description of the account.
-     *
-     * @var string
-     */
-    public $descripcion;
-
-    /**
      * Identifier of the special account.
      *
      * @var string
@@ -70,11 +56,24 @@ class Cuenta extends Base\ModelClass
     public $codcuentaesp;
 
     /**
-     * Identifier of the parent account
+     * Description of the account.
      *
-     * @var integer
+     * @var string
      */
-    public $parent_idcuenta;
+    public $descripcion;
+
+    /**
+     *
+     * @var bool
+     */
+    private static $disableAditionTest = false;
+
+    /**
+     * Primary key.
+     *
+     * @var int
+     */
+    public $idcuenta;
 
     /**
      * Parent account code
@@ -84,13 +83,34 @@ class Cuenta extends Base\ModelClass
     public $parent_codcuenta;
 
     /**
-     * Returns the name of the table that uses this model.
+     * Identifier of the parent account
+     *
+     * @var integer
+     */
+    public $parent_idcuenta;
+
+    /**
+     *
+     */
+    public function disableAditionalTest()
+    {
+        self::$disableAditionTest = true;
+    }
+
+    /**
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
      *
      * @return string
      */
-    public static function tableName()
+    public function install()
     {
-        return 'cuentas';
+        /// force the parents tables
+        new CuentaEspecial();
+        new Ejercicio();
+
+        return parent::install();
     }
 
     /**
@@ -103,36 +123,56 @@ class Cuenta extends Base\ModelClass
         return 'idcuenta';
     }
 
-    public function clear()
-    {
-        parent::clear();
-
-        // Search open exercise for current date
-        $exerciseModel = new Ejercicio();
-        $exercise = $exerciseModel->getByFecha(date('d-m-Y'), true, false);
-        if ($exercise !== false ) {
-            $this->codejercicio = $exercise->codejercicio;
-        }
-    }
-
-
     /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
+     * Returns the name of the table that uses this model.
      *
      * @return string
      */
-    public function install()
+    public static function tableName()
     {
-        /// force the parents tables
-        new Ejercicio();
-
-        return '';
+        return 'cuentas';
     }
 
     /**
-     * Check and load the id of the parent account
+     * Returns True if there is no erros on properties values.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        $this->codcuenta = trim($this->codcuenta);
+        $this->descripcion = Utils::noHtml($this->descripcion);
+        if (empty($this->descripcion)) {
+            self::$miniLog->alert(self::$i18n->trans('account-data-missing'));
+            return false;
+        }
+
+        if (!self::$disableAditionTest) {
+            /// Check and load correct id parent account
+            $this->parent_idcuenta = null;
+            if (!empty($this->parent_codcuenta) && !$this->testErrorInParentAccount()) {
+                self::$miniLog->alert(self::$i18n->trans('account-parent-error'));
+                return false;
+            }
+        }
+
+        return parent::test();
+    }
+
+    /**
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return parent::url($type, 'ListCuenta?activetab=List');
+    }
+
+    /**
+     * Check and load the id of the parent account. Returns FALSE if error.
      *
      * @return bool
      */
@@ -145,50 +185,10 @@ class Cuenta extends Base\ModelClass
 
         $account = $this->all($where, ['codcuenta' => 'ASC'], 0, 1);
         if (empty($account)) {
-            return true;
+            return false;
         }
 
         $this->parent_idcuenta = $account[0]->parent_idcuenta;
-        return false;
-    }
-
-    /**
-     * TODO: Uncomplete documentation
-     *
-     * @return bool
-     */
-    private function testErrorInAccount(): bool
-    {
-        return empty($this->codcuenta) || empty($this->descripcion) || empty($this->codejercicio);
-    }
-
-    /**
-     * Returns True if there is no erros on properties values.
-     *
-     * @return bool
-     */
-    public function test()
-    {
-        $this->codcuenta = trim($this->codcuenta);
-        $this->descripcion = Utils::noHtml($this->descripcion);
-
-        if ($this->testErrorInAccount()) {
-            self::$miniLog->alert(self::$i18n->trans('account-data-missing'));
-            return false;
-        }
-
-        /// Check and load correct id parent account
-        $this->parent_idcuenta = null;
-        if (!empty($this->parent_codcuenta) && $this->testErrorInParentAccount()) {
-            self::$miniLog->alert(self::$i18n->trans('account-parent-error'));
-            return false;
-        }
-
-        return parent::test();
-    }
-
-    public function url(string $type = 'auto', string $list = 'List')
-    {
-        return parent::url($type, 'ListCuenta?active=List');
+        return true;
     }
 }

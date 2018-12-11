@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,11 +20,14 @@ namespace FacturaScripts\Core\App;
 
 use DebugBar\StandardDebugBar;
 use Exception;
-use FacturaScripts\Core\Base\DebugBar\DataBaseCollector;
-use FacturaScripts\Core\Base\DebugBar\TranslationCollector;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
+use FacturaScripts\Core\Base\DebugBar\DataBaseCollector;
+use FacturaScripts\Core\Base\DebugBar\PHPCollector;
+use FacturaScripts\Core\Base\DebugBar\TranslationCollector;
+use FacturaScripts\Core\Base\EventManager;
 use FacturaScripts\Core\Base\MenuManager;
+use FacturaScripts\Core\Lib\AssetManager;
 use FacturaScripts\Core\Model\User;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
@@ -68,12 +71,18 @@ class AppController extends App
     private $pageName;
 
     /**
+     *
+     * @var User|false
+     */
+    private $user = false;
+
+    /**
      * Initializes the app.
      *
      * @param string $uri
      * @param string $pageName
      */
-    public function __construct($uri = '/', $pageName = '')
+    public function __construct(string $uri = '/', string $pageName = '')
     {
         parent::__construct($uri);
         $this->debugBar = new StandardDebugBar();
@@ -81,10 +90,21 @@ class AppController extends App
             $this->debugBar['time']->startMeasure('init', 'AppController::__construct()');
             $this->debugBar->addCollector(new DataBaseCollector($this->miniLog));
             $this->debugBar->addCollector(new TranslationCollector($this->i18n));
+            $this->debugBar->addCollector(new PHPCollector());
         }
 
         $this->menuManager = new MenuManager();
         $this->pageName = $pageName;
+    }
+
+    /**
+     *
+     * @param string $nick
+     */
+    public function close(string $nick = '')
+    {
+        $selectedNick = (false !== $this->user) ? $this->user->nick : '';
+        parent::close($selectedNick);
     }
 
     /**
@@ -103,12 +123,14 @@ class AppController extends App
         } elseif ($this->request->query->get('logout')) {
             $this->userLogout();
             $this->renderHtml('Login/Login.html.twig');
+            $route = empty(\FS_ROUTE) ? 'index.php' : \FS_ROUTE;
+            $this->response->headers->set('Refresh', '0; ' . $route);
         } else {
-            $user = $this->userAuth();
+            $this->user = $this->userAuth();
 
             /// returns the name of the controller to load
-            $pageName = $this->getPageName($user);
-            $this->loadController($pageName, $user);
+            $pageName = $this->getPageName();
+            $this->loadController($pageName);
 
             /// returns true for testing purpose
             return true;
@@ -124,7 +146,7 @@ class AppController extends App
      *
      * @return string
      */
-    private function getControllerFullName($pageName)
+    private function getControllerFullName(string $pageName)
     {
         $controllerName = "FacturaScripts\\Dinamic\\Controller\\{$pageName}";
         if (!class_exists($controllerName)) {
@@ -142,11 +164,9 @@ class AppController extends App
     /**
      * Returns the name of the default controller for the current user or for all users.
      *
-     * @param User|false $user
-     *
      * @return string
      */
-    private function getPageName($user)
+    private function getPageName()
     {
         if ($this->pageName !== '') {
             return $this->pageName;
@@ -156,8 +176,8 @@ class AppController extends App
             return $this->getUriParam(0);
         }
 
-        if ($user && !empty($user->homepage)) {
-            return $user->homepage;
+        if ($this->user && !empty($this->user->homepage)) {
+            return $this->user->homepage;
         }
 
         return $this->settings->get('default', 'homepage', 'Wizard');
@@ -166,10 +186,9 @@ class AppController extends App
     /**
      * Load and process the $pageName controller.
      *
-     * @param string     $pageName
-     * @param User|false $user
+     * @param string $pageName
      */
-    private function loadController($pageName, $user)
+    private function loadController(string $pageName)
     {
         if (FS_DEBUG) {
             $this->debugBar['time']->stopMeasure('init');
@@ -183,17 +202,17 @@ class AppController extends App
         /// If we found a controller, load it
         if (class_exists($controllerName)) {
             $this->miniLog->debug($this->i18n->trans('loading-controller', ['%controllerName%' => $controllerName]));
-            $this->menuManager->setUser($user);
-            $permissions = new ControllerPermissions($user, $pageName);
+            $this->menuManager->setUser($this->user);
+            $permissions = new ControllerPermissions($this->user, $pageName);
 
             try {
                 $this->controller = new $controllerName($this->cache, $this->i18n, $this->miniLog, $pageName, $this->uri);
-                if ($user === false) {
+                if ($this->user === false) {
                     $this->controller->publicCore($this->response);
                     $template = $this->controller->getTemplate();
                 } elseif ($permissions->allowAccess) {
                     $this->menuManager->selectPage($this->controller->getPageData());
-                    $this->controller->privateCore($this->response, $user, $permissions);
+                    $this->controller->privateCore($this->response, $this->user, $permissions);
                     $template = $this->controller->getTemplate();
                 } else {
                     $template = 'Error/AccessDenied.html.twig';
@@ -201,10 +220,13 @@ class AppController extends App
 
                 $httpStatus = Response::HTTP_OK;
             } catch (Exception $exc) {
+                $this->miniLog->critical($exc->getMessage());
                 $this->debugBar['exceptions']->addException($exc);
                 $httpStatus = Response::HTTP_INTERNAL_SERVER_ERROR;
                 $template = 'Error/ControllerError.html.twig';
             }
+        } else {
+            $this->miniLog->alert($this->i18n->trans('controller-not-found'));
         }
 
         $this->response->setStatusCode($httpStatus);
@@ -225,16 +247,16 @@ class AppController extends App
      * @param string $template       html file to use
      * @param string $controllerName
      */
-    private function renderHtml($template, $controllerName = '')
+    private function renderHtml(string $template, string $controllerName = '')
     {
         /// HTML template variables
         $templateVars = [
             'appSettings' => $this->settings,
+            'assetManager' => new AssetManager(),
             'controllerName' => $controllerName,
             'debugBarRender' => false,
             'fsc' => $this->controller,
             'menuManager' => $this->menuManager,
-            'sql' => $this->miniLog->read(['sql']),
             'template' => $template,
         ];
 
@@ -255,6 +277,7 @@ class AppController extends App
         try {
             $this->response->setContent($webRender->render($template, $templateVars));
         } catch (Exception $exc) {
+            $this->miniLog->critical($exc->getMessage());
             $this->debugBar['exceptions']->addException($exc);
             $this->response->setContent($webRender->render('Error/TemplateError.html.twig', $templateVars));
             $this->response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
@@ -270,14 +293,15 @@ class AppController extends App
     {
         $user = new User();
         $nick = $this->request->request->get('fsNick', '');
-
         if ($nick === '') {
             return $this->cookieAuth($user);
         }
 
-        if ($user->loadFromCode($nick)) {
+        if ($user->loadFromCode($nick) && $user->enabled) {
             if ($user->verifyPassword($this->request->request->get('fsPassword'))) {
+                EventManager::trigger('App:User:Login', $user);
                 $this->updateCookies($user, true);
+                $this->ipFilter->clear();
                 $this->miniLog->debug($this->i18n->trans('login-ok', ['%nick%' => $nick]));
                 return $user;
             }
@@ -306,7 +330,7 @@ class AppController extends App
             return false;
         }
 
-        if ($user->loadFromCode($cookieNick)) {
+        if ($user->loadFromCode($cookieNick) && $user->enabled) {
             if ($user->verifyLogkey($this->request->cookies->get('fsLogkey'))) {
                 $this->updateCookies($user);
                 $this->miniLog->debug($this->i18n->trans('login-ok', ['%nick%' => $cookieNick]));

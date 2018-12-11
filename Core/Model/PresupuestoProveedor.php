@@ -31,13 +31,6 @@ class PresupuestoProveedor extends Base\PurchaseDocument
     use Base\ModelTrait;
 
     /**
-     * Related delivery note ID.
-     *
-     * @var int
-     */
-    public $idalbaran;
-
-    /**
      * Primary key.
      *
      * @var int
@@ -69,9 +62,12 @@ class PresupuestoProveedor extends Base\PurchaseDocument
     {
         $newLine = new LineaPresupuestoProveedor($data);
         $newLine->idpresupuesto = $this->idpresupuesto;
+        if (empty($data)) {
+            $newLine->irpf = $this->irpf;
+        }
 
-        $state = $this->getState();
-        $newLine->actualizastock = $state->actualizastock;
+        $status = $this->getStatus();
+        $newLine->actualizastock = $status->actualizastock;
 
         return $newLine;
     }
@@ -85,10 +81,9 @@ class PresupuestoProveedor extends Base\PurchaseDocument
      */
     public function install()
     {
-        parent::install();
+        $sql = parent::install();
         new PedidoProveedor();
-
-        return '';
+        return $sql;
     }
 
     /**

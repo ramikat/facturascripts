@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -102,14 +102,20 @@ abstract class App
     protected $uri;
 
     /**
+     * Selects and runs the corresponding controller.
+     *
+     * @return bool
+     */
+    abstract public function run();
+
+    /**
      * Initializes the app.
      *
      * @param string $uri
      */
-    public function __construct($uri = '/')
+    public function __construct(string $uri = '/')
     {
         $this->request = Request::createFromGlobals();
-
         if ($this->request->cookies->get('fsLang')) {
             $this->i18n = new Base\Translator($this->request->cookies->get('fsLang'));
         } else {
@@ -140,7 +146,7 @@ abstract class App
     {
         if ($this->dataBase->connect()) {
             $this->settings->load();
-
+            $this->loadPlugins();
             return true;
         }
 
@@ -148,20 +154,18 @@ abstract class App
     }
 
     /**
-     * Disconnects from the database.
-     */
-    public function close()
-    {
-        new Base\MiniLogSave();
-        $this->dataBase->close();
-    }
-
-    /**
-     * Selects and runs the corresponding controller.
+     * Save log and disconnects from the database.
      *
-     * @return bool
+     * @param string $nick
      */
-    abstract public function run();
+    public function close(string $nick = '')
+    {
+        new Base\MiniLogSave($this->request->getClientIp() ?? '', $nick, $this->uri);
+        $this->dataBase->close();
+        if (FS_DEBUG) {
+            ///$this->cache->clear();
+        }
+    }
 
     /**
      * Returns the data into the standard output.
@@ -178,7 +182,7 @@ abstract class App
      *
      * @return string
      */
-    protected function getUriParam($num)
+    protected function getUriParam(string $num)
     {
         $params = explode('/', substr($this->uri, 1));
         return isset($params[$num]) ? $params[$num] : '';
@@ -192,5 +196,19 @@ abstract class App
     protected function isIPBanned()
     {
         return $this->ipFilter->isBanned($this->request->getClientIp());
+    }
+
+    /**
+     * Initialize plugins.
+     */
+    private function loadPlugins()
+    {
+        foreach ($this->pluginManager->enabledPlugins() as $pluginName) {
+            $initClass = "FacturaScripts\\Plugins\\{$pluginName}\\Init";
+            if (class_exists($initClass)) {
+                $initObject = new $initClass();
+                $initObject->init();
+            }
+        }
     }
 }

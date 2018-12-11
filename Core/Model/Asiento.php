@@ -18,7 +18,7 @@
  */
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\Lib\ExtendedController\GridDocumentInterface;
+use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\Utils;
 
@@ -28,7 +28,7 @@ use FacturaScripts\Core\Base\Utils;
  * @author Carlos García Gómez <carlos@facturascripts.com>
  * @author Artex Trading sa <jcuello@artextrading.com>
  */
-class Asiento extends Base\ModelClass implements GridDocumentInterface
+class Asiento extends Base\ModelClass implements Base\GridModelInterface
 {
 
     use Base\ModelTrait;
@@ -76,6 +76,13 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
     public $idasiento;
 
     /**
+     * Foreign Key with Empresas table.
+     *
+     * @var int
+     */
+    public $idempresa;
+
+    /**
      * Amount of the accounting entry.
      *
      * @var float|int
@@ -105,9 +112,11 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
     public function clear()
     {
         parent::clear();
+        $this->idempresa = AppSettings::get('default', 'idempresa');
         $this->fecha = date('d-m-Y');
         $this->editable = true;
         $this->importe = 0.0;
+        $this->numero = '';
     }
 
     /**
@@ -136,7 +145,6 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
             }
         }
 
-        echo self::$i18n->trans('renumber-accounting');
         $this->renumber();
     }
 
@@ -169,9 +177,7 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
         /// Run main delete action
         $inTransaction = self::$dataBase->inTransaction();
         try {
-            if ($inTransaction === false) {
-                self::$dataBase->beginTransaction();
-            }
+            self::$dataBase->beginTransaction();
 
             /// delete accounting entry and detail entries via FK
             if (!parent::delete()) {
@@ -222,6 +228,7 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
     public function install()
     {
         new Ejercicio();
+        new Diario();
         new SubcuentaSaldo();
 
         return '';
@@ -237,7 +244,9 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
      */
     public function newCode(string $field = '', array $where = [])
     {
-        $where[] = new DataBase\DataBaseWhere('codejercicio', $this->codejercicio);
+        if (!empty($field) && $field !== $this->primaryColumn()) {
+            $where[] = new DataBase\DataBaseWhere('codejercicio', $this->codejercicio);
+        }
         return parent::newCode($field, $where);
     }
 
@@ -331,14 +340,14 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
             return false;
         }
 
-        $error = $this->testErrorInExercise();
-        if (!empty($error)) {
-            self::$miniLog->alert(self::$i18n->trans($error));
+        if (strlen($this->concepto) > 255) {
+            self::$miniLog->alert(self::$i18n->trans('concept-too-large'));
             return false;
         }
 
-        if (strlen($this->concepto) > 255) {
-            self::$miniLog->alert(self::$i18n->trans('concept-too-large'));
+        $error = $this->testErrorInExercise();
+        if (!empty($error)) {
+            self::$miniLog->alert(self::$i18n->trans($error));
             return false;
         }
 
@@ -375,7 +384,7 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
      */
     private function testErrorInData(): bool
     {
-        return empty($this->concepto) || empty($this->fecha);
+        return empty($this->codejercicio) || empty($this->concepto) || empty($this->fecha);
     }
 
     /**
@@ -385,18 +394,19 @@ class Asiento extends Base\ModelClass implements GridDocumentInterface
      */
     private function testErrorInExercise(): string
     {
-        $exerciseModel = new Ejercicio();
-        $exercise = $exerciseModel->getByFecha($this->fecha);
-        if (empty($exercise) || empty($exercise->codejercicio)) {
+        if (empty($this->codejercicio)) {
             return 'exercise-data-missing';
         }
+
+        $exercise = new Ejercicio();
+        $exercise->loadFromCode($this->codejercicio);
 
         if (!$exercise->abierto()) {
             return 'exercise-closed';
         }
 
-        // All Ok, get exercise code
-        $this->codejercicio = $exercise->codejercicio;
+        // All Ok, get company code
+        $this->idempresa = $exercise->idempresa;
         return '';
     }
 

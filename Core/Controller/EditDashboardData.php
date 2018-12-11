@@ -19,6 +19,7 @@
  */
 namespace FacturaScripts\Core\Controller;
 
+use FacturaScripts\Core\Base;
 use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Lib\Dashboard as DashboardLib;
 use FacturaScripts\Core\Model\User;
@@ -71,7 +72,7 @@ class EditDashboardData extends ExtendedController\EditController
         $pagedata = parent::getPageData();
         $pagedata['title'] = 'dashboard-card';
         $pagedata['menu'] = 'reports';
-        $pagedata['icon'] = 'fa-dashboard';
+        $pagedata['icon'] = 'fas fa-tachometer-alt';
         $pagedata['showonmenu'] = false;
 
         return $pagedata;
@@ -99,6 +100,9 @@ class EditDashboardData extends ExtendedController\EditController
      */
     protected function editAction()
     {
+        $data = $this->request->request->all();
+        $this->views[$this->active]->loadFromData($data);
+
         $model = $this->views[$this->active]->model;
         $properties = array_keys($this->getPropertiesFields());
         $fields = array_keys($model->properties);
@@ -108,7 +112,19 @@ class EditDashboardData extends ExtendedController\EditController
             }
         }
 
-        return parent::editAction();
+        if (!$this->permissions->allowUpdate) {
+            $this->miniLog->alert($this->i18n->trans('not-allowed-modify'));
+            return false;
+        }
+
+        if ($this->views[$this->active]->model->save()) {
+            $this->views[$this->active]->newCode = $this->views[$this->active]->model->primaryColumnValue();
+            $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+            return true;
+        }
+
+        $this->miniLog->error($this->i18n->trans('record-save-error'));
+        return false;
     }
 
     /**
@@ -119,8 +135,11 @@ class EditDashboardData extends ExtendedController\EditController
     private function getPropertiesFields()
     {
         $model = $this->getModel();
+        if ($model->component === NULL)
+            $model->component = $_REQUEST['component'];
+
         $component = 'FacturaScripts\\Dinamic\\Lib\\Dashboard\\'
-            . $model->component
+            . ($model->component ?? 'Messages')
             . DashboardLib\BaseComponent::SUFIX_COMPONENTS;
 
         return $component::getPropertiesFields();
@@ -134,7 +153,7 @@ class EditDashboardData extends ExtendedController\EditController
         $fields = array_keys($this->getModel()->properties);
         $group = $this->views['EditDashboardData']->getColumns()['options']->columns;
         foreach ($group as $column) {
-            if (in_array($column->widget->fieldName, $fields, false)) {
+            if (in_array($column->widget->fieldname, $fields, false)) {
                 continue;
             }
 
