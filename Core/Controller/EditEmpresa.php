@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,8 +18,8 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Dinamic\Lib\RegimenIVA;
 
 /**
@@ -32,7 +32,9 @@ class EditEmpresa extends ExtendedController\EditController
 {
 
     /**
-     * Returns the model name
+     * Returns the model name.
+     * 
+     * @return string
      */
     public function getModelClassName()
     {
@@ -63,6 +65,7 @@ class EditEmpresa extends ExtendedController\EditController
         parent::createViews();
         $this->createViewWarehouse();
         $this->createViewBankAccounts();
+        $this->createViewPaymentMethods();
         $this->createViewExercises();
     }
 
@@ -90,6 +93,16 @@ class EditEmpresa extends ExtendedController\EditController
      * 
      * @param string $viewName
      */
+    private function createViewPaymentMethods($viewName = 'EditFormaPago')
+    {
+        $this->addEditListView($viewName, 'FormaPago', 'payment-method', 'fas fa-credit-card');
+        $this->views[$viewName]->disableColumn('company');
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
     private function createViewWarehouse($viewName = 'EditAlmacen')
     {
         $this->addEditListView($viewName, 'Almacen', 'warehouses', 'fas fa-building');
@@ -107,6 +120,7 @@ class EditEmpresa extends ExtendedController\EditController
         switch ($viewName) {
             case 'EditAlmacen':
             case 'EditCuentaBanco':
+            case 'EditFormaPago':
             case 'ListEjercicio':
                 $idcompany = $this->getViewModelValue('EditEmpresa', 'idempresa');
                 $where = [new DataBaseWhere('idempresa', $idcompany)];
@@ -119,7 +133,7 @@ class EditEmpresa extends ExtendedController\EditController
                 break;
         }
     }
-    
+
     protected function setCustomWidgetValues()
     {
         /// Load values option to VAT Type select input

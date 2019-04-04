@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,6 @@
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExtendedController\ListController;
 
 /**
  * Description of ListBusinessDocument
@@ -30,7 +29,46 @@ abstract class ListBusinessDocument extends ListController
 {
 
     /**
-     * 
+     *
+     * @param string $name
+     * @param string $model
+     */
+    protected function addCommonViewFilters($name, $model)
+    {
+        $this->addFilterPeriod($name, 'date', 'period', 'fecha');
+        $this->addFilterNumber($name, 'min-total', 'total', 'total', '>=');
+        $this->addFilterNumber($name, 'max-total', 'total', 'total', '<=');
+
+        $where = [new DataBaseWhere('tipodoc', $model)];
+        $statusValues = $this->codeModel->all('estados_documentos', 'idestado', 'nombre', true, $where);
+        $this->addFilterSelect($name, 'idestado', 'state', 'idestado', $statusValues);
+
+        $users = $this->codeModel->all('users', 'nick', 'nick');
+        if (count($users) > 2) {
+            $this->addFilterSelect($name, 'nick', 'user', 'nick', $users);
+        }
+
+        $companies = $this->codeModel->all('empresas', 'idempresa', 'nombrecorto');
+        if (count($companies) > 2) {
+            $this->addFilterSelect($name, 'idempresa', 'company', 'idempresa', $companies);
+        }
+
+        $warehouseValues = $this->codeModel->all('almacenes', 'codalmacen', 'nombre');
+        if (count($warehouseValues) > 2) {
+            $this->addFilterSelect($name, 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
+        }
+
+        $serieValues = $this->codeModel->all('series', 'codserie', 'descripcion');
+        if (count($serieValues) > 2) {
+            $this->addFilterSelect($name, 'codserie', 'series', 'codserie', $serieValues);
+        }
+
+        $paymentValues = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
+        $this->addFilterSelect($name, 'codpago', 'payment-method', 'codpago', $paymentValues);
+    }
+
+    /**
+     *
      * @param string $name
      * @param string $model
      */
@@ -44,6 +82,7 @@ abstract class ListBusinessDocument extends ListController
         $this->addOrderBy($name, ['pvptotal'], 'ammount');
         $this->addOrderBy($name, ['idlinea'], 'code', 2);
 
+        /// filters
         $taxValues = $this->codeModel->all('impuestos', 'codimpuesto', 'descripcion');
         $this->addFilterSelect($name, 'codimpuesto', 'tax', 'codimpuesto', $taxValues);
 
@@ -59,7 +98,7 @@ abstract class ListBusinessDocument extends ListController
     }
 
     /**
-     * 
+     *
      * @param string $name
      * @param string $model
      * @param string $label
@@ -72,34 +111,15 @@ abstract class ListBusinessDocument extends ListController
         $this->addOrderBy($name, ['fecha', 'hora'], 'date', 2);
         $this->addOrderBy($name, ['total'], 'amount');
 
-        $this->addFilterPeriod($name, 'date', 'period', 'fecha');
-        $this->addFilterNumber($name, 'min-total', 'total', 'total', '>=');
-        $this->addFilterNumber($name, 'max-total', 'total', 'total', '<=');
-
-        $where = [new DataBaseWhere('tipodoc', $model)];
-        $statusValues = $this->codeModel->all('estados_documentos', 'idestado', 'nombre', true, $where);
-        $this->addFilterSelect($name, 'idestado', 'state', 'idestado', $statusValues);
-
-        $warehouseValues = $this->codeModel->all('almacenes', 'codalmacen', 'nombre');
-        if (count($warehouseValues) > 2) {
-            $this->addFilterSelect($name, 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
-        }
-
-        $serieValues = $this->codeModel->all('series', 'codserie', 'descripcion');
-        if (count($serieValues) > 2) {
-            $this->addFilterSelect($name, 'codserie', 'series', 'codserie', $serieValues);
-        }
-
-        $paymentValues = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
-        $this->addFilterSelect($name, 'codpago', 'payment-method', 'codpago', $paymentValues);
-
+        /// filters
+        $this->addCommonViewFilters($name, $model);
         $this->addFilterAutocomplete($name, 'codproveedor', 'supplier', 'codproveedor', 'Proveedor');
         $this->addFilterCheckbox($name, 'femail', 'email-not-sent', 'femail', 'IS', null);
         $this->addFilterCheckbox($name, 'paid', 'paid', 'pagado');
     }
 
     /**
-     * 
+     *
      * @param string $name
      * @param string $model
      * @param string $label
@@ -112,28 +132,11 @@ abstract class ListBusinessDocument extends ListController
         $this->addOrderBy($name, ['fecha', 'hora'], 'date', 2);
         $this->addOrderBy($name, ['total'], 'amount');
 
-        $this->addFilterPeriod($name, 'date', 'period', 'fecha');
-        $this->addFilterNumber($name, 'min-total', 'total', 'total', '>=');
-        $this->addFilterNumber($name, 'max-total', 'total', 'total', '<=');
-
-        $where = [new DataBaseWhere('tipodoc', $model)];
-        $statusValues = $this->codeModel->all('estados_documentos', 'idestado', 'nombre', true, $where);
-        $this->addFilterSelect($name, 'idestado', 'state', 'idestado', $statusValues);
-
-        $warehouseValues = $this->codeModel->all('almacenes', 'codalmacen', 'nombre');
-        if (count($warehouseValues) > 2) {
-            $this->addFilterSelect($name, 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
-        }
-
-        $serieValues = $this->codeModel->all('series', 'codserie', 'descripcion');
-        if (count($serieValues) > 2) {
-            $this->addFilterSelect($name, 'codserie', 'series', 'codserie', $serieValues);
-        }
-
-        $paymentValues = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
-        $this->addFilterSelect($name, 'codpago', 'payment-method', 'codpago', $paymentValues);
-
+        /// filters
+        $this->addCommonViewFilters($name, $model);
         $this->addFilterAutocomplete($name, 'codcliente', 'customer', 'codcliente', 'Cliente');
+        $this->addFilterAutocomplete($name, 'idcontactofact', 'billing-address', 'idcontacto', 'contacto');
+        $this->addFilterautocomplete($name, 'idcontactoenv', 'shipping-address', 'idcontacto', 'contacto');
         $this->addFilterCheckbox($name, 'femail', 'email-not-sent', 'femail', 'IS', null);
         $this->addFilterCheckbox($name, 'paid', 'paid', 'pagado');
     }

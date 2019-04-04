@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -384,13 +384,10 @@ abstract class BusinessDocumentController extends PanelController
      */
     protected function updateLine($oldLine, array $newLine)
     {
-        foreach ($newLine as $key => $value) {
-            $oldLine->{$key} = $value;
-        }
+        /// reload line data from database to get last changes
+        $oldLine->loadFromCode($oldLine->primaryColumnValue());
 
-        $oldLine->pvpsindto = $oldLine->pvpunitario * $oldLine->cantidad;
-        $oldLine->pvptotal = $oldLine->pvpsindto * (100 - $oldLine->dtopor) / 100;
-
+        $oldLine->loadFromData($newLine, ['actualizastock']);
         if ($oldLine->save()) {
             return $oldLine->updateStock($this->views[$this->active]->model->codalmacen);
         }

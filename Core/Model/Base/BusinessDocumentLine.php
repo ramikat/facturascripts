@@ -22,6 +22,7 @@ use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
 use FacturaScripts\Dinamic\Model\Impuesto;
+use FacturaScripts\Dinamic\Model\Producto;
 use FacturaScripts\Dinamic\Model\Stock;
 use FacturaScripts\Dinamic\Model\Variante;
 
@@ -103,6 +104,12 @@ abstract class BusinessDocumentLine extends ModelClass
     public $idlinea;
 
     /**
+     *
+     * @var int
+     */
+    public $idproducto;
+
+    /**
      * % of IRPF of the line.
      *
      * @var float|int
@@ -151,6 +158,9 @@ abstract class BusinessDocumentLine extends ModelClass
      */
     public $referencia;
 
+    /**
+     * Returns the name of the column to store the document's identifier.
+     */
     abstract public function documentColumn();
 
     /**
@@ -192,7 +202,7 @@ abstract class BusinessDocumentLine extends ModelClass
     /**
      * Removed this row from the database table.
      *
-     * @return boolean
+     * @return bool
      */
     public function delete()
     {
@@ -205,12 +215,38 @@ abstract class BusinessDocumentLine extends ModelClass
     }
 
     /**
-     * 
+     * Returns the identifier of the document.
+     *
      * @return int
      */
     public function documentColumnValue()
     {
         return $this->{$this->documentColumn()};
+    }
+
+    /**
+     * Returns related product.
+     *
+     * @return Producto
+     */
+    public function getProducto()
+    {
+        $producto = new Producto();
+        $producto->loadFromCode($this->idproducto);
+        return $producto;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function install()
+    {
+        /// needed dependencies
+        new Impuesto();
+        new Producto();
+
+        return parent::install();
     }
 
     /**

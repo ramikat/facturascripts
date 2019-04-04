@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,13 +16,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- *
- * Initial description for the controller EditPresupuestoCliente
- *
- * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Carlos García Gómez      <carlos@facturascripts.com>
  * @author Fco.Antonio Moreno Pérez <famphuelva@gmail.com>
 -->
-
 <view>
     <columns>
         <group name="data" numcolumns="12">
@@ -52,7 +48,7 @@
                 <widget type="text" fieldname="cifnif" icon="fas fa-id-card" />
             </column>
             <column name="address" numcolumns="6" order="120">
-                <widget type="text" fieldname="direccion" />
+                <widget type="text" fieldname="direccion" icon="fas fa-map-marked" />
             </column>
             <column name="zip-code" numcolumns="2" order="130">
                 <widget type="text" fieldname="codpostal" />
@@ -74,19 +70,19 @@
         </group>
         <group name="shipaddresses" title="shipping-address" numcolumns="12">
             <column name="shippingaddr" title="shipping-address" order="100">
-                <widget type="select" fieldname="idcontactoenv" onclick="EditContacto" required="true">
+                <widget type="select" fieldname="idcontactoenv" onclick="EditContacto">
                     <values></values>
                 </widget>
             </column>
         </group>
-        <group name="codattributes" title="attributes" numcolumns="12">
+        <group name="attributes" title="attributes" numcolumns="12">
             <column name="company" numcolumns="2" order="100">
-                <widget type="select" fieldname="idempresa" onclick="EditEmpresa" required="true">
+                <widget type="select" fieldname="idempresa" onclick="EditEmpresa" required="true" readonly="dinamic">
                     <values source="empresas" fieldcode="idempresa" fieldtitle="nombre"></values>
                 </widget>
             </column>
             <column name="warehouse" numcolumns="2" order="110">
-                <widget type="select" fieldname="codalmacen" onclick="EditAlmacen" required="true">
+                <widget type="select" fieldname="codalmacen" onclick="EditAlmacen" required="true" readonly="dinamic">
                     <values source="almacenes" fieldcode="codalmacen" fieldtitle="nombre"></values>
                 </widget>
             </column>
@@ -121,7 +117,7 @@
             </column>
         </group>
         <group name="notes" numcolumns="12">
-            <column name="observations" numcolumns="12" order="110">
+            <column name="observations" numcolumns="12" order="100">
                 <widget type="textarea" fieldname="observaciones" />
             </column>
         </group>

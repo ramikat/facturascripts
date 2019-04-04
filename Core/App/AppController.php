@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -226,7 +226,7 @@ class AppController extends App
                 $template = 'Error/ControllerError.html.twig';
             }
         } else {
-            $this->miniLog->alert($this->i18n->trans('controller-not-found'));
+            $this->miniLog->critical($this->i18n->trans('controller-not-found'));
         }
 
         $this->response->setStatusCode($httpStatus);
@@ -307,12 +307,12 @@ class AppController extends App
             }
 
             $this->ipFilter->setAttempt($this->request->getClientIp());
-            $this->miniLog->alert($this->i18n->trans('login-password-fail'));
+            $this->miniLog->warning($this->i18n->trans('login-password-fail'));
             return false;
         }
 
         $this->ipFilter->setAttempt($this->request->getClientIp());
-        $this->miniLog->alert($this->i18n->trans('login-user-not-found'));
+        $this->miniLog->alert($this->i18n->trans('login-user-not-found', ['%nick%' => $nick]));
         return false;
     }
 
@@ -337,12 +337,12 @@ class AppController extends App
                 return $user;
             }
 
-            $this->miniLog->alert($this->i18n->trans('login-cookie-fail'));
+            $this->miniLog->warning($this->i18n->trans('login-cookie-fail'));
             $this->response->headers->clearCookie('fsNick');
             return false;
         }
 
-        $this->miniLog->alert($this->i18n->trans('login-user-not-found'));
+        $this->miniLog->alert($this->i18n->trans('login-user-not-found', ['%nick%' => $cookieNick]));
         return false;
     }
 

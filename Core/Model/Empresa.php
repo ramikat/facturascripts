@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -120,7 +120,7 @@ class Empresa extends Base\Contact
      * 
      * @param array $data
      */
-    public function __construct(array $data = array())
+    public function __construct(array $data = [])
     {
         if (self::$regimenIVA === null) {
             self::$regimenIVA = new RegimenIVA();
@@ -137,6 +137,20 @@ class Empresa extends Base\Contact
         parent::clear();
         $this->codpais = AppSettings::get('default', 'codpais');
         $this->regimeniva = self::$regimenIVA->defaultValue();
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        if ($this->idempresa == AppSettings::get('default', 'idempresa')) {
+            self::$miniLog->alert('you-cant-not-remove-default-company');
+            return false;
+        }
+
+        return parent::delete();
     }
 
     /**
@@ -208,5 +222,47 @@ class Empresa extends Base\Contact
         }
 
         return parent::test();
+    }
+
+    protected function createPaymentMethods()
+    {
+        $formaPago = new FormaPago();
+        $formaPago->codpago = $formaPago->newCode();
+        $formaPago->descripcion = self::$i18n->trans('default');
+        $formaPago->idempresa = $this->idempresa;
+        $formaPago->save();
+    }
+
+    protected function createWarehouse()
+    {
+        $almacen = new Almacen();
+        $almacen->apartado = $this->apartado;
+        $almacen->codalmacen = $almacen->newCode();
+        $almacen->ciudad = $this->ciudad;
+        $almacen->codpais = $this->codpais;
+        $almacen->codpostal = $this->codpostal;
+        $almacen->direccion = $this->direccion;
+        $almacen->idempresa = $this->idempresa;
+        $almacen->nombre = $this->nombrecorto;
+        $almacen->provincia = $this->provincia;
+        $almacen->telefono = $this->telefono1;
+        $almacen->save();
+    }
+
+    /**
+     * 
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveInsert(array $values = [])
+    {
+        if (parent::saveInsert($values)) {
+            $this->createPaymentMethods();
+            $this->createWarehouse();
+            return true;
+        }
+
+        return false;
     }
 }

@@ -199,10 +199,36 @@ abstract class BaseView
             'btnDelete' => true,
             'btnNew' => true,
             'btnPrint' => false,
+            'btnSave' => true,
+            'btnUndo' => true,
         ];
         $this->template = 'Master/BaseView.html.twig';
         $this->title = static::$i18n->trans($title);
         $this->assets();
+    }
+
+    /**
+     * Gets the modal column by the column name
+     *
+     * @param string $columnName
+     *
+     * @return ColumnItem
+     */
+    public function columnModalForName(string $columnName)
+    {
+        return $this->getColumnForName($columnName, $this->modals);
+    }
+
+    /**
+     * Gets the column by the column name
+     *
+     * @param string $columnName
+     *
+     * @return ColumnItem
+     */
+    public function columnForName(string $columnName)
+    {
+        return $this->getColumnForName($columnName, $this->columns);
     }
 
     /**
@@ -226,26 +252,6 @@ abstract class BaseView
     }
 
     /**
-     * Gets the column by the column name
-     *
-     * @param string $columnName
-     *
-     * @return ColumnItem
-     */
-    public function columnForName(string $columnName)
-    {
-        foreach ($this->columns as $group) {
-            foreach ($group->columns as $key => $column) {
-                if ($key === $columnName) {
-                    return $column;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Establishes the column's edit state
      *
      * @param string $columnName
@@ -257,6 +263,27 @@ abstract class BaseView
         if (!empty($column)) {
             $column->display = $disabled ? 'none' : 'left';
         }
+    }
+
+    /**
+     * Gets the column by the column name from source group
+     *
+     * @param string $columnName
+     * @param array  $source
+     *
+     * @return ColumnItem
+     */
+    public function getColumnForName(string $columnName, &$source)
+    {
+        foreach ($source as $group) {
+            foreach ($group->columns as $key => $column) {
+                if ($key === $columnName) {
+                    return $column;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

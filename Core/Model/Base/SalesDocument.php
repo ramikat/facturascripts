@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,6 +21,7 @@ namespace FacturaScripts\Core\Model\Base;
 use FacturaScripts\Core\Base\Utils;
 use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\Contacto;
+use FacturaScripts\Dinamic\Model\Pais;
 
 /**
  * Description of SalesDocument
@@ -146,6 +147,20 @@ abstract class SalesDocument extends BusinessDocument
     }
 
     /**
+     * 
+     * @return string
+     */
+    public function country()
+    {
+        $country = new Pais();
+        if ($country->loadFromCode($this->codpais)) {
+            return Utils::fixHtml($country->nombre);
+        }
+
+        return $this->codpais;
+    }
+
+    /**
      * Assign the customer to the document.
      * 
      * @param Cliente|Contacto $subject
@@ -237,5 +252,19 @@ abstract class SalesDocument extends BusinessDocument
         }
 
         return $this->setSubject($cliente);
+    }
+
+    /**
+     * 
+     * @param array $fields
+     */
+    protected function setPreviousData(array $fields = [])
+    {
+        $more = [
+            'codalmacen', 'codcliente', 'coddivisa', 'codejercicio', 'codpago',
+            'codserie', 'editable', 'fecha', 'hora', 'idempresa', 'idestado',
+            'total'
+        ];
+        parent::setPreviousData(array_merge($more, $fields));
     }
 }

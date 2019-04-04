@@ -9,8 +9,6 @@
     var listViewDeleteTitle = "{{ i18n.trans('confirm-delete') }}";
 </script>
 
-<br/>
-
 <form id="{{ formName }}" method="post">
     <input type="hidden" name="action"/>
     <input type="hidden" name="activetab" value="{{ currentView.getViewName() }}"/>
@@ -23,9 +21,15 @@
             <div class="col">
                 <div class="btn-group">
                     {% if currentView.settings.btnNew %}
-                        <a href="{{ currentView.btnNewUrl() }}" class="btn btn-success">
-                            <i class="fas fa-plus fa-fw" aria-hidden="true"></i>
-                        </a>
+                        {% if currentView.settings.modalInsert %}
+                            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal{{ currentView.settings.modalInsert }}">
+                                <i class="fas fa-plus fa-fw" aria-hidden="true"></i>
+                            </button>
+                        {% else %}
+                            <a href="{{ currentView.btnNewUrl() }}" class="btn btn-success">
+                                <i class="fas fa-plus fa-fw" aria-hidden="true"></i>
+                            </a>
+                        {% endif %}
                     {% endif %}
                     {% if currentView.settings.btnDelete %}
                         <button type="button" class="btn btn-danger" onclick="listViewDelete('{{ currentView.getViewName() }}');">
@@ -61,7 +65,6 @@
             {# -- Right buttons -- #}
             {% if currentView.orderOptions is empty %}
                 <div class="col">
-                    <br/><br/>
                 </div>
             {% else %}
                 {# -- OrderBy button -- #}
@@ -233,17 +236,10 @@
         </button>
         <div class="dropdown-menu">
             {% for key, option in fsc.exportManager.options() %}
-                {% if '?' in currentView.model.url() %}
-                    <a href="{{ currentView.model.url() }}&action=export&option={{ key }}" class="dropdown-item">
-                        <i class="{{ option.icon }} fa-fw" aria-hidden="true"></i>
-                        {{ i18n.trans(option.description) }}
-                    </a>
-                {% else %}
-                    <a href="{{ currentView.model.url() }}?action=export&option={{ key }}" class="dropdown-item">
-                        <i class="{{ option.icon }} fa-fw" aria-hidden="true"></i>
-                        {{ i18n.trans(option.description) }}
-                    </a>
-                {% endif %}
+                <a href="#" class="dropdown-item" onclick="listViewPrintAction('{{ currentView.getViewName() }}', '{{ key }}');">
+                    <i class="{{ option.icon }} fa-fw" aria-hidden="true"></i>
+                    {{ i18n.trans(option.description) }}
+                </a>
             {% endfor %}
         </div>
     </div>

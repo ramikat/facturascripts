@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,8 +19,8 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Dinamic\Lib\Accounting\InvoiceToAccounting;
 use FacturaScripts\Dinamic\Model\LineaFacturaCliente;
-use FacturaScripts\Core\Lib\Accounting\InvoiceToAccounting;
 
 /**
  * Invoice of a client.
@@ -34,12 +34,17 @@ class FacturaCliente extends Base\SalesDocument
     use Base\InvoiceTrait;
 
     /**
-     * Reset the values of all model properties.
+     * 
+     * @return bool
      */
-    public function clear()
+    public function delete()
     {
-        parent::clear();
-        $this->anulada = false;
+        $asiento = $this->getAccountingEntry();
+        if ($asiento->exists()) {
+            return $asiento->delete() ? parent::delete() : false;
+        }
+
+        return parent::delete();
     }
 
     /**
@@ -88,6 +93,7 @@ class FacturaCliente extends Base\SalesDocument
     {
         $sql = parent::install();
         new Asiento();
+
         return $sql;
     }
 
@@ -112,39 +118,45 @@ class FacturaCliente extends Base\SalesDocument
     }
 
     /**
-     * Generates the accounting entry for the document
-     *
+     * 
      * @return bool
      */
-    private function accountingDocument()
+    public function test()
     {
-        $accounting = new InvoiceToAccounting($this);
-        return $accounting->accountSales();
+        if (empty($this->vencimiento)) {
+            $this->setPaymentMethod($this->codpago);
+        }
+
+        return parent::test();
     }
 
     /**
-     * Insert the model data in the database.
-     *
-     * @param array $values
+     * 
+     * @param string $field
      *
      * @return bool
      */
-    protected function saveInsert(array $values = array())
+    protected function onChange($field)
     {
-        $this->accountingDocument();
-        return parent::saveInsert($values);
-    }
+        if (!parent::onChange($field)) {
+            return false;
+        }
 
-    /**
-     * Update the model data in the database.
-     *
-     * @param array $values
-     *
-     * @return bool
-     */
-    protected function saveUpdate(array $values = array())
-    {
-        $this->accountingDocument();
-        return parent::saveUpdate($values);
+        switch ($field) {
+            case 'codpago':
+                $this->setPaymentMethod($this->codpago);
+                return true;
+
+            case 'total':
+                $asiento = $this->getAccountingEntry();
+                if ($asiento->exists() && $asiento->delete()) {
+                    $this->idasiento = null;
+                }
+                $tool = new InvoiceToAccounting();
+                $tool->generate($this);
+                return true;
+        }
+
+        return true;
     }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -143,7 +143,7 @@ class ListView extends BaseView
     }
 
     /**
-     * 
+     *
      * @return string
      */
     public function btnNewUrl()
@@ -161,7 +161,7 @@ class ListView extends BaseView
 
     /**
      * Removes a saved user filter.
-     * 
+     *
      * @param string $idfilter
      *
      * @return boolean
@@ -258,15 +258,36 @@ class ListView extends BaseView
      */
     public function processFormData($request, $case)
     {
-        if ($case === 'preload') {
-            foreach ($this->filters as $filter) {
-                $filter->getDataBaseWhere($this->where);
-            }
-            return;
-        } elseif ($case !== 'load') {
-            return;
-        }
+        switch ($case) {
+            case 'edit':
+                $name = $this->settings['modalInsert'] ?? '';
+                if (empty($name)) {
+                    break;
+                }
+                $modals = $this->getModals();
+                foreach ($modals[$name]->columns as $group) {
+                    $group->processFormData($this->model, $request);
+                }
+                break;
 
+            case 'load':
+                $this->processFormDataLoad($request);
+                break;
+
+            case 'preload':
+                foreach ($this->filters as $filter) {
+                    $filter->getDataBaseWhere($this->where);
+                }
+                break;
+        }
+    }
+
+    /**
+     * 
+     * @param Request $request
+     */
+    private function processFormDataLoad($request)
+    {
         $this->offset = (int) $request->request->get('offset', 0);
         $this->setSelectedOrderBy($request->request->get('order', ''));
 
@@ -303,7 +324,7 @@ class ListView extends BaseView
      *
      * @param Request $request
      * @param User    $user
-     * 
+     *
      * @return int
      */
     public function savePageFilter($request, $user)

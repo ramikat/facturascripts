@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -24,7 +24,6 @@ use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Dinamic\Lib\IDFiscal;
 use FacturaScripts\Dinamic\Lib\RegimenIVA;
 use FacturaScripts\Dinamic\Model\TotalModel;
-use FacturaScripts\Dinamic\Model\CodeModel;
 
 /**
  * Controller to edit a single item from the Cliente model
@@ -103,12 +102,13 @@ class EditCliente extends ExtendedController\EditController
         parent::createViews();
         $this->addListView('ListContacto', 'Contacto', 'addresses-and-contacts', 'fas fa-address-book');
         $this->addEditListView('EditCuentaBancoCliente', 'CuentaBancoCliente', 'customer-banking-accounts', 'fas fa-piggy-bank');
-        $this->addListView('ListCliente', 'Cliente', 'same-group', 'fas fa-users');
+        $this->addListView('ListSubcuenta', 'Subcuenta', 'subaccounts', 'fas fa-book');
         $this->addListView('ListFacturaCliente', 'FacturaCliente', 'invoices', 'fas fa-copy');
         $this->addListView('ListLineaFacturaCliente', 'LineaFacturaCliente', 'products', 'fas fa-cubes');
         $this->addListView('ListAlbaranCliente', 'AlbaranCliente', 'delivery-notes', 'fas fa-copy');
         $this->addListView('ListPedidoCliente', 'PedidoCliente', 'orders', 'fas fa-copy');
         $this->addListView('ListPresupuestoCliente', 'PresupuestoCliente', 'estimations', 'fas fa-copy');
+        $this->addListView('ListCliente', 'Cliente', 'same-group', 'fas fa-users');
 
         /// Disable columns
         $this->views['ListFacturaCliente']->disableColumn('customer', true);
@@ -116,6 +116,9 @@ class EditCliente extends ExtendedController\EditController
         $this->views['ListPedidoCliente']->disableColumn('customer', true);
         $this->views['ListPresupuestoCliente']->disableColumn('customer', true);
         $this->views['ListLineaFacturaCliente']->disableColumn('order', true);
+
+        /// Disable buttons
+        $this->setSettings('ListSubcuenta', 'btnNew', false);
     }
 
     /**
@@ -130,8 +133,17 @@ class EditCliente extends ExtendedController\EditController
         switch ($viewName) {
             case 'EditCliente':
                 parent::loadData($viewName, $view);
-                $code = $this->getViewModelValue('EditCliente', 'codcliente');
-                $this->setCustomWidgetValues($code);
+                $this->setCustomWidgetValues();
+                break;
+
+            case 'EditCuentaBancoCliente':
+            case 'ListAlbaranCliente':
+            case 'ListContacto':
+            case 'ListFacturaCliente':
+            case 'ListPedidoCliente':
+            case 'ListPresupuestoCliente':
+                $where = [new DataBaseWhere('codcliente', $codcliente)];
+                $view->loadData('', $where);
                 break;
 
             case 'ListCliente':
@@ -142,33 +154,26 @@ class EditCliente extends ExtendedController\EditController
                 }
                 break;
 
-            case 'EditCuentaBancoCliente':
-            case 'ListContacto':
-            case 'ListFacturaCliente':
-            case 'ListAlbaranCliente':
-            case 'ListPedidoCliente':
-            case 'ListPresupuestoCliente':
-                $where = [new DataBaseWhere('codcliente', $codcliente)];
-                $view->loadData('', $where);
-                break;
-
             case 'ListLineaFacturaCliente':
                 $inSQL = 'SELECT idfactura FROM facturascli WHERE codcliente = ' . $this->dataBase->var2str($codcliente);
                 $where = [new DataBaseWhere('idfactura', $inSQL, 'IN')];
                 $view->loadData('', $where);
                 break;
+
+            case 'ListSubcuenta':
+                $codsubcuenta = $this->getViewModelValue('EditCliente', 'codsubcuenta');
+                $where = [new DataBaseWhere('codsubcuenta', $codsubcuenta)];
+                $view->loadData('', $where);
+                break;
         }
     }
 
-    /**
-     * 
-     * @param string $code
-     */
-    protected function setCustomWidgetValues($code)
+    protected function setCustomWidgetValues()
     {
         /// Search for client contacts
-        $where = [new DataBaseWhere('codcliente', $code)];
-        $contacts = CodeModel::all('contactos', 'idcontacto', 'descripcion', false, $where);
+        $codcliente = $this->getViewModelValue('EditCliente', 'codcliente');
+        $where = [new DataBaseWhere('codcliente', $codcliente)];
+        $contacts = $this->codeModel->all('contactos', 'idcontacto', 'descripcion', false, $where);
 
         /// Load values option to default billing address from client contacts list
         $columnBilling = $this->views['EditCliente']->columnForName('billing-address');
