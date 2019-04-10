@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Lib;
 
 use FacturaScripts\Core\Model\Base\BusinessDocument;
-use FacturaScripts\Core\Model\DocTransformation;
+use FacturaScripts\Dinamic\Model\DocTransformation;
 
 /**
  * Description of BusinessDocumentGenerator
@@ -129,9 +129,6 @@ class BusinessDocumentGenerator
             if (!$newLine->save()) {
                 return false;
             }
-
-            /// update stock
-            $newLine->updateStock($newDoc->codalmacen);
 
             /// save relation
             $docTrans->clear();
