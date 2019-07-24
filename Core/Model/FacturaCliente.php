@@ -19,8 +19,6 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Dinamic\Lib\Accounting\InvoiceToAccounting;
-use FacturaScripts\Dinamic\Model\LineaFacturaCliente;
 
 /**
  * Invoice of a client.
@@ -34,17 +32,18 @@ class FacturaCliente extends Base\SalesDocument
     use Base\InvoiceTrait;
 
     /**
-     * 
-     * @return bool
+     * This function is called when creating the model table. Returns the SQL
+     * that will be executed after the creation of the table. Useful to insert values
+     * default.
+     *
+     * @return string
      */
-    public function delete()
+    public function install()
     {
-        $asiento = $this->getAccountingEntry();
-        if ($asiento->exists()) {
-            return $asiento->delete() ? parent::delete() : false;
-        }
+        /// needed dependencies
+        new LiquidacionComision();
 
-        return parent::delete();
+        return parent::install();
     }
 
     /**
@@ -83,28 +82,15 @@ class FacturaCliente extends Base\SalesDocument
     }
 
     /**
-     * This function is called when creating the model table. Returns the SQL
-     * that will be executed after the creation of the table. Useful to insert values
-     * default.
+     * Returns all invoice's receipts.
      *
-     * @return string
+     * @return ReciboCliente[]
      */
-    public function install()
+    public function getReceipts()
     {
-        $sql = parent::install();
-        new Asiento();
-
-        return $sql;
-    }
-
-    /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public static function primaryColumn()
-    {
-        return 'idfactura';
+        $receipt = new ReciboCliente();
+        $where = [new DataBaseWhere('idfactura', $this->idfactura)];
+        return $receipt->all($where, ['numero' => 'ASC', 'idrecibo' => 'ASC'], 0, 0);
     }
 
     /**
@@ -115,48 +101,5 @@ class FacturaCliente extends Base\SalesDocument
     public static function tableName()
     {
         return 'facturascli';
-    }
-
-    /**
-     * 
-     * @return bool
-     */
-    public function test()
-    {
-        if (empty($this->vencimiento)) {
-            $this->setPaymentMethod($this->codpago);
-        }
-
-        return parent::test();
-    }
-
-    /**
-     * 
-     * @param string $field
-     *
-     * @return bool
-     */
-    protected function onChange($field)
-    {
-        if (!parent::onChange($field)) {
-            return false;
-        }
-
-        switch ($field) {
-            case 'codpago':
-                $this->setPaymentMethod($this->codpago);
-                return true;
-
-            case 'total':
-                $asiento = $this->getAccountingEntry();
-                if ($asiento->exists() && $asiento->delete()) {
-                    $this->idasiento = null;
-                }
-                $tool = new InvoiceToAccounting();
-                $tool->generate($this);
-                return true;
-        }
-
-        return true;
     }
 }

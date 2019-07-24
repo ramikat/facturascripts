@@ -61,13 +61,12 @@ class SendMail extends Controller
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'reports';
-        $pageData['title'] = 'send-mail';
-        $pageData['icon'] = 'fas fa-envelope';
-        $pageData['showonmenu'] = false;
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'reports';
+        $data['showonmenu'] = false;
+        $data['title'] = 'send-mail';
+        $data['icon'] = 'fas fa-envelope';
+        return $data;
     }
 
     /**
@@ -219,7 +218,7 @@ class SendMail extends Controller
     protected function removeOld()
     {
         $regex = '/Mail_([0-9]+).pdf/';
-        foreach (glob(FS_FOLDER . '/MyFiles/Mail_*.pdf') as $fileName) {
+        foreach (glob(\FS_FOLDER . '/MyFiles/Mail_*.pdf') as $fileName) {
             $fileTime = [];
             preg_match($regex, $fileName, $fileTime);
             if ($fileTime[1] < (time() - self::MAX_FILE_AGE)) {
@@ -266,14 +265,14 @@ class SendMail extends Controller
         }
 
         $fileName = $this->request->get('fileName', '');
-        $mail->addAttachment(FS_FOLDER . '/MyFiles/' . $fileName);
+        $mail->addAttachment(\FS_FOLDER . '/MyFiles/' . $fileName);
         foreach ($this->request->files->get('uploads', []) as $file) {
             $mail->addAttachment($file->getPathname(), $file->getClientOriginalName());
         }
 
         if ($emailTools->send($mail)) {
-            if (\file_exists(FS_FOLDER . '/MyFiles/' . $fileName)) {
-                unlink(FS_FOLDER . '/MyFiles/' . $fileName);
+            if (\file_exists(\FS_FOLDER . '/MyFiles/' . $fileName)) {
+                unlink(\FS_FOLDER . '/MyFiles/' . $fileName);
             }
 
             $this->updateFemail();

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,14 +18,14 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
 
 /**
  * Controller to list the items in the Asiento model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class ListAsiento extends ExtendedController\ListController
+class ListAsiento extends ListController
 {
 
     /**
@@ -35,12 +35,11 @@ class ListAsiento extends ExtendedController\ListController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'accounting-entries';
-        $pagedata['icon'] = 'fas fa-balance-scale';
-        $pagedata['menu'] = 'accounting';
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'accounting';
+        $data['title'] = 'accounting-entries';
+        $data['icon'] = 'fas fa-balance-scale';
+        return $data;
     }
 
     /**
@@ -48,68 +47,93 @@ class ListAsiento extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->createViewAccountEntries(); /// account entries tab
-        $this->createViewConcepts(); /// concepts tab
-        $this->createViewJournals(); /// journals tab
+        $this->createViewAccountEntries();
+        $this->createViewConcepts();
+        $this->createViewJournals();
     }
 
-    private function createViewAccountEntries()
+    /**
+     * Add accounting entries tab
+     * 
+     * @param string $viewName
+     */
+    protected function createViewAccountEntries($viewName = 'ListAsiento')
     {
-        /// accounting entries
-        $this->addView('ListAsiento', 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
-        $this->addSearchFields('ListAsiento', ['CAST(numero AS CHAR(10))', 'concepto']);
-        $this->addOrderBy('ListAsiento', ['fecha', 'idasiento'], 'date', 2);
-        $this->addOrderBy('ListAsiento', ['numero', 'idasiento'], 'number');
-        $this->addOrderBy('ListAsiento', ['importe', 'idasiento'], 'ammount');
+        $this->addView($viewName, 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
+        $this->addSearchFields($viewName, ['CAST(numero AS CHAR(10))', 'concepto']);
+        $this->addOrderBy($viewName, ['fecha', 'idasiento'], 'date', 2);
+        $this->addOrderBy($viewName, ['numero', 'idasiento'], 'number');
+        $this->addOrderBy($viewName, ['importe', 'idasiento'], 'amount');
 
-        $this->addFilterPeriod('ListAsiento', 'date', 'period', 'fecha');
-        $this->addFilterNumber('ListAsiento', 'min-total', 'amount', 'importe', '>=');
-        $this->addFilterNumber('ListAsiento', 'max-total', 'amount', 'importe', '<=');
+        /// filters
+        $this->addFilterPeriod($viewName, 'date', 'period', 'fecha');
+        $this->addFilterNumber($viewName, 'min-total', 'amount', 'importe', '>=');
+        $this->addFilterNumber($viewName, 'max-total', 'amount', 'importe', '<=');
 
         $selectCompany = $this->codeModel->all('empresas', 'idempresa', 'nombrecorto');
-        $this->addFilterSelect('ListAsiento', 'idempresa', 'company', 'idempresa', $selectCompany);
+        $this->addFilterSelect($viewName, 'idempresa', 'company', 'idempresa', $selectCompany);
 
         $selectExercise = $this->codeModel->all('ejercicios', 'codejercicio', 'nombre');
-        $this->addFilterSelect('ListAsiento', 'codejercicio', 'exercise', 'codejercicio', $selectExercise);
+        $this->addFilterSelect($viewName, 'codejercicio', 'exercise', 'codejercicio', $selectExercise);
 
         $selectJournals = $this->codeModel->all('diarios', 'iddiario', 'descripcion');
-        $this->addFilterSelect('ListAsiento', 'iddiario', 'journals', 'iddiario', $selectJournals);
+        $this->addFilterSelect($viewName, 'iddiario', 'journals', 'iddiario', $selectJournals);
 
-        $this->addFilterNumber('ListAsiento', 'canal', 'channel', 'canal', '=');
+        $this->addFilterNumber($viewName, 'canal', 'channel', 'canal', '=');
+
+        /// buttons
+        $newButton = [
+            'action' => 'renumber',
+            'color' => 'warning',
+            'icon' => 'fas fa-sort-numeric-down',
+            'label' => 'renumber-accounting',
+            'type' => 'modal',
+        ];
+        $this->addButton($viewName, $newButton);
     }
 
-    private function createViewConcepts()
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createViewConcepts($viewName = 'ListConceptoPartida')
     {
-        $this->addView('ListConceptoPartida', 'ConceptoPartida', 'predefined-concepts', 'fas fa-indent');
-        $this->addSearchFields('ListConceptoPartida', ['codconcepto', 'descripcion']);
-        $this->addOrderBy('ListConceptoPartida', ['codconcepto'], 'code');
-        $this->addOrderBy('ListConceptoPartida', ['descripcion'], 'description');
+        $this->addView($viewName, 'ConceptoPartida', 'predefined-concepts', 'fas fa-indent');
+        $this->addSearchFields($viewName, ['codconcepto', 'descripcion']);
+        $this->addOrderBy($viewName, ['codconcepto'], 'code');
+        $this->addOrderBy($viewName, ['descripcion'], 'description');
     }
 
-    private function createViewJournals()
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createViewJournals($viewName = 'ListDiario')
     {
-        $this->addView('ListDiario', 'Diario', 'journals', 'fas fa-book');
-        $this->addSearchFields('ListDiario', ['iddiario', 'descripcion']);
-        $this->addOrderBy('ListDiario', ['iddiario'], 'code');
-        $this->addOrderBy('ListDiario', ['descripcion'], 'description');
+        $this->addView($viewName, 'Diario', 'journals', 'fas fa-book');
+        $this->addSearchFields($viewName, ['iddiario', 'descripcion']);
+        $this->addOrderBy($viewName, ['iddiario'], 'code');
+        $this->addOrderBy($viewName, ['descripcion'], 'description');
     }
 
     /**
      * Run the actions that alter data before reading it.
      *
      * @param string $action
+     *
+     * @return bool
      */
     protected function execPreviousAction($action)
     {
         switch ($action) {
             case 'renumber':
-                if ($this->views['ListAsiento']->model->renumber()) {
+                $codejercicio = $this->request->request->get('exercise');
+                if ($this->views['ListAsiento']->model->renumber($codejercicio)) {
                     $this->miniLog->notice($this->i18n->trans('renumber-accounting-ok'));
                 }
                 return true;
-
-            default:
-                return parent::execPreviousAction($action);
         }
+
+        return parent::execPreviousAction($action);
     }
 }

@@ -54,13 +54,6 @@ class Subcuenta extends Base\ModelClass
     public $codejercicio;
 
     /**
-     * Tax code.
-     *
-     * @var string
-     */
-    public $codimpuesto;
-
-    /**
      * Sub-account code.
      *
      * @var string
@@ -220,6 +213,15 @@ class Subcuenta extends Base\ModelClass
     }
 
     /**
+     * 
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'codsubcuenta';
+    }
+
+    /**
      * Returns the name of the table that uses this model.
      *
      * @return string
@@ -290,7 +292,6 @@ class Subcuenta extends Base\ModelClass
                 . ' WHERE idsubcuenta = ' . $this->idsubcuenta;
             self::$dataBase->exec($sql);
 
-            /// save transaction
             if ($inTransaction === false) {
                 self::$dataBase->commit();
             }

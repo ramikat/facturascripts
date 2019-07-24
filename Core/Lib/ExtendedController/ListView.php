@@ -20,11 +20,12 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
-use FacturaScripts\Core\Lib\AssetManager;
-use FacturaScripts\Core\Lib\ExportManager;
 use FacturaScripts\Core\Lib\ListFilter\BaseFilter;
-use FacturaScripts\Core\Model\PageFilter;
-use FacturaScripts\Core\Model\User;
+use FacturaScripts\Dinamic\Lib\AssetManager;
+use FacturaScripts\Dinamic\Lib\ExportManager;
+use FacturaScripts\Dinamic\Lib\Widget\ColumnItem;
+use FacturaScripts\Dinamic\Model\PageFilter;
+use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -148,7 +149,7 @@ class ListView extends BaseView
      */
     public function btnNewUrl()
     {
-        $url = $this->model->url('new');
+        $url = empty($this->model) ? '' : $this->model->url('new');
         $params = [];
         foreach (DataBaseWhere::getFieldsFilter($this->where) as $key => $value) {
             if ($value !== false) {
@@ -176,6 +177,7 @@ class ListView extends BaseView
                     unset($this->pageFilters[$key]);
                 }
             }
+
             return true;
         }
 
@@ -198,35 +200,37 @@ class ListView extends BaseView
 
     /**
      *
-     * @return array
+     * @return ColumnItem[]
      */
     public function getColumns()
     {
-        $columns = [];
         foreach ($this->columns as $group) {
-            foreach ($group->columns as $col) {
-                $columns[] = $col;
-            }
+            return $group->columns;
         }
 
-        return $columns;
+        return [];
     }
 
     /**
      * Loads the data in the cursor property, according to the where filter specified.
      *
-     * @param mixed           $code
+     * @param string          $code
      * @param DataBaseWhere[] $where
      * @param array           $order
      * @param int             $offset
      * @param int             $limit
      */
-    public function loadData($code = false, $where = [], $order = [], $offset = -1, $limit = FS_ITEM_LIMIT)
+    public function loadData($code = '', $where = [], $order = [], $offset = -1, $limit = \FS_ITEM_LIMIT)
     {
-        $this->offset = ($offset < 0) ? $this->offset : $offset;
+        $this->offset = $offset < 0 ? $this->offset : $offset;
         $this->order = empty($order) ? $this->order : $order;
         $this->where = array_merge($where, $this->where);
         $this->count = is_null($this->model) ? 0 : $this->model->count($this->where);
+
+        /// avoid overflow
+        if ($this->offset > $this->count) {
+            $this->offset = 0;
+        }
 
         /// needed when megasearch force data reload
         $this->cursor = [];
@@ -295,7 +299,7 @@ class ListView extends BaseView
         $this->query = $request->request->get('query', '');
         if ('' !== $this->query) {
             $fields = implode('|', $this->searchFields);
-            $this->where[] = new DataBaseWhere($fields, Utils::noHtml($this->query), 'LIKE');
+            $this->where[] = new DataBaseWhere($fields, Utils::noHtml($this->query), 'XLIKE');
         }
 
         /// select saved filter
@@ -365,7 +369,7 @@ class ListView extends BaseView
      */
     protected function assets()
     {
-        AssetManager::add('js', FS_ROUTE . '/Dinamic/Assets/JS/ListView.js');
+        AssetManager::add('js', \FS_ROUTE . '/Dinamic/Assets/JS/ListView.js');
     }
 
     /**

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,6 +20,7 @@ namespace FacturaScripts\Core\Base;
 
 use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Dinamic\Lib\AssetManager;
+use FacturaScripts\Dinamic\Lib\MultiRequestProtection;
 use FacturaScripts\Dinamic\Model\Empresa;
 use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -76,6 +77,12 @@ class Controller
      * @var MiniLog
      */
     protected $miniLog;
+
+    /**
+     *
+     * @var MultiRequestProtection
+     */
+    public $multiRequestProtection;
 
     /**
      * User permissions on this controller.
@@ -143,6 +150,7 @@ class Controller
         $this->empresa = new Empresa();
         $this->i18n = &$i18n;
         $this->miniLog = &$miniLog;
+        $this->multiRequestProtection = new MultiRequestProtection();
         $this->request = Request::createFromGlobals();
         $this->template = $this->className . '.html.twig';
         $this->uri = $uri;
@@ -212,11 +220,11 @@ class Controller
         $defaultPage = $this->request->query->get('defaultPage', '');
         if ($defaultPage === 'TRUE') {
             $this->user->homepage = $this->className;
-            $this->response->headers->setCookie(new Cookie('fsHomepage', $this->user->homepage, time() + FS_COOKIES_EXPIRE));
+            $this->response->headers->setCookie(new Cookie('fsHomepage', $this->user->homepage, time() + \FS_COOKIES_EXPIRE));
             $this->user->save();
         } elseif ($defaultPage === 'FALSE') {
             $this->user->homepage = null;
-            $this->response->headers->setCookie(new Cookie('fsHomepage', $this->user->homepage, time() - FS_COOKIES_EXPIRE));
+            $this->response->headers->setCookie(new Cookie('fsHomepage', $this->user->homepage, time() - \FS_COOKIES_EXPIRE));
             $this->user->save();
         }
     }
@@ -233,6 +241,20 @@ class Controller
 
         $idempresa = AppSettings::get('default', 'idempresa');
         $this->empresa->loadFromCode($idempresa);
+    }
+
+    /**
+     * Redirect to an url or controller.
+     * 
+     * @param string $url
+     * @param int    $delay
+     */
+    public function redirect($url, $delay = 0)
+    {
+        $this->response->headers->set('Refresh', $delay . '; ' . $url);
+        if ($delay === 0) {
+            $this->setTemplate(false);
+        }
     }
 
     /**

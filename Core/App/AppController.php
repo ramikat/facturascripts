@@ -23,12 +23,11 @@ use Exception;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Base\DebugBar\DataBaseCollector;
-use FacturaScripts\Core\Base\DebugBar\PHPCollector;
 use FacturaScripts\Core\Base\DebugBar\TranslationCollector;
 use FacturaScripts\Core\Base\EventManager;
 use FacturaScripts\Core\Base\MenuManager;
-use FacturaScripts\Core\Lib\AssetManager;
-use FacturaScripts\Core\Model\User;
+use FacturaScripts\Dinamic\Lib\AssetManager;
+use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -86,11 +85,10 @@ class AppController extends App
     {
         parent::__construct($uri);
         $this->debugBar = new StandardDebugBar();
-        if (FS_DEBUG) {
+        if (\FS_DEBUG) {
             $this->debugBar['time']->startMeasure('init', 'AppController::__construct()');
             $this->debugBar->addCollector(new DataBaseCollector($this->miniLog));
             $this->debugBar->addCollector(new TranslationCollector($this->i18n));
-            $this->debugBar->addCollector(new PHPCollector());
         }
 
         $this->menuManager = new MenuManager();
@@ -148,17 +146,8 @@ class AppController extends App
      */
     private function getControllerFullName(string $pageName)
     {
-        $controllerName = "FacturaScripts\\Dinamic\\Controller\\{$pageName}";
-        if (!class_exists($controllerName)) {
-            $controllerName = "FacturaScripts\\Core\\Controller\\{$pageName}";
-
-            /// This is important in development and unattended installations
-            if (FS_DEBUG || !file_exists(FS_FOLDER . DIRECTORY_SEPARATOR . 'Dinamic')) {
-                $this->pluginManager->deploy();
-            }
-        }
-
-        return $controllerName;
+        $controllerName = '\\FacturaScripts\\Dinamic\\Controller\\' . $pageName;
+        return class_exists($controllerName) ? $controllerName : '\\FacturaScripts\\Core\\Controller\\' . $pageName;
     }
 
     /**
@@ -190,7 +179,7 @@ class AppController extends App
      */
     private function loadController(string $pageName)
     {
-        if (FS_DEBUG) {
+        if (\FS_DEBUG) {
             $this->debugBar['time']->stopMeasure('init');
             $this->debugBar['time']->startMeasure('loadController', 'AppController::loadController()');
         }
@@ -231,7 +220,7 @@ class AppController extends App
 
         $this->response->setStatusCode($httpStatus);
         if ($template) {
-            if (FS_DEBUG) {
+            if (\FS_DEBUG) {
                 $this->debugBar['time']->stopMeasure('loadController');
                 $this->debugBar['time']->startMeasure('renderHtml', 'AppController::renderHtml()');
             }
@@ -263,8 +252,8 @@ class AppController extends App
         $webRender = new WebRender();
         $webRender->loadPluginFolders();
 
-        if (FS_DEBUG) {
-            $baseUrl = FS_ROUTE . '/vendor/maximebf/debugbar/src/DebugBar/Resources/';
+        if (\FS_DEBUG) {
+            $baseUrl = \FS_ROUTE . '/vendor/maximebf/debugbar/src/DebugBar/Resources/';
             $templateVars['debugBarRender'] = $this->debugBar->getJavascriptRenderer($baseUrl);
 
             /// add log data to the debugBar
@@ -306,12 +295,12 @@ class AppController extends App
                 return $user;
             }
 
-            $this->ipFilter->setAttempt($this->request->getClientIp());
+            $this->ipFilter->setAttempt($this->ipFilter->getClientIp());
             $this->miniLog->warning($this->i18n->trans('login-password-fail'));
             return false;
         }
 
-        $this->ipFilter->setAttempt($this->request->getClientIp());
+        $this->ipFilter->setAttempt($this->ipFilter->getClientIp());
         $this->miniLog->alert($this->i18n->trans('login-user-not-found', ['%nick%' => $nick]));
         return false;
     }
@@ -355,10 +344,10 @@ class AppController extends App
     private function updateCookies(User &$user, bool $force = false)
     {
         if ($force || \time() - \strtotime($user->lastactivity) > self::USER_UPDATE_ACTIVITY_PERIOD) {
-            $user->newLogkey($this->request->getClientIp());
+            $user->updateActivity($this->ipFilter->getClientIp());
             $user->save();
 
-            $expire = time() + FS_COOKIES_EXPIRE;
+            $expire = \time() + \FS_COOKIES_EXPIRE;
             $this->response->headers->setCookie(new Cookie('fsNick', $user->nick, $expire));
             $this->response->headers->setCookie(new Cookie('fsLogkey', $user->logkey, $expire));
             $this->response->headers->setCookie(new Cookie('fsLang', $user->langcode, $expire));

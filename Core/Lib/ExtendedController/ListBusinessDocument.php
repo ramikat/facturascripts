@@ -29,115 +29,282 @@ abstract class ListBusinessDocument extends ListController
 {
 
     /**
+     * 
+     * @param string $viewName
+     */
+    protected function addButtonApproveDocument($viewName)
+    {
+        $newButton = [
+            'action' => 'approve-document',
+            'confirm' => 'true',
+            'icon' => 'fas fa-check',
+            'label' => 'approve-document',
+            'type' => 'action',
+        ];
+        $this->addButton($viewName, $newButton);
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function addButtonGroupDocument($viewName)
+    {
+        $newButton = [
+            'action' => 'group-document',
+            'icon' => 'fas fa-magic',
+            'label' => 'group-or-split',
+            'type' => 'action',
+        ];
+        $this->addButton($viewName, $newButton);
+    }
+
+    /**
      *
-     * @param string $name
+     * @param string $viewName
      * @param string $model
      */
-    protected function addCommonViewFilters($name, $model)
+    protected function addCommonViewFilters($viewName, $model)
     {
-        $this->addFilterPeriod($name, 'date', 'period', 'fecha');
-        $this->addFilterNumber($name, 'min-total', 'total', 'total', '>=');
-        $this->addFilterNumber($name, 'max-total', 'total', 'total', '<=');
+        $this->addFilterPeriod($viewName, 'date', 'period', 'fecha');
+        $this->addFilterNumber($viewName, 'min-total', 'total', 'total', '>=');
+        $this->addFilterNumber($viewName, 'max-total', 'total', 'total', '<=');
 
         $where = [new DataBaseWhere('tipodoc', $model)];
         $statusValues = $this->codeModel->all('estados_documentos', 'idestado', 'nombre', true, $where);
-        $this->addFilterSelect($name, 'idestado', 'state', 'idestado', $statusValues);
+        $this->addFilterSelect($viewName, 'idestado', 'state', 'idestado', $statusValues);
 
         $users = $this->codeModel->all('users', 'nick', 'nick');
         if (count($users) > 2) {
-            $this->addFilterSelect($name, 'nick', 'user', 'nick', $users);
+            $this->addFilterSelect($viewName, 'nick', 'user', 'nick', $users);
         }
 
         $companies = $this->codeModel->all('empresas', 'idempresa', 'nombrecorto');
         if (count($companies) > 2) {
-            $this->addFilterSelect($name, 'idempresa', 'company', 'idempresa', $companies);
+            $this->addFilterSelect($viewName, 'idempresa', 'company', 'idempresa', $companies);
         }
 
         $warehouseValues = $this->codeModel->all('almacenes', 'codalmacen', 'nombre');
         if (count($warehouseValues) > 2) {
-            $this->addFilterSelect($name, 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
+            $this->addFilterSelect($viewName, 'codalmacen', 'warehouse', 'codalmacen', $warehouseValues);
         }
 
         $serieValues = $this->codeModel->all('series', 'codserie', 'descripcion');
         if (count($serieValues) > 2) {
-            $this->addFilterSelect($name, 'codserie', 'series', 'codserie', $serieValues);
+            $this->addFilterSelect($viewName, 'codserie', 'series', 'codserie', $serieValues);
         }
 
         $paymentValues = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
-        $this->addFilterSelect($name, 'codpago', 'payment-method', 'codpago', $paymentValues);
+        $this->addFilterSelect($viewName, 'codpago', 'payment-method', 'codpago', $paymentValues);
+
+        $currencies = $this->codeModel->all('divisas', 'coddivisa', 'descripcion');
+        $this->addFilterSelect($viewName, 'coddivisa', 'currency', 'coddivisa', $currencies);
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    protected function approveDocumentAction()
+    {
+        if (!$this->permissions->allowUpdate) {
+            $this->miniLog->alert($this->i18n->trans('not-allowed-modify'));
+            return true;
+        }
+
+        $codes = $this->request->request->get('code');
+        $model = $this->views[$this->active]->model;
+        if (!is_array($codes) || empty($model)) {
+            $this->miniLog->warning($this->i18n->trans('no-selected-item'));
+            return true;
+        }
+
+        foreach ($codes as $code) {
+            if (!$model->loadFromCode($code)) {
+                $this->miniLog->error($this->i18n->trans('record-not-found'));
+                continue;
+            }
+
+            foreach ($model->getAvaliableStatus() as $status) {
+                if (empty($status->generadoc)) {
+                    continue;
+                }
+
+                $model->idestado = $status->idestado;
+                if (!$model->save()) {
+                    $this->miniLog->error($this->i18n->trans('record-save-error'));
+                    return true;
+                }
+            }
+        }
+
+        $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+        $model->clear();
+        return true;
     }
 
     /**
      *
-     * @param string $name
+     * @param string $viewName
      * @param string $model
      */
-    protected function createViewLines($name, $model)
+    protected function createViewLines($viewName, $model)
     {
-        $this->addView($name, $model, 'lines', 'fas fa-list');
-        $this->addSearchFields($name, ['referencia', 'descripcion']);
-        $this->addOrderBy($name, ['referencia'], 'reference');
-        $this->addOrderBy($name, ['cantidad'], 'quantity');
-        $this->addOrderBy($name, ['descripcion'], 'description');
-        $this->addOrderBy($name, ['pvptotal'], 'ammount');
-        $this->addOrderBy($name, ['idlinea'], 'code', 2);
+        $this->addView($viewName, $model, 'lines', 'fas fa-list');
+        $this->addSearchFields($viewName, ['referencia', 'descripcion']);
+        $this->addOrderBy($viewName, ['referencia'], 'reference');
+        $this->addOrderBy($viewName, ['cantidad'], 'quantity');
+        $this->addOrderBy($viewName, ['descripcion'], 'description');
+        $this->addOrderBy($viewName, ['pvptotal'], 'amount');
+        $this->addOrderBy($viewName, ['idlinea'], 'code', 2);
 
         /// filters
-        $taxValues = $this->codeModel->all('impuestos', 'codimpuesto', 'descripcion');
-        $this->addFilterSelect($name, 'codimpuesto', 'tax', 'codimpuesto', $taxValues);
+        $this->addFilterAutocomplete($viewName, 'idproducto', 'product', 'idproducto', 'productos', 'idproducto', 'referencia');
 
-        $this->addFilterNumber($name, 'cantidad', 'quantity', 'cantidad');
-        $this->addFilterNumber($name, 'dtopor', 'discount', 'dtopor');
-        $this->addFilterNumber($name, 'pvpunitario', 'pvp', 'pvpunitario');
-        $this->addFilterNumber($name, 'pvptotal', 'ammount', 'pvptotal');
+        $taxValues = $this->codeModel->all('impuestos', 'codimpuesto', 'descripcion');
+        $this->addFilterSelect($viewName, 'codimpuesto', 'tax', 'codimpuesto', $taxValues);
+
+        $this->addFilterNumber($viewName, 'cantidad', 'quantity', 'cantidad');
+        $this->addFilterNumber($viewName, 'dtopor', 'discount', 'dtopor');
+        $this->addFilterNumber($viewName, 'pvpunitario', 'pvp', 'pvpunitario');
+        $this->addFilterNumber($viewName, 'pvptotal', 'amount', 'pvptotal');
 
         /// disable megasearch for this view
-        $this->setSettings($name, 'megasearch', false);
-        $this->setSettings($name, 'btnNew', false);
-        $this->setSettings($name, 'btnDelete', false);
+        $this->setSettings($viewName, 'megasearch', false);
+        $this->setSettings($viewName, 'btnNew', false);
+        $this->setSettings($viewName, 'btnDelete', false);
     }
 
     /**
      *
-     * @param string $name
+     * @param string $viewName
      * @param string $model
      * @param string $label
      */
-    protected function createViewPurchases($name, $model, $label)
+    protected function createViewPurchases($viewName, $model, $label)
     {
-        $this->addView($name, $model, $label, 'fas fa-copy');
-        $this->addSearchFields($name, ['codigo', 'numproveedor', 'observaciones']);
-        $this->addOrderBy($name, ['codigo'], 'code');
-        $this->addOrderBy($name, ['fecha', 'hora'], 'date', 2);
-        $this->addOrderBy($name, ['total'], 'amount');
+        $this->addView($viewName, $model, $label, 'fas fa-copy');
+        $this->addSearchFields($viewName, ['codigo', 'numproveedor', 'observaciones']);
+        $this->addOrderBy($viewName, ['codigo'], 'code');
+        $this->addOrderBy($viewName, ['fecha', 'hora', 'codigo'], 'date', 2);
+        $this->addOrderBy($viewName, ['numero'], 'number');
+        $this->addOrderBy($viewName, ['numproveedor'], 'numsupplier');
+        $this->addOrderBy($viewName, ['total'], 'amount');
 
         /// filters
-        $this->addCommonViewFilters($name, $model);
-        $this->addFilterAutocomplete($name, 'codproveedor', 'supplier', 'codproveedor', 'Proveedor');
-        $this->addFilterCheckbox($name, 'femail', 'email-not-sent', 'femail', 'IS', null);
-        $this->addFilterCheckbox($name, 'paid', 'paid', 'pagado');
+        $this->addCommonViewFilters($viewName, $model);
+        $this->addFilterAutocomplete($viewName, 'codproveedor', 'supplier', 'codproveedor', 'Proveedor');
+        $this->addFilterCheckbox($viewName, 'femail', 'email-not-sent', 'femail', 'IS', null);
     }
 
     /**
      *
-     * @param string $name
+     * @param string $viewName
      * @param string $model
      * @param string $label
      */
-    protected function createViewSales($name, $model, $label)
+    protected function createViewSales($viewName, $model, $label)
     {
-        $this->addView($name, $model, $label, 'fas fa-copy');
-        $this->addSearchFields($name, ['codigo', 'numero2', 'observaciones']);
-        $this->addOrderBy($name, ['codigo'], 'code');
-        $this->addOrderBy($name, ['fecha', 'hora'], 'date', 2);
-        $this->addOrderBy($name, ['total'], 'amount');
+        $this->addView($viewName, $model, $label, 'fas fa-copy');
+        $this->addSearchFields($viewName, ['codigo', 'numero2', 'observaciones']);
+        $this->addOrderBy($viewName, ['codigo'], 'code');
+        $this->addOrderBy($viewName, ['fecha', 'hora', 'codigo'], 'date', 2);
+        $this->addOrderBy($viewName, ['numero'], 'number');
+        $this->addOrderBy($viewName, ['numero2'], 'number2');
+        $this->addOrderBy($viewName, ['total'], 'amount');
 
         /// filters
-        $this->addCommonViewFilters($name, $model);
-        $this->addFilterAutocomplete($name, 'codcliente', 'customer', 'codcliente', 'Cliente');
-        $this->addFilterAutocomplete($name, 'idcontactofact', 'billing-address', 'idcontacto', 'contacto');
-        $this->addFilterautocomplete($name, 'idcontactoenv', 'shipping-address', 'idcontacto', 'contacto');
-        $this->addFilterCheckbox($name, 'femail', 'email-not-sent', 'femail', 'IS', null);
-        $this->addFilterCheckbox($name, 'paid', 'paid', 'pagado');
+        $this->addCommonViewFilters($viewName, $model);
+        $this->addFilterAutocomplete($viewName, 'codcliente', 'customer', 'codcliente', 'Cliente');
+        $this->addFilterAutocomplete($viewName, 'idcontactofact', 'billing-address', 'idcontacto', 'contacto');
+        $this->addFilterautocomplete($viewName, 'idcontactoenv', 'shipping-address', 'idcontacto', 'contacto');
+
+        $agents = $this->codeModel->all('agentes', 'codagente', 'nombre');
+        if (count($agents) > 0) {
+            $this->addFilterSelect($viewName, 'codagente', 'agent', 'codagente', $agents);
+        }
+
+        $this->addFilterCheckbox($viewName, 'femail', 'email-not-sent', 'femail', 'IS', null);
+    }
+
+    /**
+     * Run the actions that alter data before reading it.
+     *
+     * @param string $action
+     *
+     * @return bool
+     */
+    protected function execPreviousAction($action)
+    {
+        switch ($action) {
+            case 'approve-document':
+                return $this->approveDocumentAction();
+
+            case 'group-document':
+                return $this->groupDocumentAction();
+
+            case 'paid':
+                return $this->paidAction();
+        }
+
+        return parent::execPreviousAction($action);
+    }
+
+    /**
+     * Send the selected codes to the DocumentStitcher controller.
+     *
+     * @return bool
+     */
+    protected function groupDocumentAction()
+    {
+        $codes = $this->request->request->get('code');
+        $model = $this->views[$this->active]->model;
+
+        if (!empty($codes) && $model) {
+            $codes = implode(',', $codes);
+            $url = 'DocumentStitcher?model=' . $model->modelClassName() . '&codes=' . $codes;
+            $this->redirect($url);
+            return false;
+        }
+
+        $this->miniLog->warning($this->i18n->trans('no-selected-item'));
+        return true;
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    protected function paidAction()
+    {
+        if (!$this->permissions->allowUpdate) {
+            $this->miniLog->alert($this->i18n->trans('not-allowed-modify'));
+            return true;
+        }
+
+        $codes = $this->request->request->get('code');
+        $model = $this->views[$this->active]->model;
+        if (!is_array($codes) || empty($model)) {
+            $this->miniLog->warning($this->i18n->trans('no-selected-item'));
+            return true;
+        }
+
+        foreach ($codes as $code) {
+            if (!$model->loadFromCode($code)) {
+                $this->miniLog->error($this->i18n->trans('record-not-found'));
+                continue;
+            }
+
+            $model->nick = $this->user->nick;
+            $model->pagado = true;
+            if (!$model->save()) {
+                $this->miniLog->error($this->i18n->trans('record-save-error'));
+                return true;
+            }
+        }
+
+        $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+        $model->clear();
+        return true;
     }
 }

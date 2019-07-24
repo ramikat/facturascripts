@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Francesc Pineda Segarra <francesc.pineda.segarra@gmail.com>
- * @author Carlos García Gómez     <carlos@facturascripts.com>
+ * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
+ * @author Carlos García Gómez      <carlos@facturascripts.com>
 -->
 <view>
     <columns>
@@ -29,8 +29,8 @@
                 <widget type="text" fieldname="nombre" required="true" />
             </column>
             <column name="company" numcolumns="5" order="120">
-                <widget type="select" fieldname="idempresa" required="true" readonly="dinamic">
-                    <values source="empresas" fieldcode="idempresa" fieldtitle="nombre"></values>
+                <widget type="select" fieldname="idempresa" icon="fas fa-building" onclick="EditEmpresa" required="true" readonly="dinamic">
+                    <values source="empresas" fieldcode="idempresa" fieldtitle="nombrecorto"></values>
                 </widget>
             </column>
             <column name="start-date" numcolumns="3" order="130">
@@ -40,7 +40,7 @@
                 <widget type="date" fieldname="fechafin" />
             </column>
             <column name="account-length" numcolumns="3" order="150">
-                <widget type="number" fieldname="longsubcuenta" required="true" />
+                <widget type="number" fieldname="longsubcuenta" decimal="0" max="15" min="4" required="true" />
             </column>
             <column name="status" numcolumns="3" order="160">
                 <widget type="select" fieldname="estado" translate="true" required="true">

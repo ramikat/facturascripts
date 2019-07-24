@@ -231,10 +231,14 @@ abstract class BusinessDocumentLine extends ModelOnChangeClass
      */
     public function test()
     {
+        if ('' === $this->codimpuesto) {
+            $this->codimpuesto = null;
+        }
+
         $this->descripcion = Utils::noHtml($this->descripcion);
         $this->pvpsindto = $this->pvpunitario * $this->cantidad;
         $this->pvptotal = $this->pvpsindto * (100 - $this->dtopor) / 100;
-
+        $this->referencia = Utils::noHtml($this->referencia);
         return parent::test();
     }
 
@@ -388,7 +392,7 @@ abstract class BusinessDocumentLine extends ModelOnChangeClass
             $this->applyStockChanges($this->actualizastock, $this->cantidad, $stock);
 
             /// enough stock?
-            if (!$producto->ventasinstock && $stock->cantidad < 0) {
+            if (!$producto->ventasinstock && $this->actualizastock === -1 && $stock->cantidad < 0) {
                 self::$miniLog->warning(self::$i18n->trans('not-enough-stock', ['%reference%' => $this->referencia]));
                 return false;
             }

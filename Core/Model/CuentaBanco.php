@@ -18,6 +18,8 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\Utils;
+
 /**
  * A bank account of the company itself.
  *
@@ -39,13 +41,25 @@ class CuentaBanco extends Base\BankAccount
      * @var string
      */
     public $codsubcuentagasto;
-    
+
     /**
      * Foreign Key with Empresas table.
      *
      * @var int
      */
     public $idempresa;
+
+    /**
+     *
+     * @var string
+     */
+    public $sufijosepa;
+
+    public function clear()
+    {
+        parent::clear();
+        $this->sufijosepa = '000';
+    }
 
     /**
      * This function is called when creating the model table. Returns the SQL
@@ -63,16 +77,6 @@ class CuentaBanco extends Base\BankAccount
     }
 
     /**
-     * Returns the name of the column that is the model's primary key.
-     *
-     * @return string
-     */
-    public static function primaryColumn()
-    {
-        return 'codcuenta';
-    }
-
-    /**
      * Returns the name of the table that uses this model.
      *
      * @return string
@@ -83,6 +87,16 @@ class CuentaBanco extends Base\BankAccount
     }
 
     /**
+     * 
+     * @return bool
+     */
+    public function test()
+    {
+        $this->sufijosepa = Utils::noHtml($this->sufijosepa);
+        return parent::test();
+    }
+
+    /**
      * Returns the url where to see / modify the data.
      *
      * @param string $type
@@ -90,8 +104,8 @@ class CuentaBanco extends Base\BankAccount
      *
      * @return string
      */
-    public function url(string $type = 'auto', string $list = 'List')
+    public function url(string $type = 'auto', string $list = 'ListFormaPago?activetab=List')
     {
-        return parent::url($type, 'ListFormaPago?activetab=List');
+        return parent::url($type, $list);
     }
 }

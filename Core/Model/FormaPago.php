@@ -18,6 +18,7 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\Utils;
 
 /**
@@ -59,13 +60,6 @@ class FormaPago extends Base\ModelClass
     public $domiciliado;
 
     /**
-     * Paid -> mark the invoices generated as paid.
-     *
-     * @var string
-     */
-    public $genrecibos;
-
-    /**
      * Company identifier.
      *
      * @var int
@@ -73,12 +67,11 @@ class FormaPago extends Base\ModelClass
     public $idempresa;
 
     /**
-     * True (default) -> display the data in sales documents,
-     * including the associated bank account.
+     * Indicate if pay or not
      *
      * @var bool
      */
-    public $imprimir;
+    public $pagado;
 
     /**
      * Expiration period.
@@ -101,10 +94,35 @@ class FormaPago extends Base\ModelClass
     {
         parent::clear();
         $this->domiciliado = false;
-        $this->genrecibos = 'Emitidos';
-        $this->imprimir = true;
         $this->plazovencimiento = 0;
         $this->tipovencimiento = 'days';
+    }
+
+    /**
+     * Removes payment method from database.
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        if ($this->isDefault()) {
+            self::$miniLog->alert(self::$i18n->trans('cant-delete-default-payment-method'));
+            return false;
+        }
+
+        return parent::delete();
+    }
+
+    /**
+     * Returns the date with the expiration term applied.
+     * 
+     * @param string $date
+     *
+     * @return string
+     */
+    public function getExpiration($date)
+    {
+        return date('d-m-Y', strtotime($date . ' +' . $this->plazovencimiento . ' ' . $this->tipovencimiento));
     }
 
     /**
@@ -117,6 +135,16 @@ class FormaPago extends Base\ModelClass
         new CuentaBanco();
 
         return parent::install();
+    }
+
+    /**
+     * Returns True if this is the default payment method.
+     *
+     * @return bool
+     */
+    public function isDefault()
+    {
+        return $this->codpago === AppSettings::get('default', 'codpago');
     }
 
     /**
@@ -146,14 +174,16 @@ class FormaPago extends Base\ModelClass
      */
     public function test()
     {
-        $this->descripcion = Utils::noHtml($this->descripcion);
-
-        /// we check the expiration validity
-        if ($this->plazovencimiento < 0) {
+        $this->codpago = trim($this->codpago);
+        if (!preg_match('/^[A-Z0-9_\+\.\-]{1,10}$/i', $this->codpago)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codpago, '%column%' => 'codpago', '%min%' => '1', '%max%' => '10']));
+            return false;
+        } elseif ($this->plazovencimiento < 0) {
             self::$miniLog->alert(self::$i18n->trans('number-expiration-invalid'));
             return false;
         }
 
+        $this->descripcion = Utils::noHtml($this->descripcion);
         return parent::test();
     }
 }

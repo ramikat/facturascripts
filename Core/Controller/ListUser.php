@@ -18,14 +18,14 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Dinamic\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
 
 /**
  * Controller to list the items in the User model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-class ListUser extends ExtendedController\ListController
+class ListUser extends ListController
 {
 
     /**
@@ -35,12 +35,11 @@ class ListUser extends ExtendedController\ListController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'users';
-        $pagedata['icon'] = 'fas fa-users';
-        $pagedata['menu'] = 'admin';
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['title'] = 'users';
+        $data['icon'] = 'fas fa-users';
+        return $data;
     }
 
     /**

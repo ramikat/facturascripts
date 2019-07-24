@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Lib\API;
 
@@ -201,7 +201,7 @@ class APIModel extends APIResourceClass
     private function getResourcesFromFolder($folder): array
     {
         $resources = [];
-        foreach (scandir(FS_FOLDER . '/Dinamic/' . $folder, SCANDIR_SORT_ASCENDING) as $fName) {
+        foreach (scandir(\FS_FOLDER . '/Dinamic/' . $folder, SCANDIR_SORT_ASCENDING) as $fName) {
             if (substr($fName, -4) === '.php') {
                 $modelName = substr($fName, 0, -4);
                 $plural = $this->pluralize($modelName);

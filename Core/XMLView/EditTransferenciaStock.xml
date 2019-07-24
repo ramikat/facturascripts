@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,12 +16,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- *
- * Initial description for the controller EditTransferenciaStock
- *
- * @author Cristo M. Estévez Hernández <cristom.estevez@gmail.com>
+ * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
+ * @author Carlos García Gómez          <carlos@facturascripts.com>
 -->
-
 <view>
     <columns>
         <group name="data" numcolumns="12">
@@ -29,12 +26,12 @@
                 <widget type="number" fieldname="idtrans" onclick="EditTransferenciaStock"/>
             </column>
             <column name="codwarehouseorigin" title="origin-warehouse" order="110">
-                <widget type="select" fieldname="codalmacenorigen" required="true">
+                <widget type="select" fieldname="codalmacenorigen" onclick="EditAlmacen" readonly="dinamic" required="true">
                     <values source="almacenes" fieldcode="codalmacen" fieldtitle="nombre" />
                 </widget>
             </column>
             <column name="codwarehousedestination" title="destination-warehouse" order="120">
-                <widget type="select" fieldname="codalmacendestino" required="true">
+                <widget type="select" fieldname="codalmacendestino" onclick="EditAlmacen" readonly="dinamic" required="true">
                     <values source="almacenes" fieldcode="codalmacen" fieldtitle="nombre" />
                 </widget>
             </column>
@@ -42,7 +39,7 @@
                 <widget type="date" fieldname="fecha" />
             </column>
             <column name="user" order="140">
-                <widget type="select" fieldname="nick" readonly="true">
+                <widget type="select" fieldname="nick" onclick="EditUser" readonly="true">
                     <values source="users" fieldcode="nick" fieldtitle="nick" />
                 </widget>
             </column>
@@ -52,4 +49,3 @@
         </group>
     </columns>
 </view>
-

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,8 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the Fabricante model
@@ -27,7 +28,7 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author Carlos García Gómez  <carlos@facturascripts.com>
  * @author Artex Trading sa     <jcuello@artextrading.com>
  */
-class EditFabricante extends ExtendedController\EditController
+class EditFabricante extends EditController
 {
 
     /**
@@ -46,13 +47,27 @@ class EditFabricante extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'manufacturer';
-        $pagedata['menu'] = 'warehouse';
-        $pagedata['icon'] = 'fas fa-columns';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'warehouse';
+        $data['title'] = 'manufacturer';
+        $data['icon'] = 'fas fa-industry';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createProductView($viewName = 'ListProducto')
+    {
+        $this->addListView($viewName, 'Producto', 'products', 'fas fa-cubes');
+        $this->views[$viewName]->addOrderBy(['referencia'], 'reference', 1);
+        $this->views[$viewName]->addOrderBy(['precio'], 'price');
+        $this->views[$viewName]->addOrderBy(['stock'], 'stock');
+        $this->views[$viewName]->searchFields = ['referencia', 'descripcion'];
+
+        /// disable column
+        $this->views[$viewName]->disableColumn('manufacturer');
     }
 
     /**
@@ -63,21 +78,20 @@ class EditFabricante extends ExtendedController\EditController
         parent::createViews();
         $this->setTabsPosition('bottom');
 
-        /// products tab
-        $this->addListView('ListProducto', 'Producto', 'products', 'fas fa-cubes');
+        $this->createProductView();
     }
 
     /**
      * Load data view procedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\BaseView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
         switch ($viewName) {
             case 'ListProducto':
-                $codfabricante = $this->getViewModelValue('EditFabricante', 'codfabricante');
+                $codfabricante = $this->getViewModelValue($this->getMainViewName(), 'codfabricante');
                 $where = [new DataBaseWhere('codfabricante', $codfabricante)];
                 $view->loadData('', $where);
                 break;

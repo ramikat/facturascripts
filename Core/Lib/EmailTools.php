@@ -21,7 +21,8 @@ namespace FacturaScripts\Core\Lib;
 use FacturaScripts\Core\App\WebRender;
 use FacturaScripts\Core\Base\MiniLog;
 use FacturaScripts\Core\Base\Translator as i18n;
-use FacturaScripts\Core\Model\Settings;
+use FacturaScripts\Dinamic\Model\EmailSent;
+use FacturaScripts\Dinamic\Model\Settings;
 use PHPMailer\PHPMailer\PHPMailer;
 
 /**
@@ -64,9 +65,11 @@ class EmailTools
             foreach ($files as $file) {
                 $mail->addAttachment($file->getPathname(), $file->getClientOriginalName());
             }
+
+            return;
         }
 
-        $mail->addAttachment(FS_FOLDER . '/MyFiles/' . $files);
+        $mail->addAttachment(\FS_FOLDER . '/MyFiles/' . $files);
     }
 
     /**
@@ -130,10 +133,12 @@ class EmailTools
 
     /**
      * Create new PHPMailer connection with stored settings.
+     * 
+     * @param string $fromName
      *
      * @return PHPMailer
      */
-    public function newMail()
+    public function newMail($fromName = '')
     {
         $mail = new PHPMailer();
         $mail->CharSet = 'UTF-8';
@@ -145,7 +150,7 @@ class EmailTools
         $mail->Port = $this->getSetting('port');
         $mail->Username = $this->getSetting('user') ? $this->getSetting('user') : $this->getSetting('email');
         $mail->Password = $this->getSetting('password');
-        $mail->setFrom($this->getSetting('email'));
+        $mail->setFrom($this->getSetting('email'), $fromName);
 
         return $mail;
     }
@@ -176,13 +181,32 @@ class EmailTools
         }
 
         if ($mail->smtpConnect($this->smtpOptions()) && $mail->send()) {
+            /// get all email address
+            $addresses = [];
+            foreach ($mail->getToAddresses() as $addr) {
+                $addresses[] = $addr[0];
+            }
+            foreach ($mail->getCcAddresses() as $addr) {
+                $addresses[] = $addr[0];
+            }
+            foreach ($mail->getBccAddresses() as $addr) {
+                $addresses[] = $addr[0];
+            }
+
+            /// save email sent
+            foreach (array_unique($addresses) as $address) {
+                $emailSent = new EmailSent();
+                $emailSent->addressee = $address;
+                $emailSent->body = $mail->Body;
+                $emailSent->subject = $mail->Subject;
+                $emailSent->save();
+            }
             return true;
         }
 
         $i18n = new i18n();
         $miniLog = new MiniLog();
         $miniLog->alert($i18n->trans('error', ['%error%' => $mail->ErrorInfo]));
-
         return false;
     }
 
@@ -234,8 +258,8 @@ class EmailTools
         /// Send Email
         if ($emailTools->send($mail)) {
             /// Remove upload files
-            if (!empty($data['fileName']) && file_exists(FS_FOLDER . '/MyFiles/' . $data['fileName'])) {
-                unlink(FS_FOLDER . '/MyFiles/' . $data['fileName']);
+            if (!empty($data['fileName']) && file_exists(\FS_FOLDER . '/MyFiles/' . $data['fileName'])) {
+                unlink(\FS_FOLDER . '/MyFiles/' . $data['fileName']);
             }
 
             $i18n = new i18n();

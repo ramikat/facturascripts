@@ -18,20 +18,33 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Dinamic\Lib\Accounting\InvoiceToAccounting;
 use FacturaScripts\Dinamic\Lib\BusinessDocumentGenerator;
+use FacturaScripts\Dinamic\Lib\ExtendedController\PurchaseDocumentController;
+use FacturaScripts\Dinamic\Lib\ReceiptGenerator;
 use FacturaScripts\Dinamic\Model\FacturaProveedor;
 
 /**
- * Controller to edit a single item from the AlbaranCliente model
+ * Controller to edit a single item from the FacturaProveedor model
  *
  * @author Carlos García Gómez      <carlos@facturascripts.com>
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
  * @author Rafael San José Tovar    <rafael.sanjose@x-netdigital.com>
  */
-class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
+class EditFacturaProveedor extends PurchaseDocumentController
 {
+
+    /**
+     * Return the document class name.
+     *
+     * @return string
+     */
+    public function getModelClassName()
+    {
+        return 'FacturaProveedor';
+    }
 
     /**
      * Returns basic page attributes
@@ -40,13 +53,67 @@ class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'invoice';
-        $pagedata['menu'] = 'purchases';
-        $pagedata['icon'] = 'fas fa-copy';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'purchases';
+        $data['title'] = 'invoice';
+        $data['icon'] = 'fas fa-file-invoice-dollar';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createAccountsView($viewName = 'ListAsiento')
+    {
+        $this->addListView($viewName, 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
+
+        /// buttons
+        $newButton = [
+            'action' => 'generate-accounting',
+            'icon' => 'fas fa-magic',
+            'label' => 'generate-accounting-entry',
+            'type' => 'action',
+        ];
+        $this->addButton($viewName, $newButton);
+
+        /// settings
+        $this->setSettings($viewName, 'btnNew', false);
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createReceiptsView($viewName = 'ListReciboProveedor')
+    {
+        $this->addListView($viewName, 'ReciboProveedor', 'receipts', 'fas fa-dollar-sign');
+        $this->views[$viewName]->addOrderBy(['vencimiento'], 'expiration');
+
+        /// buttons
+        $generateButton = [
+            'action' => 'generate-receipts',
+            'confirm' => 'true',
+            'icon' => 'fas fa-magic',
+            'label' => 'generate-receipts',
+            'type' => 'action',
+        ];
+        $this->addButton($viewName, $generateButton);
+
+        $payButton = [
+            'action' => 'paid',
+            'confirm' => 'true',
+            'icon' => 'fas fa-check',
+            'label' => 'paid',
+            'type' => 'action',
+        ];
+        $this->addButton($viewName, $payButton);
+
+        /// disable column
+        $this->views[$viewName]->disableColumn('invoice');
+
+        /// settings
+        $this->setSettings($viewName, 'modalInsert', 'generate-receipts');
     }
 
     /**
@@ -55,10 +122,8 @@ class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
     protected function createViews()
     {
         parent::createViews();
-
-        $this->addListView('ListAsiento', 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
-        $this->setSettings('ListAsiento', 'btnNew', false);
-
+        $this->createReceiptsView();
+        $this->createAccountsView();
         $this->addHtmlView('Devoluciones', 'Tab/DevolucionesFacturaProveedor', 'FacturaProveedor', 'refunds', 'fas fa-share-square');
     }
 
@@ -71,43 +136,93 @@ class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
     protected function execPreviousAction($action)
     {
         switch ($action) {
+            case 'generate-accounting':
+                $this->generateAccountingAction();
+                break;
+
+            case 'generate-receipts':
+                $this->generateReceiptsAction();
+                break;
+
             case 'new-refund':
                 $this->newRefundAction();
                 break;
+
+            case 'paid':
+                return $this->paidAction();
         }
 
         return parent::execPreviousAction($action);
     }
 
     /**
-     * Return the document class name.
-     *
-     * @return string
+     * 
+     * @return bool
      */
-    protected function getModelClassName()
+    protected function generateAccountingAction()
     {
-        return 'FacturaProveedor';
+        $invoice = new FacturaProveedor();
+        if (!$invoice->loadFromCode($this->request->query->get('code'))) {
+            $this->miniLog->warning($this->i18n->trans('record-not-found'));
+            return false;
+        }
+
+        $generator = new InvoiceToAccounting();
+        $generator->generate($invoice);
+        if (empty($invoice->idasiento)) {
+            $this->miniLog->error($this->i18n->trans('record-save-error'));
+            return false;
+        }
+
+        if ($invoice->save()) {
+            $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+            return true;
+        }
+
+        $this->miniLog->error($this->i18n->trans('record-save-error'));
+        return false;
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    protected function generateReceiptsAction()
+    {
+        $invoice = new FacturaProveedor();
+        if (!$invoice->loadFromCode($this->request->query->get('code'))) {
+            $this->miniLog->warning($this->i18n->trans('record-not-found'));
+            return false;
+        }
+
+        $generator = new ReceiptGenerator();
+        $number = (int) $this->request->request->get('number', '0');
+        if ($generator->generate($invoice, $number)) {
+            $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+            return true;
+        }
+
+        $this->miniLog->error($this->i18n->trans('record-save-error'));
+        return false;
     }
 
     /**
      * Load data view procedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
         switch ($viewName) {
             case 'Devoluciones':
+            case 'ListReciboProveedor':
                 $where = [new DataBaseWhere('idfactura', $this->getViewModelValue($this->getLineXMLView(), 'idfactura'))];
                 $view->loadData('', $where);
                 break;
 
             case 'ListAsiento':
-                $where = [
-                    new DataBaseWhere('idasiento', $this->getViewModelValue($this->getLineXMLView(), 'idasiento')),
-                    new DataBaseWhere('idasiento', $this->getViewModelValue($this->getLineXMLView(), 'idasientop'), '=', 'OR')
-                ];
+                $where = [new DataBaseWhere('idasiento', $this->getViewModelValue($this->getLineXMLView(), 'idasiento'))];
                 $view->loadData('', $where);
                 break;
 
@@ -116,12 +231,16 @@ class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
         }
     }
 
+    /**
+     * 
+     * @return bool
+     */
     protected function newRefundAction()
     {
         $invoice = new FacturaProveedor();
         if (!$invoice->loadFromCode($this->request->request->get('idfactura'))) {
             $this->miniLog->warning($this->i18n->trans('record-not-found'));
-            return;
+            return false;
         }
 
         $lines = [];
@@ -147,16 +266,50 @@ class EditFacturaProveedor extends ExtendedController\PurchaseDocumentController
                 $doc->observaciones = $this->request->request->get('observaciones');
                 if ($doc->save()) {
                     $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
-                    $this->response->headers->set('Refresh', '0; ' . $doc->url());
-                    continue;
+                    $this->redirect($doc->url());
+                    return true;
                 }
-
-                $this->miniLog->error($this->i18n->trans('record-save-error'));
             }
-
-            return;
         }
 
         $this->miniLog->error($this->i18n->trans('record-save-error'));
+        return false;
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    protected function paidAction()
+    {
+        if (!$this->permissions->allowUpdate) {
+            $this->miniLog->alert($this->i18n->trans('not-allowed-modify'));
+            return true;
+        }
+
+        $codes = $this->request->request->get('code');
+        $model = $this->views[$this->active]->model;
+        if (!is_array($codes) || empty($model)) {
+            $this->miniLog->warning($this->i18n->trans('no-selected-item'));
+            return true;
+        }
+
+        foreach ($codes as $code) {
+            if (!$model->loadFromCode($code)) {
+                $this->miniLog->error($this->i18n->trans('record-not-found'));
+                continue;
+            }
+
+            $model->nick = $this->user->nick;
+            $model->pagado = true;
+            if (!$model->save()) {
+                $this->miniLog->error($this->i18n->trans('record-save-error'));
+                return true;
+            }
+        }
+
+        $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+        $model->clear();
+        return true;
     }
 }

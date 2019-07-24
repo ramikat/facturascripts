@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,7 +18,9 @@
  */
 namespace FacturaScripts\Core\Model\Base;
 
+use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\Utils;
+use FacturaScripts\Core\Lib\FiscalNumberValitator;
 
 /**
  * Description of Contact
@@ -93,6 +95,14 @@ abstract class Contact extends ModelClass
     public $telefono2;
 
     /**
+     * Type of tax identification of the client.
+     * Examples: CIF, NIF, CUIT ...
+     *
+     * @var string
+     */
+    public $tipoidfiscal;
+
+    /**
      * Reset the values of all model properties.
      */
     public function clear()
@@ -100,6 +110,7 @@ abstract class Contact extends ModelClass
         parent::clear();
         $this->fechaalta = date('d-m-Y');
         $this->personafisica = true;
+        $this->tipoidfiscal = AppSettings::get('default', 'tipoidfiscal');
     }
 
     /**
@@ -130,7 +141,13 @@ abstract class Contact extends ModelClass
         $this->telefono2 = Utils::noHtml($this->telefono2);
 
         if (empty($this->nombre)) {
-            self::$miniLog->alert(self::$i18n->trans('"not-valid-contact-name"', ['%contactName%' => $this->nombre, '%fieldName%' => 'nombre']));
+            self::$miniLog->alert(self::$i18n->trans('field-can-not-be-null', ['%fieldName%' => 'nombre', '%tableName%' => static::tableName()]));
+            return false;
+        }
+
+        $fiscalNumberValidator = new FiscalNumberValitator();
+        if (!empty($this->cifnif) && !$fiscalNumberValidator->validate($this->tipoidfiscal, $this->cifnif)) {
+            self::$miniLog->alert(self::$i18n->trans('not-valid-fiscal-number', ['%type%' => $this->tipoidfiscal, '%number%' => $this->cifnif]));
             return false;
         }
 

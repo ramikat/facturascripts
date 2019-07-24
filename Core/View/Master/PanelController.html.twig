@@ -1,12 +1,7 @@
 {#
-   /**
-     * PanelController Template. (Left Panel)
-     *
-     * It shows the data of one or several models, through a navigation panel,
-     * in different formats.
-     *
+    /**
      * This file is part of FacturaScripts
-     * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+     * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
      *
      * This program is free software: you can redistribute it and/or modify
      * it under the terms of the GNU Lesser General Public License as
@@ -20,19 +15,9 @@
      *
      * You should have received a copy of the GNU Lesser General Public License
      * along with this program. If not, see http://www.gnu.org/licenses/.
-     *
-    */
+     */
 #}
-
 {% extends "Master/MenuTemplate.html.twig" %}
-
-{% block css %}
-    {{ parent() }}
-{% endblock %}
-
-{% block javascripts %}
-    {{ parent() }}
-{% endblock %}
 
 {% block bodyHeaderOptions %}
     {{ parent() }}
@@ -67,7 +52,7 @@
             <div class="col-md-4 col-6 mb-2">
                 <div class="btn-group">
                     <a href="{{ firstView.model.url('list') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-arrow-left fa-fw" aria-hidden="true"></i>
+                        <i class="fas fa-list fa-fw" aria-hidden="true"></i>
                         <span class="d-none d-lg-inline-block">{{ i18n.trans('all') }}</span>
                     </a>
                     <a href="{{ firstView.model.url('edit') }}" class="btn btn-sm btn-outline-secondary">
@@ -101,7 +86,7 @@
                 {% endif %}
                 {% if fsc.hasData %}
                     <div class="btn-group">
-                        <a href="{{ firstView.model.url() }}&action=export&option={{ fsc.exportManager.defaultOption() }}" class="btn btn-sm btn-light">
+                        <a href="{{ firstView.model.url() }}&action=export&option={{ fsc.exportManager.defaultOption() }}" target="_blank" class="btn btn-sm btn-light">
                             <i class="fas fa-print fa-fw" aria-hidden="true"></i>
                             <span class="d-none d-md-inline-block">{{ i18n.trans('print') }}</span>
                         </a>

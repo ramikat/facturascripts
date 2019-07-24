@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExportManager;
+use FacturaScripts\Dinamic\Lib\ExportManager;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -31,7 +31,8 @@ use Symfony\Component\HttpFoundation\Request;
 class EditView extends BaseView
 {
 
-    const EDITVIEW_TEMPLATE = 'Master/EditView.html.twig';
+    const EDIT_TEMPLATE = 'Master/EditView.html.twig';
+    const READONLY_TEMPLATE = 'Master/EditReadOnlyView.html.twig';
 
     /**
      * EditView constructor and initialization.
@@ -44,7 +45,7 @@ class EditView extends BaseView
     public function __construct($name, $title, $modelName, $icon)
     {
         parent::__construct($name, $title, $modelName, $icon);
-        $this->template = self::EDITVIEW_TEMPLATE;
+        $this->template = self::EDIT_TEMPLATE;
     }
 
     /**
@@ -66,7 +67,7 @@ class EditView extends BaseView
      * @param int             $offset
      * @param int             $limit
      */
-    public function loadData($code = '', $where = [], $order = [], $offset = 0, $limit = FS_ITEM_LIMIT)
+    public function loadData($code = '', $where = [], $order = [], $offset = 0, $limit = \FS_ITEM_LIMIT)
     {
         if ($this->newCode !== null) {
             $code = $this->newCode;
@@ -96,12 +97,23 @@ class EditView extends BaseView
                 break;
 
             case 'load':
+                $exclude = ['action', 'code', 'option'];
                 foreach ($request->query->all() as $key => $value) {
-                    if ($key != 'code') {
+                    if (!in_array($key, $exclude)) {
                         $this->model->{$key} = $value;
                     }
                 }
                 break;
         }
+    }
+
+    /**
+     * Allows you to set the view as read only
+     *
+     * @param bool $readOnly
+     */
+    public function setReadOnly(bool $readOnly)
+    {
+        $this->template = $readOnly ? self::READONLY_TEMPLATE : self::EDIT_TEMPLATE;
     }
 }

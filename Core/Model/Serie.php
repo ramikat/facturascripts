@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -33,6 +33,12 @@ class Serie extends Base\ModelClass
     use Base\ModelTrait;
 
     /**
+     *
+     * @var int
+     */
+    public $canal;
+
+    /**
      * Primary key. Varchar (4).
      *
      * @var string
@@ -45,6 +51,12 @@ class Serie extends Base\ModelClass
      * @var string
      */
     public $descripcion;
+
+    /**
+     *
+     * @var int
+     */
+    public $iddiario;
 
     /**
      * If associated invoices are without tax True, else False.
@@ -63,7 +75,34 @@ class Serie extends Base\ModelClass
     }
 
     /**
-     * Returns True if is the default serie for the company.
+     * Removed payment method from database.
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        if ($this->isDefault()) {
+            self::$miniLog->alert(self::$i18n->trans('cant-delete-default-serie'));
+            return false;
+        }
+
+        return parent::delete();
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function install()
+    {
+        /// neede dependencies
+        new Diario();
+
+        return parent::install();
+    }
+
+    /**
+     * Returns True if this is the default serie.
      *
      * @return bool
      */
@@ -100,18 +139,12 @@ class Serie extends Base\ModelClass
     public function test()
     {
         $this->codserie = trim($this->codserie);
+        if (!preg_match('/^[A-Z0-9_\+\.\-]{1,4}$/i', $this->codserie)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codserie, '%column%' => 'codserie', '%min%' => '1', '%max%' => '4']));
+            return false;
+        }
+
         $this->descripcion = Utils::noHtml($this->descripcion);
-
-        if (!preg_match('/^[A-Z0-9]{1,4}$/i', $this->codserie)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'codserie', '%min%' => '1', '%max%' => '4']));
-            return false;
-        }
-
-        if (strlen($this->descripcion) < 1 || strlen($this->descripcion) > 100) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'descripcion', '%min%' => '1', '%max%' => '100']));
-            return false;
-        }
-
         return parent::test();
     }
 }

@@ -19,8 +19,11 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Dinamic\Lib\ExtendedController;
-use FacturaScripts\Dinamic\Model;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
+use FacturaScripts\Dinamic\Model\Page;
+use FacturaScripts\Dinamic\Model\RoleUser;
+use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -29,7 +32,7 @@ use Symfony\Component\HttpFoundation\Cookie;
  * @author Carlos García Gómez  <carlos@facturascripts.com>
  * @author Artex Trading sa     <jcuello@artextrading.com>
  */
-class EditUser extends ExtendedController\EditController
+class EditUser extends EditController
 {
 
     /**
@@ -48,13 +51,11 @@ class EditUser extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'user';
-        $pagedata['icon'] = 'fas fa-user-tie';
-        $pagedata['menu'] = 'admin';
-        $pagedata['showonmenu'] = false;
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['title'] = 'user';
+        $data['icon'] = 'fas fa-user-circle';
+        return $data;
     }
 
     /**
@@ -81,9 +82,9 @@ class EditUser extends ExtendedController\EditController
 
         // Are we changing user language?
         if ($result && $this->views['EditUser']->model->nick === $this->user->nick) {
-            $this->i18n->setLangCode($this->views['EditUser']->model->nick);
+            $this->i18n->setLangCode($this->views['EditUser']->model->langcode);
 
-            $expire = time() + FS_COOKIES_EXPIRE;
+            $expire = time() + \FS_COOKIES_EXPIRE;
             $this->response->headers->setCookie(new Cookie('fsLang', $this->views['EditUser']->model->langcode, $expire));
         }
 
@@ -93,15 +94,15 @@ class EditUser extends ExtendedController\EditController
     /**
      * Return a list of pages where user has access.
      *
-     * @param Model\User $user
+     * @param User $user
      *
      * @return array
      */
-    private function getUserPages($user)
+    protected function getUserPages($user)
     {
         $pageList = [];
         if ($user->admin) {
-            $pageModel = new Model\Page();
+            $pageModel = new Page();
             foreach ($pageModel->all([], ['name' => 'ASC'], 0, 0) as $page) {
                 if (!$page->showonmenu) {
                     continue;
@@ -113,7 +114,7 @@ class EditUser extends ExtendedController\EditController
             return $pageList;
         }
 
-        $roleUserModel = new Model\RoleUser();
+        $roleUserModel = new RoleUser();
         foreach ($roleUserModel->all([new DataBaseWhere('nick', $user->nick)]) as $roleUser) {
             foreach ($roleUser->getRoleAccess() as $roleAccess) {
                 $pageList[] = ['value' => $roleAccess->pagename, 'title' => $roleAccess->pagename];
@@ -126,8 +127,8 @@ class EditUser extends ExtendedController\EditController
     /**
      * Load view data proedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
@@ -135,7 +136,7 @@ class EditUser extends ExtendedController\EditController
             case 'EditRoleUser':
                 $nick = $this->getViewModelValue('EditUser', 'nick');
                 $where = [new DataBaseWhere('nick', $nick)];
-                $view->loadData('', $where, [], 0, 0);
+                $view->loadData('', $where, ['id' => 'DESC']);
                 break;
 
             case 'EditUser':
@@ -152,8 +153,13 @@ class EditUser extends ExtendedController\EditController
     /**
      * Load a list of pages where user has access that can be setted as homepage.
      */
-    private function loadHomepageValues()
+    protected function loadHomepageValues()
     {
+        if (!$this->views['EditUser']->model->exists()) {
+            $this->views['EditUser']->disableColumn('homepage');
+            return;
+        }
+
         $columnHomepage = $this->views['EditUser']->columnForName('homepage');
         $userPages = $this->getUserPages($this->views['EditUser']->model);
         $columnHomepage->widget->setValuesFromArray($userPages);
@@ -162,7 +168,7 @@ class EditUser extends ExtendedController\EditController
     /**
      * Load the available language values from translator.
      */
-    private function loadLanguageValues()
+    protected function loadLanguageValues()
     {
         $columnLangCode = $this->views['EditUser']->columnForName('lang-code');
         $langs = [];

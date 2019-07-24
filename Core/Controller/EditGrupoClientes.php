@@ -19,7 +19,8 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Dinamic\Lib\ExtendedController;
+use FacturaScripts\Dinamic\Lib\ExtendedController\BaseView;
+use FacturaScripts\Dinamic\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the GrupoClientes model
@@ -29,7 +30,7 @@ use FacturaScripts\Dinamic\Lib\ExtendedController;
  * @author Nazca Networks               <comercial@nazcanetworks.com>
  * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
-class EditGrupoClientes extends ExtendedController\EditController
+class EditGrupoClientes extends EditController
 {
 
     /**
@@ -49,13 +50,30 @@ class EditGrupoClientes extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'customer-group';
-        $pagedata['menu'] = 'sales';
-        $pagedata['icon'] = 'fas fa-folder-open';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'sales';
+        $data['title'] = 'customer-group';
+        $data['icon'] = 'fas fa-users-cog';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createCustomerView($viewName = 'ListCliente')
+    {
+        $this->addListView($viewName, 'Cliente', 'customers', 'fas fa-users');
+        $this->views[$viewName]->addOrderBy(['codcliente'], 'code', 1);
+        $this->views[$viewName]->addOrderBy(['email'], 'email');
+        $this->views[$viewName]->addOrderBy(['fechaalta'], 'creation-date');
+        $this->views[$viewName]->addOrderBy(['nombre'], 'name');
+        $this->views[$viewName]->searchFields = ['cifnif', 'codcliente', 'email', 'nombre', 'observaciones', 'razonsocial', 'telefono1', 'telefono2'];
+
+        /// settings
+        $this->views[$viewName]->disableColumn('group');
+        $this->views[$viewName]->settings['btnNew'] = false;
+        $this->views[$viewName]->settings['btnDelete'] = false;
     }
 
     /**
@@ -66,19 +84,14 @@ class EditGrupoClientes extends ExtendedController\EditController
         parent::createViews();
         $this->setTabsPosition('bottom');
 
-        $this->addListView('ListCliente', 'Cliente', 'customers', 'fas fa-users');
-
-        /// settings
-        $this->views['ListCliente']->disableColumn('group', true);
-        $this->views['ListCliente']->settings['btnNew'] = false;
-        $this->views['ListCliente']->settings['btnDelete'] = false;
+        $this->createCustomerView();
     }
 
     /**
      * Procedure responsible for loading the data to be displayed.
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {

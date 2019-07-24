@@ -12,10 +12,6 @@
         <null>NO</null>
     </column>
     <column>
-        <name>codagente</name>
-        <type>character varying(10)</type>
-    </column>
-    <column>
         <name>codalmacen</name>
         <type>character varying(4)</type>
     </column>
@@ -63,13 +59,12 @@
     </column>
     <column>
         <name>hora</name>
-        <type>time without time zone</type>
+        <type>time</type>
     </column>
     <column>
         <name>idalbaran</name>
         <type>serial</type>
         <null>NO</null>
-        <default>nextval('albaranesprov_idalbaran_seq'::regclass)</default>
     </column>
     <column>
         <name>idempresa</name>
@@ -110,15 +105,8 @@
         <type>text</type>
     </column>
     <column>
-        <name>pagado</name>
-        <type>boolean</type>
-        <null>NO</null>
-        <default>false</default>
-    </column>
-    <column>
         <name>tasaconv</name>
         <type>double precision</type>
-        <null>NO</null>
     </column>
     <column>
         <name>total</name>
@@ -151,6 +139,14 @@
     <constraint>
         <name>ca_albaranesprov_ejercicios</name>
         <type>FOREIGN KEY (codejercicio) REFERENCES ejercicios (codejercicio) ON DELETE RESTRICT ON UPDATE CASCADE</type>
+    </constraint>
+    <constraint>
+        <name>ca_albaranesprov_empresas</name>
+        <type>FOREIGN KEY (idempresa) REFERENCES empresas (idempresa) ON DELETE CASCADE ON UPDATE CASCADE</type>
+    </constraint>
+    <constraint>
+        <name>ca_albaranesprov_proveedores</name>
+        <type>FOREIGN KEY (codproveedor) REFERENCES proveedores (codproveedor) ON DELETE RESTRICT ON UPDATE CASCADE</type>
     </constraint>
     <constraint>
         <name>ca_albaranesprov_series</name>

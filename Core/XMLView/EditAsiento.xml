@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Carlos García Gómez          <carlos@facturascripts.com>
  * @author Fco. Antonio Moreno Pérez    <famphuelva@gmail.com>
@@ -38,7 +38,7 @@
                 <widget type="number" fieldname="numero" decimal="0" step="1" readonly="true" />
             </column>
         </group>
-        <group name="analytical" title="analytical-data" numcolumns="6" icon="fas fa-chart-line">
+        <group name="advanced" title="advanced" numcolumns="6" icon="fas fa-chart-line">
             <column name="journal" numcolumns="5" order="210">
                 <widget type="select" fieldname="iddiario">
                     <values source="diarios" fieldcode="iddiario" fieldtitle="descripcion"></values>
@@ -47,7 +47,7 @@
             <column name="channel" numcolumns="3" order="220">
                 <widget type="number" decimal="0" step="1" fieldname="canal" />
             </column>
-            <column name="ammount" numcolumns="4" display="right" order="230">
+            <column name="amount" numcolumns="4" display="right" order="230">
                 <widget type="money" fieldname="importe" icon="fas fa-money-bill-alt" readonly="true" />
             </column>
         </group>

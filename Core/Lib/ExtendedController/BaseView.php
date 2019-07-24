@@ -20,13 +20,13 @@ namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\Widget\ColumnItem;
-use FacturaScripts\Core\Lib\Widget\GroupItem;
 use FacturaScripts\Core\Lib\Widget\VisualItem;
-use FacturaScripts\Core\Lib\Widget\VisualItemLoadEngine;
 use FacturaScripts\Core\Model\Base\ModelClass;
-use FacturaScripts\Core\Model\PageOption;
-use FacturaScripts\Core\Model\User;
+use FacturaScripts\Dinamic\Lib\Widget\ColumnItem;
+use FacturaScripts\Dinamic\Lib\Widget\GroupItem;
+use FacturaScripts\Dinamic\Lib\Widget\VisualItemLoadEngine;
+use FacturaScripts\Dinamic\Model\PageOption;
+use FacturaScripts\Dinamic\Model\User;
 
 /**
  * Base definition for the views used in ExtendedControllers
@@ -39,7 +39,7 @@ abstract class BaseView
 
     /**
      *
-     * @var array
+     * @var GroupItem[]
      */
     protected $columns = [];
 
@@ -163,7 +163,7 @@ abstract class BaseView
     /**
      * Loads view data.
      */
-    abstract public function loadData($code = false, $where = [], $order = [], $offset = 0, $limit = FS_ITEM_LIMIT);
+    abstract public function loadData($code = '', $where = [], $order = [], $offset = 0, $limit = \FS_ITEM_LIMIT);
 
     /**
      * Process form data.
@@ -252,38 +252,19 @@ abstract class BaseView
     }
 
     /**
-     * Establishes the column's edit state
+     * Establishes the column's display or read only state.
      *
      * @param string $columnName
      * @param bool   $disabled
+     * @param string $readOnly
      */
-    public function disableColumn($columnName, $disabled = true)
+    public function disableColumn($columnName, $disabled = true, $readOnly = '')
     {
         $column = $this->columnForName($columnName);
         if (!empty($column)) {
             $column->display = $disabled ? 'none' : 'left';
+            $column->widget->readonly = empty($readOnly) ? $column->widget->readonly : $readOnly;
         }
-    }
-
-    /**
-     * Gets the column by the column name from source group
-     *
-     * @param string $columnName
-     * @param array  $source
-     *
-     * @return ColumnItem
-     */
-    public function getColumnForName(string $columnName, &$source)
-    {
-        foreach ($source as $group) {
-            foreach ($group->columns as $key => $column) {
-                if ($key === $columnName) {
-                    return $column;
-                }
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -321,13 +302,13 @@ abstract class BaseView
             $pages[$key1] = [
                 'active' => ($key2 == $this->offset),
                 'num' => $key1 + 1,
-                'offset' => $key1 * FS_ITEM_LIMIT,
+                'offset' => $key1 * \FS_ITEM_LIMIT,
             ];
             if ($key2 == $this->offset) {
                 $current = $key1;
             }
             $key1++;
-            $key2 += FS_ITEM_LIMIT;
+            $key2 += \FS_ITEM_LIMIT;
         }
 
         /// now descarting pages
@@ -414,6 +395,27 @@ abstract class BaseView
     }
 
     /**
+     * Gets the column by the column name from source group
+     *
+     * @param string $columnName
+     * @param array  $source
+     *
+     * @return ColumnItem
+     */
+    protected function getColumnForName(string $columnName, &$source)
+    {
+        foreach ($source as $group) {
+            foreach ($group->columns as $key => $column) {
+                if ($key === $columnName) {
+                    return $column;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Returns DataBaseWhere[] for locate a pageOption model.
      *
      * @param User|false $user
@@ -429,7 +431,7 @@ abstract class BaseView
         return [
             new DataBaseWhere('name', $viewName),
             new DataBaseWhere('nick', $user->nick),
-            new DataBaseWhere('nick', 'NULL', 'IS', 'OR'),
+            new DataBaseWhere('nick', null, 'IS', 'OR'),
         ];
     }
 }

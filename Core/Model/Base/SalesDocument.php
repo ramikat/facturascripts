@@ -18,17 +18,21 @@
  */
 namespace FacturaScripts\Core\Model\Base;
 
+use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\Utils;
 use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\Contacto;
+use FacturaScripts\Dinamic\Model\Divisa;
+use FacturaScripts\Dinamic\Model\GrupoClientes;
 use FacturaScripts\Dinamic\Model\Pais;
+use FacturaScripts\Dinamic\Model\Tarifa;
 
 /**
  * Description of SalesDocument
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
-abstract class SalesDocument extends BusinessDocument
+abstract class SalesDocument extends TransformerDocument
 {
 
     /**
@@ -123,18 +127,18 @@ abstract class SalesDocument extends BusinessDocument
     public $numero2;
 
     /**
-     * % commission of the employee.
-     *
-     * @var float|int
-     */
-    public $porcomision;
-
-    /**
      * Customer's province.
      *
      * @var string
      */
     public $provincia;
+
+    /**
+     * % commission of the agent.
+     *
+     * @var float|int
+     */
+    public $totalcomision;
 
     /**
      * Reset the values of all model properties.
@@ -143,7 +147,14 @@ abstract class SalesDocument extends BusinessDocument
     {
         parent::clear();
         $this->direccion = '';
-        $this->porcomision = 0.0;
+        $this->totalcomision = 0.0;
+
+        /// select default currency
+        $divisa = new Divisa();
+        if ($divisa->loadFromCode(AppSettings::get('default', 'coddivisa'))) {
+            $this->coddivisa = $divisa->coddivisa;
+            $this->tasaconv = $divisa->tasaconv;
+        }
     }
 
     /**
@@ -161,6 +172,32 @@ abstract class SalesDocument extends BusinessDocument
     }
 
     /**
+     * 
+     * @return Cliente
+     */
+    public function getSubject()
+    {
+        $cliente = new Cliente();
+        $cliente->loadFromCode($this->codcliente);
+        return $cliente;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function install()
+    {
+        /// we need to call parent first
+        $result = parent::install();
+
+        /// needed dependencies
+        new Cliente();
+
+        return $result;
+    }
+
+    /**
      * Assign the customer to the document.
      * 
      * @param Cliente|Contacto $subject
@@ -169,51 +206,24 @@ abstract class SalesDocument extends BusinessDocument
      */
     public function setSubject($subject)
     {
-        if (is_a($subject, '\\FacturaScripts\\Core\\Model\\Contacto')) {
-            /// Contacto model
-            $this->apartado = $subject->apartado;
-            $this->cifnif = $subject->cifnif;
-            $this->ciudad = $subject->ciudad;
-            $this->codcliente = $subject->codcliente;
-            $this->codpais = $subject->codpais;
-            $this->codpostal = $subject->codpostal;
-            $this->direccion = $subject->direccion;
-            $this->idcontactoenv = $subject->idcontacto;
-            $this->idcontactofact = $subject->idcontacto;
-            $this->nombrecliente = empty($subject->empresa) ? $subject->fullName() : $subject->empresa;
-            $this->provincia = $subject->provincia;
-            return true;
-        }
+        switch ($subject->modelClassName()) {
+            case 'Cliente':
+                return $this->setCustomer($subject);
 
-        if (is_a($subject, '\\FacturaScripts\\Core\\Model\\Cliente')) {
-            /// Cliente model
-            $this->cifnif = $subject->cifnif;
-            $this->codcliente = $subject->codcliente;
-            $this->nombrecliente = $subject->razonsocial;
-
-            /// commercial data
-            $this->codagente = $subject->codagente ?? $this->codagente;
-            $this->codpago = $subject->codpago ?? $this->codpago;
-            $this->codserie = $subject->codserie ?? $this->codserie;
-            $this->irpf = $subject->irpf;
-
-            /// billing address
-            $billingAddress = $subject->getDefaultAddress('billing');
-            $this->codpais = $billingAddress->codpais;
-            $this->provincia = $billingAddress->provincia;
-            $this->ciudad = $billingAddress->ciudad;
-            $this->direccion = $billingAddress->direccion;
-            $this->codpostal = $billingAddress->codpostal;
-            $this->apartado = $billingAddress->apartado;
-            $this->idcontactofact = $billingAddress->idcontacto;
-
-            /// shipping address
-            $shippingAddress = $subject->getDefaultAddress('shipping');
-            $this->idcontactoenv = $shippingAddress->idcontacto;
-            return true;
+            case 'Contacto':
+                return $this->setContact($subject);
         }
 
         return false;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function subjectColumn()
+    {
+        return 'codcliente';
     }
 
     /**
@@ -231,6 +241,10 @@ abstract class SalesDocument extends BusinessDocument
         $this->nombrecliente = Utils::noHtml($this->nombrecliente);
         $this->numero2 = Utils::noHtml($this->numero2);
         $this->provincia = Utils::noHtml($this->provincia);
+
+        if (null === $this->codagente) {
+            $this->totalcomision = 0.0;
+        }
 
         return parent::test();
     }
@@ -256,15 +270,87 @@ abstract class SalesDocument extends BusinessDocument
 
     /**
      * 
+     * @param Contacto $subject
+     *
+     * @return bool
+     */
+    protected function setContact($subject)
+    {
+        $this->apartado = $subject->apartado;
+        $this->cifnif = $subject->cifnif;
+        $this->ciudad = $subject->ciudad;
+        $this->codcliente = $subject->codcliente;
+        $this->codpais = $subject->codpais;
+        $this->codpostal = $subject->codpostal;
+        $this->direccion = $subject->direccion;
+        $this->idcontactoenv = $subject->idcontacto;
+        $this->idcontactofact = $subject->idcontacto;
+        $this->nombrecliente = empty($subject->empresa) ? $subject->fullName() : $subject->empresa;
+        $this->provincia = $subject->provincia;
+        return true;
+    }
+
+    /**
+     * 
+     * @param Cliente $subject
+     *
+     * @return bool
+     */
+    protected function setCustomer($subject)
+    {
+        $this->cifnif = $subject->cifnif;
+        $this->codcliente = $subject->codcliente;
+        $this->nombrecliente = $subject->razonsocial;
+
+        /// commercial data
+        $this->codagente = $subject->codagente ?? $this->codagente;
+        $this->codpago = $subject->codpago ?? $this->codpago;
+        $this->codserie = $subject->codserie ?? $this->codserie;
+        $this->irpf = $subject->irpf() ?? $this->irpf;
+
+        /// billing address
+        $billingAddress = $subject->getDefaultAddress('billing');
+        $this->codpais = $billingAddress->codpais;
+        $this->provincia = $billingAddress->provincia;
+        $this->ciudad = $billingAddress->ciudad;
+        $this->direccion = $billingAddress->direccion;
+        $this->codpostal = $billingAddress->codpostal;
+        $this->apartado = $billingAddress->apartado;
+        $this->idcontactofact = $billingAddress->idcontacto;
+
+        /// shipping address
+        $shippingAddress = $subject->getDefaultAddress('shipping');
+        $this->idcontactoenv = $shippingAddress->idcontacto;
+
+        $this->setRate($subject);
+        return true;
+    }
+
+    /**
+     * 
+     * @param Cliente $subject
+     */
+    protected function setRate($subject)
+    {
+        $group = new GrupoClientes();
+        $this->tarifa = new Tarifa();
+
+        if ($subject->codtarifa) {
+            $this->tarifa->loadFromCode($subject->codtarifa);
+        } elseif ($subject->codgrupo && $group->loadFromCode($subject->codgrupo) && $group->codtarifa) {
+            $this->tarifa->loadFromCode($group->codtarifa);
+        } else {
+            $this->tarifa->clear();
+        }
+    }
+
+    /**
+     * 
      * @param array $fields
      */
     protected function setPreviousData(array $fields = [])
     {
-        $more = [
-            'codalmacen', 'codcliente', 'coddivisa', 'codejercicio', 'codpago',
-            'codserie', 'editable', 'fecha', 'hora', 'idempresa', 'idestado',
-            'total'
-        ];
+        $more = ['codcliente'];
         parent::setPreviousData(array_merge($more, $fields));
     }
 }

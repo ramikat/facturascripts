@@ -86,13 +86,12 @@ class AdminPlugins extends Base\Controller
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'admin';
-        $pageData['submenu'] = 'control-panel';
-        $pageData['title'] = 'plugins';
-        $pageData['icon'] = 'fas fa-plug';
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['submenu'] = 'control-panel';
+        $data['title'] = 'plugins';
+        $data['icon'] = 'fas fa-plug';
+        return $data;
     }
 
     /**
@@ -108,7 +107,7 @@ class AdminPlugins extends Base\Controller
         }
 
         /// exclude hidden plugins
-        $hiddenPlugins = \explode(',', FS_HIDDEN_PLUGINS);
+        $hiddenPlugins = \explode(',', \FS_HIDDEN_PLUGINS);
         foreach ($installedPlugins as $key => $plugin) {
             if (\in_array($plugin['name'], $hiddenPlugins, false)) {
                 unset($installedPlugins[$key]);
@@ -127,11 +126,7 @@ class AdminPlugins extends Base\Controller
     public function privateCore(&$response, $user, $permissions)
     {
         parent::privateCore($response, $user, $permissions);
-
-        /// For now, always deploy the contents of Dinamic, for testing purposes
         $this->pluginManager = new Base\PluginManager();
-        $this->pluginManager->deploy(true, true);
-        $this->cache->clear();
 
         $action = $this->request->get('action', '');
         $this->execAction($action);
@@ -175,8 +170,8 @@ class AdminPlugins extends Base\Controller
 
     /**
      * Execute main actions.
-     *
-     * @param $action
+     * 
+     * @param string $action
      */
     private function execAction($action)
     {
@@ -195,6 +190,12 @@ class AdminPlugins extends Base\Controller
 
             case 'upload':
                 $this->uploadPlugin($this->request->files->get('plugin', []));
+                break;
+
+            default:
+                /// For now, always deploy the contents of Dinamic, for testing purposes
+                $this->pluginManager->deploy(true, true);
+                $this->cache->clear();
                 break;
         }
     }

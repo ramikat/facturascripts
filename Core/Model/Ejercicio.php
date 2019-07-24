@@ -217,7 +217,8 @@ class Ejercicio extends Base\ModelClass
             new DataBaseWhere('fechafin', $date, '>='),
         ];
 
-        if ($this->loadFromCode('', $where) && ($this->isOpened() || !$onlyOpened)) {
+        $order = [$this->primaryColumn() => 'DESC'];
+        if ($this->loadFromCode('', $where, $order) && ($this->isOpened() || !$onlyOpened)) {
             return true;
         }
 
@@ -280,8 +281,8 @@ class Ejercicio extends Base\ModelClass
 
         if (empty($this->idempresa)) {
             self::$miniLog->alert(self::$i18n->trans('field-can-not-be-null', ['%fieldName%' => 'idempresa', '%tableName%' => static::tableName()]));
-        } elseif (!preg_match('/^[A-Z0-9_]{1,4}$/i', $this->codejercicio)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'codejercicio', '%min%' => '1', '%max%' => '4']));
+        } elseif (!preg_match('/^[A-Z0-9_\+\.\-]{1,4}$/i', $this->codejercicio)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codejercicio, '%column%' => 'codejercicio', '%min%' => '1', '%max%' => '4']));
         } elseif (!(strlen($this->nombre) > 1) && !(strlen($this->nombre) < 100)) {
             self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'nombre', '%min%' => '1', '%max%' => '100']));
         } elseif (strtotime($this->fechainicio) > strtotime($this->fechafin)) {
@@ -323,7 +324,7 @@ class Ejercicio extends Base\ModelClass
 
         /// for non-default companies we try to use range from 0001 to 9999
         if ($this->idempresa != AppSettings::get('default', 'idempresa')) {
-            $new = new self();
+            $new = new static();
             for ($num = 1; $num < 1000; $num++) {
                 $code = sprintf('%04s', (int) $num);
                 if (!$new->loadFromCode($code)) {
@@ -352,7 +353,9 @@ class Ejercicio extends Base\ModelClass
         $where = [new DataBaseWhere('idempresa', $this->idempresa)];
         foreach ($this->all($where, [], 0, 0) as $ejercicio) {
             if ($this->inRange($ejercicio->fechainicio) || $this->inRange($ejercicio->fechafin)) {
-                self::$miniLog->alert(self::$i18n->trans('exercise-date-range-exists'));
+                self::$miniLog->alert(
+                    self::$i18n->trans('exercise-date-range-exists', ['%start%' => $this->fechainicio, '%end%' => $this->fechafin])
+                );
                 return false;
             }
         }

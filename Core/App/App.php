@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\App;
 
 use FacturaScripts\Core\Base;
-use FacturaScripts\Core\Lib\IPFilter;
+use FacturaScripts\Dinamic\Lib\IPFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -132,7 +132,7 @@ abstract class App
         $this->uri = $uri;
 
         /// timezone
-        date_default_timezone_set(FS_TIMEZONE);
+        date_default_timezone_set(\FS_TIMEZONE);
 
         $this->miniLog->debug('URI: ' . $this->uri);
     }
@@ -160,11 +160,8 @@ abstract class App
      */
     public function close(string $nick = '')
     {
-        new Base\MiniLogSave($this->request->getClientIp() ?? '', $nick, $this->uri);
+        new Base\MiniLogSave($this->ipFilter->getClientIp() ?? '', $nick, $this->uri);
         $this->dataBase->close();
-        if (FS_DEBUG) {
-            ///$this->cache->clear();
-        }
     }
 
     /**
@@ -195,7 +192,7 @@ abstract class App
      */
     protected function isIPBanned()
     {
-        return $this->ipFilter->isBanned($this->request->getClientIp());
+        return $this->ipFilter->isBanned($this->ipFilter->getClientIp());
     }
 
     /**
@@ -204,7 +201,7 @@ abstract class App
     private function loadPlugins()
     {
         foreach ($this->pluginManager->enabledPlugins() as $pluginName) {
-            $initClass = "FacturaScripts\\Plugins\\{$pluginName}\\Init";
+            $initClass = '\\FacturaScripts\\Plugins\\' . $pluginName . '\\Init';
             if (class_exists($initClass)) {
                 $initObject = new $initClass();
                 $initObject->init();

@@ -39,7 +39,6 @@
         <name>idlinea</name>
         <type>serial</type>
         <null>NO</null>
-        <default>nextval('lineasfacturascli_idlinea_seq'::regclass)</default>
     </column>
     <column>
         <name>idproducto</name>
@@ -72,6 +71,7 @@
     <column>
         <name>porcomision</name>
         <type>double precision</type>
+        <default>0</default>
     </column>
     <column>
         <name>pvpsindto</name>

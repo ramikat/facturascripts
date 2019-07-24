@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Model\Base;
 
@@ -22,12 +22,17 @@ use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 
 /**
- * The class from which all model views inherit.
- * It allows the visualization of data of several models.
- * This type of model is only for reading data,
- * it does not allow modification or deletion.
+ * The class from which all views of the model are inherited.
+ * It allows the visualization of data of several tables of the database.
+ * This type of model is only for reading data, it does not allow modification
+ * or deletion of data directly.
  *
- * @author Artex Trading sa <jcuello@artextrading.com>
+ * A main model ("master") must be indicated, which will be responsible for executing
+ * the data modification actions. This means that when inserting, modifying or deleting,
+ * only the operation on the indicated master model is performed.
+ *
+ * @author Artex Trading sa     <jcuello@artextrading.com>
+ * @author Carlos García Gómez  <carlos@facturascripts.com>
  */
 abstract class ModelView
 {
@@ -40,11 +45,18 @@ abstract class ModelView
     protected static $dataBase;
 
     /**
+     * Master model
+     *
+     * @var ModelClass
+     */
+    private $masterModel;
+
+    /**
      * List of values for record view
      *
      * @var array
      */
-    private $values;
+    private $values = [];
 
     /**
      * List of tables required for the execution of the view.
@@ -72,8 +84,6 @@ abstract class ModelView
             self::$dataBase = new DataBase();
         }
 
-        $this->values = [];
-
         if (empty($data)) {
             $this->clear();
         } else {
@@ -82,31 +92,10 @@ abstract class ModelView
     }
 
     /**
-     * Check if exits value to property
+     * Return model view field value
      *
      * @param string $name
-     * @return bool
-     */
-    public function __isset($name)
-    {
-        return array_key_exists($name, $this->values);
-    }
-
-    /**
-     * Set value to modal view field
      *
-     * @param string $name
-     * @param mixed $value
-     */
-    public function __set($name, $value)
-    {
-        $this->values[$name] = $value;
-    }
-
-    /**
-     * Return modal view field value
-     *
-     * @param string $name
      * @return mixed
      */
     public function __get($name)
@@ -119,6 +108,29 @@ abstract class ModelView
     }
 
     /**
+     * Check if exits value to property
+     *
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return array_key_exists($name, $this->values);
+    }
+
+    /**
+     * Set value to model view field
+     *
+     * @param string $name
+     * @param mixed  $value
+     */
+    public function __set($name, $value)
+    {
+        $this->values[$name] = $value;
+    }
+
+    /**
      * Load data for the indicated where.
      *
      * @param DataBaseWhere[] $where  filters to apply to model records.
@@ -126,39 +138,19 @@ abstract class ModelView
      * @param int             $offset
      * @param int             $limit
      *
-     * @return self[]
+     * @return static[]
      */
     public function all(array $where, array $order = [], int $offset = 0, int $limit = 0)
     {
         $result = [];
         if ($this->checkTables()) {
-            $class = get_class($this);
-            $sql = 'SELECT ' . $this->fieldsList()
-                . ' FROM ' . $this->getSQLFrom()
-                . DataBaseWhere::getSQLWhere($where)
-                . $this->getGroupBy()
-                . $this->getOrderBy($order);
-            foreach (self::$dataBase->selectLimit($sql, $limit, $offset) as $d) {
-                $result[] = new $class($d);
+            $sql = 'SELECT ' . $this->fieldsList() . ' FROM ' . $this->getSQLFrom()
+                . DataBaseWhere::getSQLWhere($where) . $this->getGroupBy() . $this->getOrderBy($order);
+            foreach (self::$dataBase->selectLimit($sql, $limit, $offset) as $row) {
+                $result[] = new static($row);
             }
         }
-        return $result;
-    }
 
-    /**
-     * Check list of tables required.
-     *
-     * @return bool
-     */
-    private function checkTables(): bool
-    {
-        $result = true;
-        foreach ($this->getTables() as $tableName) {
-            if (!self::$dataBase->tableExists($tableName)) {
-                $result = false;
-                break;
-            }
-        }
         return $result;
     }
 
@@ -193,7 +185,110 @@ abstract class ModelView
 
         $data = self::$dataBase->select($sql);
         $count = count($data);
-        return ($count == 1) ? $data[0]['count_total'] : $count;
+        return ($count == 1) ? (int) $data[0]['count_total'] : $count;
+    }
+
+    /**
+     * Remove the model master data from the database.
+     *
+     * @return bool
+     */
+    public function delete()
+    {
+        if (isset($this->masterModel)) {
+            $primaryColumn = $this->masterModel->primaryColumn();
+            $this->masterModel->{$primaryColumn} = $this->primaryColumnValue();
+            return $this->masterModel->delete();
+        }
+
+        return false;
+    }
+
+    /**
+     * Fill the class with the registry values
+     * whose primary column corresponds to the value $cod, or according to the condition
+     * where indicated, if value is not reported in $cod.
+     * Initializes the values of the class if there is no record that
+     * meet the above conditions.
+     * Returns True if the record exists and False otherwise.
+     *
+     * @param string $cod
+     * @param array  $where
+     * @param array  $orderby
+     *
+     * @return bool
+     */
+    public function loadFromCode($cod, array $where = [], array $orderby = [])
+    {
+        if (!$this->loadFilterWhere($cod, $where)) {
+            $this->clear();
+            return false;
+        }
+
+        $sql = 'SELECT ' . $this->fieldsList()
+            . ' FROM ' . $this->getSQLFrom()
+            . DataBaseWhere::getSQLWhere($where)
+            . $this->getGroupBy()
+            . $this->getOrderBy($orderby);
+
+        $data = self::$dataBase->selectLimit($sql, 1);
+        if (empty($data)) {
+            $this->clear();
+            return false;
+        }
+
+        $this->loadFromData($data[0]);
+        return true;
+    }
+
+    /**
+     * Gets the value from model view cursor of the master model primary key.
+     * 
+     * @return mixed
+     */
+    public function primaryColumnValue()
+    {
+        if (isset($this->masterModel)) {
+            $primaryColumn = $this->masterModel->primaryColumn();
+            return $this->{$primaryColumn};
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        if (isset($this->masterModel)) {
+            $primaryColumn = $this->masterModel->primaryColumn();
+            $this->masterModel->{$primaryColumn} = $this->primaryColumnValue();
+            return $this->masterModel->url($type, $list);
+        }
+
+        return '';
+    }
+
+    /**
+     * Check list of tables required.
+     *
+     * @return bool
+     */
+    private function checkTables(): bool
+    {
+        foreach ($this->getTables() as $tableName) {
+            if (!self::$dataBase->tableExists($tableName)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -252,35 +347,37 @@ abstract class ModelView
     }
 
     /**
-     * Fill the class with the registry values
-     * whose primary column corresponds to the value $cod, or according to the condition
-     * where indicated, if value is not reported in $cod.
-     * Initializes the values of the class if there is no record that
-     * meet the above conditions.
-     * Returns True if the record exists and False otherwise.
+     * If a value is reported for the PK create a database where for
+     * the master key of the master model.
      *
      * @param string $cod
      * @param array  $where
-     * @param array  $orderby
      *
      * @return bool
      */
-    public function loadFromCode($cod, array $where = [], array $orderby = [])
+    private function loadFilterWhere($cod, &$where): bool
     {
-        $sql = 'SELECT ' . $this->fieldsList()
-            . ' FROM ' . $this->getSQLFrom()
-            . DataBaseWhere::getSQLWhere($where)
-            . $this->getGroupBy()
-            . $this->getOrderBy($orderby);
+        /// If there is no search by code we use the where informed
+        if (empty($cod)) {
+            return true;
+        }
 
-        $data = self::$dataBase->selectLimit($sql, 1);
-        if (empty($data)) {
-            $this->clear();
+        /// If dont define master model cant load from code
+        if (!isset($this->masterModel)) {
             return false;
         }
 
-        $this->loadFromData($data[0]);
-        return true;
+        /// Search primary key from field list
+        $primaryColumn = $this->masterModel->primaryColumn();
+        foreach ($this->getFields() as $field => $sqlField) {
+            if ($field == $primaryColumn) {
+                $where = [new DataBaseWhere($sqlField, $cod)];
+                return true;
+            }
+        }
+
+        /// The PK field is not defined in the field list. No posible search by PK
+        return false;
     }
 
     /**
@@ -296,15 +393,12 @@ abstract class ModelView
     }
 
     /**
-     * Returns the url where to see / modify the data.
+     * Sets the master model for data operations
      *
-     * @param string $type
-     * @param string $list
-     *
-     * @return string
+     * @param ModelClass $model
      */
-    public function url(string $type = 'auto', string $list = 'List')
+    protected function setMasterModel($model)
     {
-        return '';
+        $this->masterModel = $model;
     }
 }

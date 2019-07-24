@@ -18,13 +18,14 @@
  */
 namespace FacturaScripts\Core\Controller;
 
+use Exception;
 use FacturaScripts\Core\App\AppRouter;
 use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\PluginManager;
-use FacturaScripts\Core\Model;
+use FacturaScripts\Dinamic\Model;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -63,13 +64,12 @@ class Wizard extends Controller
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['title'] = 'wizard';
-        $pageData['menu'] = 'admin';
-        $pageData['showonmenu'] = false;
-        $pageData['icon'] = 'fas fa-magic';
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['showonmenu'] = false;
+        $data['title'] = 'wizard';
+        $data['icon'] = 'fas fa-magic';
+        return $data;
     }
 
     /**
@@ -172,11 +172,11 @@ class Wizard extends Controller
             $pages = $page->all($where, [], 0, 0);
             // add Pages to Rol
             if (!$roleAccess->addPagesToRole($codrole, $pages)) {
-                throw new \Exception($this->i18n->trans('cancel-process'));
+                throw new Exception($this->i18n->trans('cancel-process'));
             }
             $this->dataBase->commit();
             return true;
-        } catch (\Exception $exc) {
+        } catch (Exception $exc) {
             $this->dataBase->rollback();
             $this->miniLog->error($exc->getMessage());
             return false;
@@ -201,8 +201,12 @@ class Wizard extends Controller
      */
     private function initModels()
     {
+        new Model\AttachedFile();
+        new Model\Diario();
+        new Model\IdentificadorFiscal();
         new Model\FormaPago();
         new Model\Impuesto();
+        new Model\Retencion();
         new Model\Serie();
         new Model\Provincia();
 
@@ -217,7 +221,7 @@ class Wizard extends Controller
      */
     private function preSetAppSettings(string $codpais)
     {
-        $filePath = FS_FOLDER . '/Dinamic/Data/Codpais/' . $codpais . '/default.json';
+        $filePath = \FS_FOLDER . '/Dinamic/Data/Codpais/' . $codpais . '/default.json';
         if (!file_exists($filePath)) {
             return;
         }
@@ -351,7 +355,7 @@ class Wizard extends Controller
         $appRouter = new AppRouter();
         $appRouter->clear();
 
-        /// redir to EditSettings
-        $this->response->headers->set('Refresh', '0; EditSettings');
+        /// redirect to EditSettings
+        $this->redirect('EditSettings');
     }
 }

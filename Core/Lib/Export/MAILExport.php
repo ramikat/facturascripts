@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,6 +18,7 @@
  */
 namespace FacturaScripts\Core\Lib\Export;
 
+use FacturaScripts\Core\Model\Base\BusinessDocument;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -34,6 +35,10 @@ class MAILExport extends PDFExport
      */
     protected $sendParams = [];
 
+    /**
+     * 
+     * @param BusinessDocument $model
+     */
     public function generateBusinessDocPage($model)
     {
         parent::generateBusinessDocPage($model);
@@ -41,6 +46,10 @@ class MAILExport extends PDFExport
         $this->sendParams['modelCode'] = $model->primaryColumnValue();
     }
 
+    /**
+     * 
+     * @return mixed
+     */
     public function getDoc()
     {
         if ($this->pdf === null) {
@@ -51,10 +60,14 @@ class MAILExport extends PDFExport
         return $this->pdf->ezOutput();
     }
 
+    /**
+     * 
+     * @param Response $response
+     */
     public function show(Response &$response)
     {
         $fileName = 'Mail_' . time() . '.pdf';
-        $filePath = FS_FOLDER . '/MyFiles/' . $fileName;
+        $filePath = \FS_FOLDER . '/MyFiles/' . $fileName;
         file_put_contents($filePath, $this->getDoc());
 
         $this->sendParams['fileName'] = $fileName;

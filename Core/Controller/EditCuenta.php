@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,8 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the Cuenta model
@@ -29,7 +30,7 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author PC REDNET S.L.               <luismi@pcrednet.com>
  * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
-class EditCuenta extends ExtendedController\EditController
+class EditCuenta extends EditController
 {
 
     /**
@@ -43,19 +44,45 @@ class EditCuenta extends ExtendedController\EditController
     }
 
     /**
-     * Returns basic page attributes
+     * Returns basic page attributes.
      *
      * @return array
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'account';
-        $pagedata['menu'] = 'accounting';
-        $pagedata['icon'] = 'fas fa-book';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'accounting';
+        $data['title'] = 'account';
+        $data['icon'] = 'fas fa-book';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createAccountingView($viewName = 'ListCuenta')
+    {
+        $this->addListView($viewName, 'Cuenta', 'children-accounts', 'fas fa-level-down-alt');
+        $this->views[$viewName]->addOrderBy(['codcuenta'], 'code', 1);
+
+        /// disable columns
+        $this->views[$viewName]->disableColumn('fiscal-exercise');
+        $this->views[$viewName]->disableColumn('parent-account');
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createSubAccountingView($viewName = 'ListSubcuenta')
+    {
+        $this->addListView($viewName, 'Subcuenta', 'subaccounts');
+        $this->views[$viewName]->addOrderBy(['codsubcuenta'], 'code', 1);
+        $this->views[$viewName]->addOrderBy(['saldo'], 'balance');
+
+        /// disable columns
+        $this->views[$viewName]->disableColumn('fiscal-exercise');
     }
 
     /**
@@ -64,16 +91,17 @@ class EditCuenta extends ExtendedController\EditController
     protected function createViews()
     {
         parent::createViews();
-        $this->addListView('ListSubcuenta', 'Subcuenta', 'subaccounts');
-        $this->addListView('ListCuenta', 'Cuenta', 'children-accounts');
         $this->setTabsPosition('bottom');
+
+        $this->createSubAccountingView();
+        $this->createAccountingView();
     }
 
     /**
      * Load view data procedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {

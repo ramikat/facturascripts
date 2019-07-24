@@ -1,5 +1,24 @@
-{% import _self as macros %}
+{#
+    /**
+     * This file is part of FacturaScripts
+     * Copyright (C) 2018-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
+     *
+     * This program is free software: you can redistribute it and/or modify
+     * it under the terms of the GNU Lesser General Public License as
+     * published by the Free Software Foundation, either version 3 of the
+     * License, or (at your option) any later version.
+     *
+     * This program is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+     * GNU Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public License
+     * along with this program. If not, see http://www.gnu.org/licenses/.
+     */
+#}
 {% set currentView = fsc.getCurrentView() %}
+{% set mainViewName = fsc.getMainViewName() %}
 
 {% if currentView.model.exists() %}
     <form method="post">
@@ -21,10 +40,10 @@
                         {% set refunded = currentView.model.refundedItemAmount(line.referencia) %}
                         <tr>
                             <td>
-                                <div class="form-control">{{ line.referencia }}</div>
+                                <div class="form-control">{{ line.referencia | raw }}</div>
                             </td>
                             <td>
-                                <div class="form-control">{{ line.descripcion }}</div>
+                                <div class="form-control">{{ line.descripcion | raw }}</div>
                             </td>
                             <td>
                                 <div class="form-control text-right">{{ line.cantidad }}</div>
@@ -44,12 +63,12 @@
                 </div>
             </div>
             <div class="form-row">
-                {{ macros.customSelect('codserie', 'codserie', currentView.model.codserie, fsc.getSelectValues('Serie')) }}
-                {{ macros.customInput('fecha', 'fecha', currentView.model.fecha, 'text', 'fas fa-calendar-alt', {class: 'form-control datepicker'}) }}
-                {{ macros.customInput('numproveedor', 'numproveedor', '', 'text', 'fas fa-hashtag') }}
+                {{ _self.customSelect('codserie', 'codserie', currentView.model.codserie, fsc.views[mainViewName].getSelectValues('Serie')) }}
+                {{ _self.customInput('fecha', 'fecha', currentView.model.fecha, 'text', 'fas fa-calendar-alt', {class: 'form-control datepicker'}) }}
+                {{ _self.customInput('numproveedor', 'numproveedor', '', 'text', 'fas fa-hashtag') }}
                 <div class="col text-right">
                     <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="fas fa-save" aria-hidden="true"></i>&nbsp; {{ i18n.trans('save') }}
+                        <i class="fas fa-save fa-fw" aria-hidden="true"></i> {{ i18n.trans('save') }}
                     </button>
                 </div>
             </div>

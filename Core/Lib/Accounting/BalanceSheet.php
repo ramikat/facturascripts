@@ -45,7 +45,7 @@ class BalanceSheet extends AccountingBase
     protected $dateToPrev;
 
     /**
-     * Generate the balance ammounts between two dates.
+     * Generate the balance amounts between two dates.
      *
      * @param string $dateFrom
      * @param string $dateTo
@@ -82,7 +82,11 @@ class BalanceSheet extends AccountingBase
         $balanceCalculado = [];
         foreach ($data as $lineaBalance) {
             if (!array_key_exists($lineaBalance['naturaleza'], $balanceCalculado)) {
-                $balanceCalculado[$lineaBalance['naturaleza']] = ['descripcion' => $lineaBalance['naturaleza'] = 'A' ? 'ACTIVO' : 'PASIVO', 'saldo' => $lineaBalance['saldo'], 'saldoprev' => $lineaBalance['saldoprev']];
+                $balanceCalculado[$lineaBalance['naturaleza']] = [
+                    'descripcion' => $lineaBalance['naturaleza'] == 'A' ? 'ACTIVO' : 'PASIVO',
+                    'saldo' => $lineaBalance['saldo'],
+                    'saldoprev' => $lineaBalance['saldoprev']
+                ];
             } else {
                 $balanceCalculado[$lineaBalance['naturaleza']]['saldo'] += $lineaBalance['saldo'];
                 $balanceCalculado[$lineaBalance['naturaleza']]['saldoprev'] += $lineaBalance['saldoprev'];
@@ -165,7 +169,6 @@ class BalanceSheet extends AccountingBase
         $line['descripcion'] = Utils::fixHtml($line['descripcion']);
         $line['saldo'] = $this->divisaTools->format($line['saldo'], FS_NF0, '');
         $line['saldoprev'] = $this->divisaTools->format($line['saldoprev'], FS_NF0, '');
-
         return $line;
     }
 }

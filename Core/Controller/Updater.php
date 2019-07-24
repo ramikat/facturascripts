@@ -23,6 +23,10 @@ use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Base\DownloadTools;
 use FacturaScripts\Core\Base\FileManager;
 use FacturaScripts\Core\Base\PluginManager;
+use FacturaScripts\Dinamic\Model\AttachedFile;
+use FacturaScripts\Dinamic\Model\Diario;
+use FacturaScripts\Dinamic\Model\IdentificadorFiscal;
+use FacturaScripts\Dinamic\Model\LiquidacionComision;
 use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Response;
 use ZipArchive;
@@ -51,13 +55,12 @@ class Updater extends Controller
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'admin';
-        $pageData['submenu'] = 'control-panel';
-        $pageData['title'] = 'updater';
-        $pageData['icon'] = 'fas fa-cloud-download-alt';
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['submenu'] = 'control-panel';
+        $data['title'] = 'updater';
+        $data['icon'] = 'fas fa-cloud-download-alt';
+        return $data;
     }
 
     /**
@@ -105,13 +108,13 @@ class Updater extends Controller
                 continue;
             }
 
-            if (file_exists(FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename'])) {
-                unlink(FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename']);
+            if (file_exists(\FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename'])) {
+                unlink(\FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename']);
             }
 
             $downloader = new DownloadTools();
-            if ($downloader->download($item['url'], FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename'])) {
-                $this->miniLog->info('download-completed');
+            if ($downloader->download($item['url'], \FS_FOLDER . DIRECTORY_SEPARATOR . $item['filename'])) {
+                $this->miniLog->info($this->i18n->trans('download-completed'));
                 $this->updaterItems[$key]['downloaded'] = true;
                 $this->cache->clear();
             }
@@ -131,10 +134,18 @@ class Updater extends Controller
                 $this->download();
                 break;
 
+            case 'post-update':
+                $this->cache->clear();
+                $this->updaterItems = $this->getUpdateItems();
+                $this->initNewModels();
+                break;
+
             case 'update':
-                $this->update();
-                $pluginManager = new PluginManager();
-                $pluginManager->deploy(true, true);
+                if ($this->update()) {
+                    $pluginManager = new PluginManager();
+                    $pluginManager->deploy(true, true);
+                    $this->redirect($this->getClassName() . '?action=post-update');
+                }
                 break;
 
             default:
@@ -174,13 +185,21 @@ class Updater extends Controller
                 $items[] = [
                     'id' => 'CORE',
                     'description' => 'Core component v' . $build['version'],
-                    'downloaded' => file_exists(FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip'),
+                    'downloaded' => file_exists(\FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip'),
                     'filename' => 'update-core.zip',
                     'url' => self::UPDATE_CORE_URL . '/' . $projectData['project'] . '/' . $build['version']
                 ];
                 break;
             }
         }
+    }
+
+    private function initNewModels()
+    {
+        new AttachedFile();
+        new Diario();
+        new IdentificadorFiscal();
+        new LiquidacionComision();
     }
 
     /**
@@ -191,19 +210,19 @@ class Updater extends Controller
     private function update(): bool
     {
         $zip = new ZipArchive();
-        $zipStatus = $zip->open(FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip', ZipArchive::CHECKCONS);
+        $zipStatus = $zip->open(\FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip', ZipArchive::CHECKCONS);
         if ($zipStatus !== true) {
             $this->miniLog->critical('ZIP ERROR: ' . $zipStatus);
             return false;
         }
 
-        $zip->extractTo(FS_FOLDER);
+        $zip->extractTo(\FS_FOLDER);
         $zip->close();
-        unlink(FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip');
+        unlink(\FS_FOLDER . DIRECTORY_SEPARATOR . 'update-core.zip');
 
         foreach (['Core', 'node_modules', 'vendor'] as $folder) {
-            $origin = FS_FOLDER . DIRECTORY_SEPARATOR . 'facturascripts' . DIRECTORY_SEPARATOR . $folder;
-            $dest = FS_FOLDER . DIRECTORY_SEPARATOR . $folder;
+            $origin = \FS_FOLDER . DIRECTORY_SEPARATOR . 'facturascripts' . DIRECTORY_SEPARATOR . $folder;
+            $dest = \FS_FOLDER . DIRECTORY_SEPARATOR . $folder;
             if (!file_exists($origin)) {
                 $this->miniLog->critical('COPY ERROR: ' . $origin);
                 return false;
@@ -216,7 +235,7 @@ class Updater extends Controller
             }
         }
 
-        FileManager::delTree(FS_FOLDER . DIRECTORY_SEPARATOR . 'facturascripts');
+        FileManager::delTree(\FS_FOLDER . DIRECTORY_SEPARATOR . 'facturascripts');
         return true;
     }
 }

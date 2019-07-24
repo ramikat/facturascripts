@@ -19,7 +19,7 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the FormaPago model
@@ -28,11 +28,13 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author Artex Trading sa         <jcuello@artextrading.com>
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
  */
-class EditFormaPago extends ExtendedController\EditController
+class EditFormaPago extends EditController
 {
 
     /**
-     * Returns the model name
+     * Returns the model name.
+     * 
+     * @return string
      */
     public function getModelClassName()
     {
@@ -46,13 +48,11 @@ class EditFormaPago extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'payment-method';
-        $pagedata['menu'] = 'accounting';
-        $pagedata['icon'] = 'fas fa-credit-card';
-        $pagedata['showonmenu'] = false;
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'accounting';
+        $data['title'] = 'payment-method';
+        $data['icon'] = 'fas fa-credit-card';
+        return $data;
     }
 
     /**
@@ -82,7 +82,7 @@ class EditFormaPago extends ExtendedController\EditController
      *
      * @return array
      */
-    private function autocompleteWithFilter($filterField)
+    protected function autocompleteWithFilter($filterField)
     {
         $results = [];
         $data = $this->requestGet(['field', 'source', 'fieldcode', 'fieldtitle', 'term', $filterField]);

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,10 +20,10 @@ namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
-use FacturaScripts\Core\Lib\Accounting;
-use FacturaScripts\Core\Lib\ExportManager;
-use FacturaScripts\Core\Model\Ejercicio;
-use FacturaScripts\Core\Model\User;
+use FacturaScripts\Dinamic\Lib\Accounting;
+use FacturaScripts\Dinamic\Lib\ExportManager;
+use FacturaScripts\Dinamic\Model\Ejercicio;
+use FacturaScripts\Dinamic\Model\User;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -55,12 +55,11 @@ class AccountingReports extends Controller
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'reports';
-        $pageData['title'] = 'accounting-reports';
-        $pageData['icon'] = 'fas fa-balance-scale';
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'reports';
+        $data['title'] = 'accounting-reports';
+        $data['icon'] = 'fas fa-balance-scale';
+        return $data;
     }
 
     /**
@@ -72,7 +71,7 @@ class AccountingReports extends Controller
     {
         return [
             'ledger' => ['description' => 'ledger', 'grouping' => true],
-            'balance-ammounts' => ['description' => 'balance-ammounts', 'grouping' => false],
+            'balance-amounts' => ['description' => 'balance-amounts', 'grouping' => false],
             'balance-sheet' => ['description' => 'balance-sheet', 'grouping' => false],
             'profit' => ['description' => 'profit-and-loss-balance', 'grouping' => false],
         ];
@@ -105,7 +104,7 @@ class AccountingReports extends Controller
      * 
      * @param $action
      */
-    private function execAction($action)
+    protected function execAction($action)
     {
         $pages = [];
         $dateFrom = $this->request->get('date-from', '');
@@ -119,9 +118,9 @@ class AccountingReports extends Controller
                 $pages = $ledger->generate($dateFrom, $dateTo, $params);
                 break;
 
-            case 'balance-ammounts':
-                $balanceAmmount = new Accounting\BalanceAmmounts();
-                $pages = $balanceAmmount->generate($dateFrom, $dateTo, $params);
+            case 'balance-amounts':
+                $balanceAmount = new Accounting\BalanceAmounts();
+                $pages = $balanceAmount->generate($dateFrom, $dateTo, $params);
                 break;
 
             case 'balance-sheet':
@@ -137,7 +136,6 @@ class AccountingReports extends Controller
 
         if (empty($pages)) {
             $this->miniLog->info($this->i18n->trans('no-data'));
-
             return;
         }
 
@@ -151,7 +149,7 @@ class AccountingReports extends Controller
      * @param array  $pages
      * @param string $format
      */
-    private function exportData(&$pages, $format)
+    protected function exportData(&$pages, $format)
     {
         $this->exportManager->newDoc($format);
 

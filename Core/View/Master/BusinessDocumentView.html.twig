@@ -1,4 +1,22 @@
-{% import _self as macros %}
+{#
+    /**
+     * This file is part of FacturaScripts
+     * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
+     *
+     * This program is free software: you can redistribute it and/or modify
+     * it under the terms of the GNU Lesser General Public License as
+     * published by the Free Software Foundation, either version 3 of the
+     * License, or (at your option) any later version.
+     *
+     * This program is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+     * GNU Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public License
+     * along with this program. If not, see http://www.gnu.org/licenses/.
+     */
+#}
 {% set currentView = fsc.getCurrentView() %}
 
 <script type="text/javascript">
@@ -37,16 +55,19 @@
     <input type="hidden" name="code" value="{{ currentView.model.primaryColumnValue() }}"/>
     <input type="hidden" name="{{ currentView.model.primaryColumn() }}" value="{{ currentView.model.primaryColumnValue() }}"/>
     <input type="hidden" name="idestado" value="{{ currentView.model.idestado }}" id="doc_idestado"/>
+    <input type="hidden" name="multireqtoken" value="{{ fsc.multiRequestProtection.newToken() }}"/>
     <div class="form-row">
-        {{ macros.customSelect('doc_codalmacen', 'codalmacen', currentView.model.codalmacen, fsc.getSelectValues('Almacen')) }}
-        {% if 'codcliente' in fsc.getSubjectColumns() %}
-            {{ macros.customerSelect(i18n, 'codcliente', 'codcliente', currentView.model, fsc.getNewSubjectUrl()) }}
+        {{ _self.customSelect('doc_codalmacen', 'codalmacen', currentView.model.codalmacen, currentView.getSelectValues('Almacen')) }}
+        {% if currentView.model.subjectColumn() == 'codcliente' %}
+            {{ _self.customerSelect(i18n, 'codcliente', 'codcliente', currentView.model, fsc.getNewSubjectUrl()) }}
+        {% elseif currentView.model.subjectColumn() == 'codproveedor' %}
+            {{ _self.supplierSelect(i18n, 'codproveedor', 'codproveedor', currentView.model, fsc.getNewSubjectUrl()) }}
         {% endif %}
-        {% if 'codproveedor' in fsc.getSubjectColumns() %}
-            {{ macros.supplierSelect(i18n, 'codproveedor', 'codproveedor', currentView.model, fsc.getNewSubjectUrl()) }}
-        {% endif %}
-        {{ macros.customInput('doc_fecha', 'fecha', currentView.model.fecha, 'text', 'fas fa-calendar-alt', {class: 'form-control datepicker'}) }}
-        {{ macros.statusSelect(currentView.model, currentView, i18n) }}
+        {{ _self.customSelect('doc_codserie', 'codserie', currentView.model.codserie, currentView.getSelectValues('Serie')) }}
+        {{ _self.customInput('doc_fecha', 'fecha', currentView.model.fecha, 'text', 'fas fa-calendar-alt', {class: 'form-control datepicker'}) }}
+        {% for field in fsc.getCustomFields() %}
+            {{ _self.customInput('doc_' ~ field.name, field.name, fsc.getViewModelValue(currentView.getViewName(), field.name), 'text', field.icon, {placeholder: i18n.trans(field.label)}) }}
+        {% endfor %}
         <div class="col">
             <div class="input-group">
                 <span class="input-group-prepend">
@@ -64,30 +85,9 @@
                 </div>
             </div>
         </div>
+        {{ _self.statusSelect(currentView.model, currentView, i18n) }}
     </div>
     <div class="row">
-        <div class="col">
-            {% if currentView.model.nick %}
-                <span class="badge badge-light">
-                    <i class="fas fa-user-tie fa-fw" aria-hidden="true"></i> {{ currentView.model.nick }}
-                </span>
-            {% endif %}
-        </div>
-        <div class="col text-right">
-            {% if currentView.model.femail %}
-                <span class="badge badge-info">
-                    <i class="fas fa-envelope fa-fw" aria-hidden="true"></i> {{ i18n.trans('email-sent') }}
-                    {{ currentView.model.femail }}
-                </span>
-            {% endif %}
-            {% if currentView.model.pagado %}
-                <span class="badge badge-success">
-                    <i class="fas fa-check fa-fw" aria-hidden="true"></i> {{ i18n.trans('paid') }}
-                </span>
-            {% endif %}
-        </div>
-    </div>
-    <div class="row mb-2">
         {% for parentDoc in currentView.model.parentDocuments() %}
             <div class="col">
                 <div class="alert alert-warning text-center">
@@ -96,9 +96,30 @@
                 </div>
             </div>
         {% endfor %}
-        {% if currentView.model.editable == false and currentView.model.exists() %}
+        {% if currentView.model.nick %}
+            <div class="col">
+                <div class="alert alert-secondary text-center">
+                    <i class="fas fa-user-circle fa-fw" aria-hidden="true"></i> {{ currentView.model.nick }}
+                </div>
+            </div>
+        {% endif %}
+        {% if currentView.model.femail %}
             <div class="col">
                 <div class="alert alert-info text-center">
+                    <i class="fas fa-envelope fa-fw" aria-hidden="true"></i> {{ currentView.model.femail }}
+                </div>
+            </div>
+        {% endif %}
+        {% if currentView.model.paid() %}
+            <div class="col">
+                <div class="alert alert-success text-center">
+                    <i class="fas fa-check fa-fw" aria-hidden="true"></i> {{ i18n.trans('paid') }}
+                </div>
+            </div>
+        {% endif %}
+        {% if currentView.model.editable == false and currentView.model.exists() %}
+            <div class="col">
+                <div class="alert alert-danger text-center">
                     <i class="fas fa-lock fa-fw"></i> {{ i18n.trans('non-editable-document') }}
                 </div>
             </div>
@@ -112,33 +133,29 @@
             </div>
         {% endfor %}
     </div>
-    {% block extras %}
-    {% endblock %}
     <div id="document-lines"></div>
-    <br/>
-    <div class="form-row mb-2">
+    <div class="form-row mt-2 mb-2">
         <div class="col">
-            {% if fsc.hasData and currentView.settings.btnDelete %}
-                <button type="button" class="btn btn-sm btn-danger" onclick="businessDocViewDelete('{{ currentView.getViewName() }}');">
-                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                    <span class="d-none d-sm-inline-block">&nbsp;{{ i18n.trans('delete') }}</span>
-                </button>
-            {% endif %}
-        </div>
-        {{ macros.customSelect('doc_codserie', 'codserie', currentView.model.codserie, fsc.getSelectValues('Serie')) }}
-        {{ macros.customSelect('doc_codpago', 'codpago', currentView.model.codpago, fsc.getSelectValues('FormaPago')) }}
-        {{ macros.customSelect('doc_coddivisa', 'coddivisa', currentView.model.coddivisa, fsc.getSelectValues('Divisa')) }}
-        <div class="col text-right">
-            {% if currentView.settings.btnSave %}
-                <button type="button" class="btn btn-sm btn-primary" onclick="businessDocViewSave();">
-                    <i class="fas fa-save" aria-hidden="true"></i>&nbsp; {{ i18n.trans('save') }}
-                </button>
-            {% endif %}
+            <textarea name="observaciones" class="form-control" placeholder="{{ i18n.trans('observations') }}">{{ currentView.model.observaciones | raw }}</textarea>
         </div>
     </div>
     <div class="form-row">
         <div class="col">
-            <textarea name="observaciones" class="form-control" placeholder="{{ i18n.trans('observations') }}">{{ currentView.model.observaciones | raw }}</textarea>
+            {% if fsc.hasData and currentView.settings.btnDelete %}
+                <button type="button" class="btn btn-sm btn-danger" onclick="businessDocViewDelete('{{ currentView.getViewName() }}');">
+                    <i class="fas fa-trash-alt fa-fw" aria-hidden="true"></i>
+                    <span class="d-none d-sm-inline-block">{{ i18n.trans('delete') }}</span>
+                </button>
+            {% endif %}
+        </div>
+        {% block extras %}
+        {% endblock %}
+        <div class="col text-right">
+            {% if currentView.settings.btnSave %}
+                <button type="button" class="btn btn-sm btn-primary" onclick="businessDocViewSave();">
+                    <i class="fas fa-save fa-fw" aria-hidden="true"></i> {{ i18n.trans('save') }}
+                </button>
+            {% endif %}
         </div>
     </div>
 </form>
@@ -153,7 +170,7 @@
             <select id="{{ id }}" name="{{ name }}" class="form-control">
                 {% for key, option in allValues %}
                     <option value="{{ key }}"{% if value == key %} selected=""{% endif %}>
-                        {{ option }}
+                        {{ option | raw }}
                     </option>
                 {% endfor %}
             </select>
@@ -172,7 +189,7 @@
                 </span>
             {% endif %}
 
-            <input type="{{ type }}" id="{{ id }}" name="{{ name }}" value="{{ value }}"
+            <input type="{{ type }}" id="{{ id }}" name="{{ name }}" value="{{ value | raw }}"
                    {% if attributes.class is not defined %}
                        class="form-control"
                    {% endif %}
@@ -233,44 +250,51 @@
 
 {% macro statusSelect(model, view, i18n) %}
     <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {% for status in view.documentStatus %}
-                {% if model.idestado == status.idestado %}
-                    {% if status.editable %}
-                        <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                    {% else %}
-                        <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-        </button>
-        <div class="dropdown-menu">
-            {% for status in view.documentStatus %}
-                {% if model.idestado == status.idestado %}
-                    <a class="dropdown-item active" href="#">
-                        {% if status.editable %}
-                            <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                        {% else %}
-                            <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                        {% endif %}
-                    </a>
+        {% set status = model.getStatus() %}
+        {% if status.generadoc %}
+            <button class="btn btn-secondary" type="button">
+                <i class="fas fa-check fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+            </button>
+        {% else %}
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                {% if status.editable %}
+                    <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
                 {% else %}
-                    <a class="dropdown-item" href="#" onclick="$('#doc_idestado').val('{{ status.idestado }}');
-                            businessDocViewSave();">
-                        {% if status.editable %}
-                            <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                        {% else %}
-                            <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
-                        {% endif %}
+                    <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                {% endif %}
+            </button>
+            <div class="dropdown-menu dropdown-menu-right">
+                {% set showDocumentStitcher = false %}
+                {% for status in view.documentStatus %}
+                    {% if model.idestado == status.idestado %}
+                        <a class="dropdown-item active" href="#">
+                            {% if status.editable %}
+                                <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                            {% else %}
+                                <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                            {% endif %}
+                        </a>
+                    {% else %}
+                        <a class="dropdown-item" href="#" onclick="$('#doc_idestado').val('{{ status.idestado }}');
+                                businessDocViewSave();">
+                            {% if status.generadoc %}
+                                <i class="fas fa-check fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                                {% set showDocumentStitcher = true %}
+                            {% elseif status.editable %}
+                                <i class="fas fa-tag fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                            {% else %}
+                                <i class="fas fa-lock fa-fw" aria-hidden="true"></i> {{ status.nombre }}
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+                {% if model.exists() and showDocumentStitcher %}
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="DocumentStitcher?model={{ model.modelClassName() }}&codes={{ model.primaryColumnValue() }}">
+                        <i class="fas fa-magic fa-fw" aria-hidden="true"></i> {{ i18n.trans('group-or-split') }}
                     </a>
                 {% endif %}
-            {% endfor %}
-            {% if model.exists() %}
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="DocumentStitcher?model={{ model.modelClassName() }}&codes={{ model.primaryColumnValue() }}">
-                    <i class="fas fa-magic fa-fw" aria-hidden="true"></i> {{ i18n.trans('group-or-split') }}
-                </a>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
     </div>
 {% endmacro %}

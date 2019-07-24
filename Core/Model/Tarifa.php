@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -45,20 +45,6 @@ class Tarifa extends Base\ModelClass
     public $codtarifa;
 
     /**
-     * Linear increment or linear discount.
-     *
-     * @var float|int
-     */
-    public $inclineal;
-
-    /**
-     * Percentage increase or discount.
-     *
-     * @var float|int
-     */
-    public $incporcentual;
-
-    /**
      * Do not sell above retail price.
      *
      * @var bool
@@ -80,16 +66,58 @@ class Tarifa extends Base\ModelClass
     public $nombre;
 
     /**
+     *
+     * @var float
+     */
+    public $valorx;
+
+    /**
+     *
+     * @var float
+     */
+    public $valory;
+
+    /**
+     * 
+     * @param float $cost
+     * @param float $price
+     *
+     * @return float
+     */
+    public function apply($cost, $price)
+    {
+        $finalPrice = 0.0;
+
+        switch ($this->aplicar) {
+            case 'coste':
+                $finalPrice += $cost + ($cost * $this->valorx / 100) + $this->valory;
+                break;
+
+            case 'pvp':
+                $finalPrice += $price - ($price * $this->valorx / 100) - $this->valory;
+                break;
+        }
+
+        if ($this->maxpvp && $finalPrice > $price) {
+            return (float) $price;
+        } elseif ($this->mincoste && $finalPrice < $cost) {
+            return (float) $cost;
+        }
+
+        return $finalPrice > 0 ? $finalPrice : 0.0;
+    }
+
+    /**
      * Reset the values of all model properties.
      */
     public function clear()
     {
         parent::clear();
-        $this->incporcentual = 0.0;
-        $this->inclineal = 0.0;
         $this->aplicar = 'pvp';
-        $this->mincoste = false;
         $this->maxpvp = false;
+        $this->mincoste = false;
+        $this->valorx = 0.0;
+        $this->valory = 0.0;
     }
 
     /**
@@ -100,6 +128,15 @@ class Tarifa extends Base\ModelClass
     public static function primaryColumn()
     {
         return 'codtarifa';
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function primaryDescriptionColumn()
+    {
+        return 'nombre';
     }
 
     /**
@@ -120,16 +157,12 @@ class Tarifa extends Base\ModelClass
     public function test()
     {
         $this->codtarifa = trim($this->codtarifa);
-        $this->nombre = Utils::noHtml($this->nombre);
-
-        if (empty($this->codtarifa) || strlen($this->codtarifa) > 6) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'codtarifa', '%min%' => '1', '%max%' => '6']));
-        } elseif (empty($this->nombre) || strlen($this->nombre) > 50) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'nombre', '%min%' => '1', '%max%' => '50']));
-        } else {
-            return true;
+        if (!preg_match('/^[A-Z0-9_\+\.\-]{1,6}$/i', $this->codtarifa)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codtarifa, '%column%' => 'codtarifa', '%min%' => '1', '%max%' => '6']));
+            return false;
         }
 
-        return false;
+        $this->nombre = Utils::noHtml($this->nombre);
+        return parent::test();
     }
 }

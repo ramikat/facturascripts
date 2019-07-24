@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,8 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the SubCuenta model
@@ -29,7 +30,7 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author PC REDNET S.L.               <luismi@pcrednet.com>
  * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
-class EditSubcuenta extends ExtendedController\EditController
+class EditSubcuenta extends EditController
 {
 
     /**
@@ -49,13 +50,25 @@ class EditSubcuenta extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'subaccount';
-        $pagedata['menu'] = 'accounting';
-        $pagedata['icon'] = 'fas fa-th-list';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'accounting';
+        $data['title'] = 'subaccount';
+        $data['icon'] = 'fas fa-th-list';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createDepartureView($viewName = 'ListPartidaAsiento')
+    {
+        $this->addListView($viewName, 'ModelView\PartidaAsiento', 'accounting-entries', 'fas fa-balance-scale');
+        $this->views[$viewName]->searchFields[] = 'concepto';
+        $this->views[$viewName]->addOrderBy(['fecha'], 'date', 2);
+
+        /// disable column
+        $this->views[$viewName]->disableColumn('subaccount');
     }
 
     /**
@@ -64,23 +77,23 @@ class EditSubcuenta extends ExtendedController\EditController
     protected function createViews()
     {
         parent::createViews();
-        $this->addListView('ListAsiento', 'Asiento', 'accounting-entries', 'fas fa-balance-scale');
         $this->setTabsPosition('bottom');
+
+        $this->createDepartureView();
     }
 
     /**
      * Load view data procedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
         switch ($viewName) {
-            case 'ListAsiento':
-                $idsubcuenta = $this->getViewModelValue('EditSubcuenta', 'idsubcuenta');
-                $inSQL = 'SELECT idasiento FROM partidas WHERE idsubcuenta = ' . $this->dataBase->var2str($idsubcuenta);
-                $where = [new DataBaseWhere('idasiento', $inSQL, 'IN')];
+            case 'ListPartidaAsiento':
+                $idsubcuenta = $this->getViewModelValue($this->getMainViewName(), 'idsubcuenta');
+                $where = [new DataBaseWhere('idsubcuenta', $idsubcuenta)];
                 $view->loadData('', $where);
                 break;
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,17 +18,25 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
+use FacturaScripts\Dinamic\Model\Empresa;
 
 /**
  * Controller to list the items in the Agentes model
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
- * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author Carlos García Gómez  <carlos@facturascripts.com>
+ * @author Artex Trading sa     <jcuello@artextrading.com>
  */
-class ListAgente extends ExtendedController\ListController
+class ListAgente extends ListController
 {
+
+    /**
+     * Company list used by filters
+     *
+     * @var array
+     */
+    protected $companyList;
 
     /**
      * Returns basic page attributes
@@ -37,12 +45,92 @@ class ListAgente extends ExtendedController\ListController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'agents';
-        $pagedata['icon'] = 'fas fa-id-badge';
-        $pagedata['menu'] = 'sales';
+        $data = parent::getPageData();
+        $data['menu'] = 'sales';
+        $data['title'] = 'agents';
+        $data['icon'] = 'fas fa-user-tie';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * Add Agent View
+     *
+     * @param string $viewName
+     */
+    protected function createAgentView($viewName = 'ListAgente')
+    {
+        /// View
+        $this->addView($viewName, 'Agente', 'agents', 'fas fa-user-tie');
+        $this->addSearchFields($viewName, ['nombre', 'codagente', 'email', 'telefono1', 'telefono2', 'observaciones']);
+
+        /// Order by
+        $this->addOrderBy($viewName, ['codagente'], 'code');
+        $this->addOrderBy($viewName, ['nombre'], 'name', 1);
+
+        /// Filters
+        $selectValues = $this->codeModel->all('agentes', 'cargo', 'cargo');
+        $this->addFilterSelect($viewName, 'cargo', 'position', 'cargo', $selectValues);
+
+        $values = [
+            ['label' => $this->i18n->trans('only-active'), 'where' => [new DataBaseWhere('debaja', false)]],
+            ['label' => $this->i18n->trans('only-suspended'), 'where' => [new DataBaseWhere('debaja', true)]],
+            ['label' => $this->i18n->trans('all'), 'where' => []]
+        ];
+        $this->addFilterSelectWhere($viewName, 'status', $values);
+    }
+
+    /**
+     * Add Commission View
+     *
+     * @param string $viewName
+     */
+    protected function createCommissionView($viewName = 'ListComision')
+    {
+        /// View
+        $this->addView($viewName, 'Comision', 'commissions', 'fas fa-percentage');
+        $this->addSearchFields($viewName, ['codagente', 'codcliente']);
+
+        /// Order By
+        $this->addOrderBy($viewName, ['idcomision'], 'id');
+        $this->addOrderBy($viewName, ['prioridad'], 'priority', 2);
+        $this->addOrderBy($viewName, ['idempresa', 'codagente', 'porcentaje'], 'company');
+        $this->addOrderBy($viewName, ['codagente', 'codcliente', 'codfamilia', 'idproducto', 'porcentaje'], 'agent');
+        $this->addOrderBy($viewName, ['codcliente', 'codfamilia', 'idproducto', 'porcentaje'], 'customer');
+        $this->addOrderBy($viewName, ['codfamilia', 'idproducto', 'porcentaje'], 'family');
+
+        /// Filters
+        $this->addFilterSelect($viewName, 'idempresa', 'company', 'idempresa', $this->companyList);
+        $this->addFilterAutocomplete($viewName, 'agent', 'agent', 'codagente', 'agentes', 'codagente', 'nombre');
+        $this->addFilterAutocomplete($viewName, 'customer', 'customer', 'codcliente', 'Cliente', 'codcliente');
+        $this->addFilterAutocomplete($viewName, 'family', 'family', 'codfamilia', 'Familia', 'codfamilia');
+        $this->addFilterAutocomplete($viewName, 'product', 'product', 'referencia', 'Producto', 'referencia', 'descripcion');
+    }
+
+    /**
+     * Add Settled Commission View
+     *
+     * @param string $viewName
+     */
+    protected function createSettlementView($viewName = 'ListLiquidacionComision')
+    {
+        /// View
+        $this->addView($viewName, 'LiquidacionComision', 'settlements', 'fas fa-chalkboard-teacher');
+        $this->addSearchFields($viewName, ['observaciones']);
+
+        /// Order By
+        $this->addOrderBy($viewName, ['fecha', 'idliquidacion'], 'date', 2);
+        $this->addOrderBy($viewName, ['codagente', 'fecha'], 'agent');
+        $this->addOrderBy($viewName, ['total', 'fecha'], 'amount');
+
+        /// Filters
+        $this->addFilterPeriod($viewName, 'fecha', 'date', 'fecha');
+        $this->addFilterSelect($viewName, 'idempresa', 'company', 'idempresa', $this->companyList);
+
+        $series = $this->codeModel->all('series', 'codserie', 'descripcion');
+        $this->addFilterSelect($viewName, 'codserie', 'serie', 'codserie', $series);
+
+        $agents = $this->codeModel->all('agentes', 'codagente', 'nombre');
+        $this->addFilterSelect($viewName, 'codagente', 'agent', 'codagente', $agents);
     }
 
     /**
@@ -50,24 +138,10 @@ class ListAgente extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $this->addView('ListAgente', 'Agente', 'agents', 'fas fa-id-badge');
-        $this->addSearchFields('ListAgente', ['nombre', 'codagente', 'email']);
+        $this->companyList = $this->codeModel->all(Empresa::tableName(), Empresa::primaryColumn(), 'nombre');
 
-        $this->addOrderBy('ListAgente', ['codagente'], 'code');
-        $this->addOrderBy('ListAgente', ['nombre'], 'name', 1);
-        $this->addOrderBy('ListAgente', ['provincia'], 'province');
-
-        $selectValues = $this->codeModel->all('agentes', 'cargo', 'cargo');
-        $this->addFilterSelect('ListAgente', 'cargo', 'position', 'cargo', $selectValues);
-
-        $cityValues = $this->codeModel->all('agentes', 'ciudad', 'ciudad');
-        $this->addFilterSelect('ListAgente', 'ciudad', 'city', 'ciudad', $cityValues);
-
-        $values = [
-            ['label' => $this->i18n->trans('only-active'), 'where' => [new DataBaseWhere('debaja', false)]],
-            ['label' => $this->i18n->trans('only-suspended'), 'where' => [new DataBaseWhere('debaja', true)]],
-            ['label' => $this->i18n->trans('all'), 'where' => []]
-        ];
-        $this->addFilterSelectWhere('ListAgente', 'status', $values);
+        $this->createAgentView();
+        $this->createCommissionView();
+        $this->createSettlementView();
     }
 }

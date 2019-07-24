@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018  Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,6 +18,8 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\Utils;
+
 /**
  * Allows to relate special accounts (SALES, for example)
  * with the real account or sub-account.
@@ -30,18 +32,18 @@ class CuentaEspecial extends Base\ModelClass
     use Base\ModelTrait;
 
     /**
+     * Special account identifier.
+     *
+     * @var string
+     */
+    public $codcuentaesp;
+
+    /**
      * Description of the special account.
      *
      * @var string
      */
     public $descripcion;
-
-    /**
-     * Special account identifier.
-     *
-     * @var string
-     */
-    public $idcuentaesp;
 
     /**
      * Return the name of the column that is the model's primary key.
@@ -74,6 +76,22 @@ class CuentaEspecial extends Base\ModelClass
     }
 
     /**
+     * 
+     * @return bool
+     */
+    public function test()
+    {
+        $this->codcuentaesp = trim($this->codcuentaesp);
+        if (!preg_match('/^[A-Z0-9_\+\.\-]{1,6}$/i', $this->codcuentaesp)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codcuentaesp, '%column%' => 'codcuentaesp', '%min%' => '1', '%max%' => '6']));
+            return false;
+        }
+
+        $this->descripcion = Utils::noHtml($this->descripcion);
+        return parent::test();
+    }
+
+    /**
      * Returns the url where to see / modify the data.
      *
      * @param string $type
@@ -81,8 +99,8 @@ class CuentaEspecial extends Base\ModelClass
      *
      * @return string
      */
-    public function url(string $type = 'auto', string $list = 'List')
+    public function url(string $type = 'auto', string $list = 'ListCuenta?activetab=List')
     {
-        return parent::url($type, 'ListCuenta?activetab=List');
+        return parent::url($type, $list);
     }
 }

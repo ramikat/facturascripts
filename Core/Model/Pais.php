@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -32,20 +32,20 @@ class Pais extends Base\ModelClass
     use Base\ModelTrait;
 
     /**
-     * Primary key. Varchar(3).
-     *
-     * @var string Alpha-3 code of the country.
-     *             http://es.wikipedia.org/wiki/ISO_3166-1
-     */
-    public $codpais;
-
-    /**
      * Alpha-2 code of the country.
      * http://es.wikipedia.org/wiki/ISO_3166-1
      *
      * @var string
      */
     public $codiso;
+
+    /**
+     * Primary key. Varchar(3). Alpha-3 code of the country.
+     * http://es.wikipedia.org/wiki/ISO_3166-1
+     *
+     * @var string
+     */
+    public $codpais;
 
     /**
      * Country name.
@@ -55,7 +55,22 @@ class Pais extends Base\ModelClass
     public $nombre;
 
     /**
-     * Returns True if the country is the default of the company.
+     * Removed country from database.
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        if ($this->isDefault()) {
+            self::$miniLog->alert(self::$i18n->trans('cant-delete-default-country'));
+            return false;
+        }
+
+        return parent::delete();
+    }
+
+    /**
+     * Returns True if this the default country.
      *
      * @return bool
      */
@@ -102,18 +117,12 @@ class Pais extends Base\ModelClass
     public function test()
     {
         $this->codpais = trim($this->codpais);
-        $this->nombre = Utils::noHtml($this->nombre);
-
         if (!preg_match('/^[A-Z0-9]{1,20}$/i', $this->codpais)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'codpais', '%min%' => '1', '%max%' => '20']));
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codpais, '%column%' => 'codpais', '%min%' => '1', '%max%' => '20']));
             return false;
         }
 
-        if (!(strlen($this->nombre) > 1) && !(strlen($this->nombre) < 100)) {
-            self::$miniLog->alert(self::$i18n->trans('invalid-column-lenght', ['%column%' => 'nombre', '%min%' => '1', '%max%' => '100']));
-            return false;
-        }
-
+        $this->nombre = Utils::noHtml($this->nombre);
         return parent::test();
     }
 }

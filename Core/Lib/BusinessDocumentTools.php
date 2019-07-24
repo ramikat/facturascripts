@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -38,6 +38,12 @@ class BusinessDocumentTools
 
     /**
      *
+     * @var CommissionTools
+     */
+    protected $commissionTools;
+
+    /**
+     *
      * @var ImpuestoZona[]
      */
     protected $impuestosZonas = [];
@@ -46,13 +52,18 @@ class BusinessDocumentTools
      *
      * @var bool
      */
-    private $recargo = false;
+    protected $recargo = false;
 
     /**
      *
      * @var bool
      */
-    private $siniva = false;
+    protected $siniva = false;
+
+    public function __construct()
+    {
+        $this->commissionTools = new CommissionTools();
+    }
 
     /**
      * Returns subtotals by tax.
@@ -70,6 +81,8 @@ class BusinessDocumentTools
             $codimpuesto = empty($line->codimpuesto) ? $line->iva . '-' . $line->recargo : $line->codimpuesto;
             if (!array_key_exists($codimpuesto, $subtotals)) {
                 $subtotals[$codimpuesto] = [
+                    'iva' => $line->iva,
+                    'recargo' => $line->recargo,
                     'irpf' => 0.0,
                     'neto' => 0.0,
                     'totaliva' => 0.0,
@@ -125,6 +138,9 @@ class BusinessDocumentTools
         }
 
         $doc->total = round($doc->neto + $doc->totaliva + $doc->totalrecargo - $doc->totalirpf, (int) FS_NF0);
+
+        /// recalculate commissions
+        $this->commissionTools->recalculate($doc, $lines);
     }
 
     /**
@@ -161,11 +177,15 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param BusinessDocument $doc
      */
-    private function clearTotals(BusinessDocument &$doc)
+    protected function clearTotals(BusinessDocument &$doc)
     {
+        $this->impuestosZonas = [];
+        $this->recargo = false;
+        $this->siniva = false;
+
         $doc->neto = 0.0;
         $doc->total = 0.0;
         $doc->totaleuros = 0.0;
@@ -181,14 +201,14 @@ class BusinessDocumentTools
         if (isset($doc->codcliente)) {
             $cliente = new Cliente();
             if ($cliente->loadFromCode($doc->codcliente)) {
-                $doc->irpf = $cliente->irpf;
+                $doc->irpf = $cliente->irpf();
                 $this->loadRegimenIva($cliente->regimeniva);
                 $this->loadTaxZones($doc);
             }
         } elseif (isset($doc->codproveedor)) {
             $proveedor = new Proveedor();
             if ($proveedor->loadFromCode($doc->codproveedor)) {
-                $doc->irpf = $proveedor->irpf;
+                $doc->irpf = $proveedor->irpf();
                 $this->loadRegimenIva($proveedor->regimeniva);
             }
 
@@ -200,10 +220,10 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param string $reg
      */
-    private function loadRegimenIva($reg)
+    protected function loadRegimenIva($reg)
     {
         switch ($reg) {
             case 'Exento':
@@ -217,13 +237,11 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param BusinessDocument $doc
      */
-    private function loadTaxZones($doc)
+    protected function loadTaxZones($doc)
     {
-        $this->impuestosZonas = [];
-
         $impuestoZonaModel = new ImpuestoZona();
         foreach ($impuestoZonaModel->all([], ['prioridad' => 'DESC']) as $impZona) {
             if ($impZona->codpais == $doc->codpais && $impZona->provincia() == $doc->provincia) {
@@ -237,10 +255,10 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param BusinessDocumentLine $line
      */
-    private function recalculateLine(&$line)
+    protected function recalculateLine(&$line)
     {
         /// apply tax zones
         $newCodimpuesto = $line->getProducto()->codimpuesto;
@@ -278,23 +296,17 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param array            $fLine
      * @param BusinessDocument $doc
      *
      * @return BusinessDocumentLine
      */
-    private function recalculateFormLine(array $fLine, BusinessDocument $doc)
+    protected function recalculateFormLine(array $fLine, BusinessDocument $doc)
     {
         if (isset($fLine['cantidad']) && '' !== $fLine['cantidad']) {
             /// edit line
             $newLine = $doc->getNewLine($fLine);
-            $newLine->cantidad = (float) $fLine['cantidad'];
-            $newLine->pvpunitario = (float) $fLine['pvpunitario'];
-            $newLine->dtopor = (float) $fLine['dtopor'];
-            $newLine->irpf = (float) $fLine['irpf'];
-            $newLine->iva = (float) $fLine['iva'];
-            $newLine->recargo = (float) $fLine['recargo'];
         } elseif (isset($fLine['referencia']) && '' !== $fLine['referencia']) {
             /// new line with reference
             $newLine = $doc->getNewProductLine($fLine['referencia']);
@@ -309,6 +321,7 @@ class BusinessDocumentTools
         $newLine->descripcion = Utils::fixHtml($newLine->descripcion);
         $newLine->pvpsindto = $newLine->pvpunitario * $newLine->cantidad;
         $newLine->pvptotal = $newLine->pvpsindto * (100 - $newLine->dtopor) / 100;
+        $newLine->referencia = Utils::fixHtml($newLine->referencia);
 
         if ($this->siniva) {
             $newLine->codimpuesto = null;
@@ -321,10 +334,10 @@ class BusinessDocumentTools
     }
 
     /**
-     * 
+     *
      * @param BusinessDocumentLine $line
      */
-    private function recalculateFormLineTaxZones(&$line)
+    protected function recalculateFormLineTaxZones(&$line)
     {
         $newCodimpuesto = $line->codimpuesto;
         foreach ($this->impuestosZonas as $impZona) {

@@ -82,6 +82,12 @@ class Empresa extends Base\Contact
     public $idempresa;
 
     /**
+     *
+     * @var int
+     */
+    public $idlogo;
+
+    /**
      * Short name of the company, to show on the menu.
      *
      * @var string Name to show in the menu.
@@ -103,31 +109,11 @@ class Empresa extends Base\Contact
     public $regimeniva;
 
     /**
-     * Type of VAT regime
-     *
-     * @var RegimenIVA
-     */
-    private static $regimenIVA;
-
-    /**
      * Website of the person.
      *
      * @var string
      */
     public $web;
-
-    /**
-     * 
-     * @param array $data
-     */
-    public function __construct(array $data = [])
-    {
-        if (self::$regimenIVA === null) {
-            self::$regimenIVA = new RegimenIVA();
-        }
-
-        parent::__construct($data);
-    }
 
     /**
      * Reset the values of all model properties.
@@ -136,17 +122,18 @@ class Empresa extends Base\Contact
     {
         parent::clear();
         $this->codpais = AppSettings::get('default', 'codpais');
-        $this->regimeniva = self::$regimenIVA->defaultValue();
+        $this->regimeniva = RegimenIVA::defaultValue();
     }
 
     /**
-     * 
+     * Removes company from database.
+     *
      * @return bool
      */
     public function delete()
     {
-        if ($this->idempresa == AppSettings::get('default', 'idempresa')) {
-            self::$miniLog->alert('you-cant-not-remove-default-company');
+        if ($this->isDefault()) {
+            self::$miniLog->alert(self::$i18n->trans('cant-delete-default-company'));
             return false;
         }
 
@@ -162,13 +149,25 @@ class Empresa extends Base\Contact
      */
     public function install()
     {
-        $num = mt_rand(1, 9999);
+        /// needed dependencies
+        new AttachedFile();
 
+        $num = mt_rand(1, 9999);
         return 'INSERT INTO ' . static::tableName() . ' (idempresa,web,codpais,'
             . 'direccion,administrador,cifnif,nombre,nombrecorto,personafisica,regimeniva)'
             . "VALUES (1,'https://www.facturascripts.com','ESP','C/ Falsa, 123',"
             . "'','00000014Z','Empresa " . $num . " S.L.','E-" . $num . "','0',"
-            . "'" . self::$regimenIVA->defaultValue() . "');";
+            . "'" . RegimenIVA::defaultValue() . "');";
+    }
+
+    /**
+     * Returns True if this is the default company.
+     *
+     * @return bool
+     */
+    public function isDefault()
+    {
+        return $this->idempresa === (int) AppSettings::get('default', 'idempresa');
     }
 
     /**
@@ -217,10 +216,6 @@ class Empresa extends Base\Contact
         $this->provincia = Utils::noHtml($this->provincia);
         $this->web = Utils::noHtml($this->web);
 
-        if (empty($this->idempresa)) {
-            $this->idempresa = $this->newCode();
-        }
-
         return parent::test();
     }
 
@@ -250,13 +245,17 @@ class Empresa extends Base\Contact
     }
 
     /**
-     * 
+     *
      * @param array $values
      *
      * @return bool
      */
     protected function saveInsert(array $values = [])
     {
+        if (empty($this->idempresa)) {
+            $this->idempresa = $this->newCode();
+        }
+
         if (parent::saveInsert($values)) {
             $this->createPaymentMethods();
             $this->createWarehouse();

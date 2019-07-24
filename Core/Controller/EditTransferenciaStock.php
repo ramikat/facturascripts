@@ -19,7 +19,8 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Dinamic\Lib\ExtendedController\EditController;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a transfer of stock
@@ -46,13 +47,11 @@ class EditTransferenciaStock extends EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'stock-transfer';
-        $pagedata['menu'] = 'warehouse';
-        $pagedata['icon'] = 'fas fa-exchange-alt';
-        $pagedata['showonmenu'] = false;
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'warehouse';
+        $data['title'] = 'stock-transfer';
+        $data['icon'] = 'fas fa-exchange-alt';
+        return $data;
     }
 
     /**
@@ -69,23 +68,23 @@ class EditTransferenciaStock extends EditController
     /**
      * Load view data procedure
      *
-     * @param string $viewName
-     * @param object $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
         switch ($viewName) {
             case 'EditTransferenciaStock':
                 parent::loadData($viewName, $view);
-                if (empty($this->views[$this->active]->model->nick)) {
-                    $this->views[$this->active]->model->nick = $this->user->nick;
+                if (empty($view->model->nick)) {
+                    $view->model->nick = $this->user->nick;
                 }
                 break;
 
             case 'EditLineaTransferenciaStock':
                 $idtransferencia = $this->getViewModelValue('EditTransferenciaStock', 'idtrans');
                 $where = [new DataBaseWhere('idtrans', $idtransferencia)];
-                $view->loadData('', $where, [], 0, 0);
+                $view->loadData('', $where, ['idlinea' => 'DESC']);
                 break;
         }
     }

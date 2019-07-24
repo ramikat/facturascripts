@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,6 +19,7 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\App\AppSettings;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
 
 /**
@@ -38,6 +39,18 @@ class Impuesto extends Base\ModelClass
      * @var string
      */
     public $codimpuesto;
+
+    /**
+     *
+     * @var string
+     */
+    public $codsubcuentarep;
+
+    /**
+     *
+     * @var string
+     */
+    public $codsubcuentasop;
 
     /**
      * Description of the tax.
@@ -71,7 +84,35 @@ class Impuesto extends Base\ModelClass
     }
 
     /**
-     * Returns True if is the default tax for the user.
+     * Removes tax from database.
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        if ($this->isDefault()) {
+            self::$miniLog->alert(self::$i18n->trans('cant-delete-default-tax'));
+            return false;
+        }
+
+        return parent::delete();
+    }
+
+    /**
+     * Gets the input tax accounting subaccount indicated.
+     * If it does not exist, the default tax is returned.
+     * 
+     * @param string $subAccount
+     *
+     * @return self
+     */
+    public function inputVatFromSubAccount($subAccount)
+    {
+        return $this->getVatFromSubAccount('codsubcuentarep', $subAccount);
+    }
+
+    /**
+     * Returns True if this is the default tax.
      *
      * @return bool
      */
@@ -88,6 +129,19 @@ class Impuesto extends Base\ModelClass
     public static function primaryColumn()
     {
         return 'codimpuesto';
+    }
+
+    /**
+     * Gets the output tax accounting subaccount indicated.
+     * If it does not exist, the default tax is returned.
+     * 
+     * @param string $subAccount
+     *
+     * @return self
+     */
+    public function outputVatFromSubAccount($subAccount)
+    {
+        return $this->getVatFromSubAccount('codsubcuentasop', $subAccount);
     }
 
     /**
@@ -108,17 +162,33 @@ class Impuesto extends Base\ModelClass
     public function test()
     {
         $this->codimpuesto = trim($this->codimpuesto);
-        if (empty($this->codimpuesto) || strlen($this->codimpuesto) > 10) {
-            self::$miniLog->alert(self::$i18n->trans('not-valid-tax-code-length'));
+        if (!preg_match('/^[A-Z0-9_\+\.\-]{1,10}$/i', $this->codimpuesto)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codimpuesto, '%column%' => 'codimpuesto', '%min%' => '1', '%max%' => '10']));
             return false;
         }
 
+        $this->codsubcuentarep = empty($this->codsubcuentarep) ? null : $this->codsubcuentarep;
+        $this->codsubcuentasop = empty($this->codsubcuentasop) ? null : $this->codsubcuentasop;
         $this->descripcion = Utils::noHtml($this->descripcion);
-        if (empty($this->descripcion) || strlen($this->descripcion) > 50) {
-            self::$miniLog->alert(self::$i18n->trans('not-valid-description-tax'));
-            return false;
+        return parent::test();
+    }
+
+    /**
+     * 
+     * @param string $field
+     * @param string $subAccount
+     *
+     * @return static
+     */
+    private function getVatFromSubAccount($field, $subAccount)
+    {
+        $result = new Impuesto();
+        $where = [new DataBaseWhere($field, $subAccount)];
+        if ($result->loadFromCode('', $where)) {
+            return $result;
         }
 
-        return parent::test();
+        $result->loadFromCode(AppSettings::get('default', 'codimpuesto'));
+        return $result;
     }
 }

@@ -43,13 +43,12 @@ class EditSettings extends ExtendedController\PanelController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'app-preferences';
-        $pagedata['icon'] = 'fas fa-cogs';
-        $pagedata['menu'] = 'admin';
-        $pagedata['submenu'] = 'control-panel';
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['submenu'] = 'control-panel';
+        $data['title'] = 'app-preferences';
+        $data['icon'] = 'fas fa-cogs';
+        return $data;
     }
 
     /**
@@ -60,7 +59,7 @@ class EditSettings extends ExtendedController\PanelController
     private function allSettingsXMLViews()
     {
         $names = [];
-        foreach (FileManager::scanFolder(FS_FOLDER . '/Dinamic/XMLView') as $fileName) {
+        foreach (FileManager::scanFolder(\FS_FOLDER . '/Dinamic/XMLView') as $fileName) {
             if (0 === strpos($fileName, self::KEY_SETTINGS)) {
                 $names[] = substr($fileName, 0, -4);
             }
@@ -69,6 +68,10 @@ class EditSettings extends ExtendedController\PanelController
         return $names;
     }
 
+    /**
+     * 
+     * @return bool
+     */
     protected function checkPaymentMethod()
     {
         $appSettings = new AppSettings();
@@ -94,8 +97,13 @@ class EditSettings extends ExtendedController\PanelController
         /// assign no payment method
         $appSettings->set('default', 'codpago', null);
         $appSettings->save();
+        return false;
     }
 
+    /**
+     * 
+     * @return bool
+     */
     protected function checkWarehouse()
     {
         $appSettings = new AppSettings();
@@ -121,6 +129,7 @@ class EditSettings extends ExtendedController\PanelController
         /// assign no warehouse
         $appSettings->set('default', 'codalmacen', null);
         $appSettings->save();
+        return false;
     }
 
     /**
@@ -179,7 +188,7 @@ class EditSettings extends ExtendedController\PanelController
 
             case 'testmail':
                 $emailTools = new EmailTools();
-                if ($emailTools->test()) {
+                if ($this->editAction() && $emailTools->test()) {
                     $this->miniLog->info($this->i18n->trans('mail-test-ok'));
                 } else {
                     $this->miniLog->error($this->i18n->trans('mail-test-error'));
@@ -233,7 +242,9 @@ class EditSettings extends ExtendedController\PanelController
         $methods = CodeModel::all('formaspago', 'codpago', 'descripcion', false, $where);
 
         $columnPayment = $this->views[$viewName]->columnForName('payment-method');
-        $columnPayment->widget->setValuesFromCodeModel($methods);
+        if ($columnPayment) {
+            $columnPayment->widget->setValuesFromCodeModel($methods);
+        }
     }
 
     /**
@@ -247,6 +258,8 @@ class EditSettings extends ExtendedController\PanelController
         $almacenes = CodeModel::all('almacenes', 'codalmacen', 'nombre', false, $where);
 
         $columnWarehouse = $this->views[$viewName]->columnForName('warehouse');
-        $columnWarehouse->widget->setValuesFromCodeModel($almacenes);
+        if ($columnWarehouse) {
+            $columnWarehouse->widget->setValuesFromCodeModel($almacenes);
+        }
     }
 }

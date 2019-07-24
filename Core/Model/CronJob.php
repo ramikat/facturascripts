@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -23,7 +23,8 @@ use FacturaScripts\Core\Base\Utils;
 /**
  * Class to store log information when a plugin is executed from cron.
  *
- * @author Francesc Pineda Segarra <francesc.pineda@x-netdigital.com>
+ * @author Carlos García Gómez      <carlos@facturascripts.com>
+ * @author Francesc Pineda Segarra  <francesc.pineda@x-netdigital.com>
  */
 class CronJob extends Base\ModelClass
 {
@@ -42,6 +43,13 @@ class CronJob extends Base\ModelClass
      * @var bool
      */
     public $done;
+
+    /**
+     * 
+     *
+     * @var bool
+     */
+    public $enabled;
 
     /**
      * Primary key.
@@ -72,6 +80,7 @@ class CronJob extends Base\ModelClass
         parent::clear();
         $this->date = date('d-m-Y H:i:s');
         $this->done = false;
+        $this->enabled = true;
     }
 
     /**
@@ -104,5 +113,18 @@ class CronJob extends Base\ModelClass
         $this->jobname = Utils::noHtml($this->jobname);
         $this->pluginname = Utils::noHtml($this->pluginname);
         return parent::test();
+    }
+
+    /**
+     * Returns the url where to see / modify the data.
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'ListLogMessage?activetab=List')
+    {
+        return parent::url($type, $list);
     }
 }

@@ -16,17 +16,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- *
- * Initial description for the controller EditAlmacen
- *
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
  * @author Carlos García Gómez      <carlos@facturascripts.com>
 -->
 <view>
     <columns>
         <group name="data" numcolumns="12">
-            <column name="code" numcolumns="2" order="100">
-                <widget type="text" fieldname="codalmacen" icon="fas fa-hashtag" maxlength="4" required="true" />
+            <column name="code" description="optional" numcolumns="2" order="100">
+                <widget type="text" fieldname="codalmacen" icon="fas fa-hashtag" maxlength="4" readonly="dinamic" />
             </column>
             <column name="name" order="110">
                 <widget type="text" fieldname="nombre" required="true" />
@@ -35,8 +32,8 @@
                 <widget type="text" fieldname="telefono" icon="fas fa-phone" />
             </column>
             <column name="company" numcolumns="2" order="130">
-                <widget type="select" fieldname="idempresa" icon="fas fa-building" required="true" readonly="dinamic">
-                    <values source="empresas" fieldcode="idempresa" fieldtitle="nombre"></values>
+                <widget type="select" fieldname="idempresa" icon="fas fa-building" onclick="EditEmpresa" required="true" readonly="dinamic">
+                    <values source="empresas" fieldcode="idempresa" fieldtitle="nombrecorto"></values>
                 </widget>
             </column>
         </group>
@@ -45,10 +42,10 @@
                 <widget type="text" fieldname="direccion" icon="fas fa-map-marked" />
             </column>
             <column name="postalcode" numcolumns="3" order="110">
-                <widget type="text" fieldname="codpostal" />
+                <widget type="text" fieldname="codpostal" maxlength="10" />
             </column>
             <column name="postalmail" numcolumns="3" order="120">
-                <widget type="text" fieldname="apartado" />
+                <widget type="text" fieldname="apartado" maxlength="10" />
             </column>
             <column name="city" numcolumns="4" order="130">
                 <widget type="text" fieldname="ciudad" />
@@ -56,12 +53,11 @@
             <column name="province" numcolumns="4" order="140">
                 <widget type="text" fieldname="provincia" />
             </column>
-            <column name="country" numcolumns="4" order="150">
-                <widget type="select" fieldname="codpais" required="true">
+            <column name="country" titleurl="ListPais" numcolumns="4" order="150">
+                <widget type="select" fieldname="codpais" onclick="EditPais" required="true">
                     <values source="paises" fieldcode="codpais" fieldtitle="nombre"></values>
                 </widget>
             </column>
         </group>
     </columns>
 </view>
-

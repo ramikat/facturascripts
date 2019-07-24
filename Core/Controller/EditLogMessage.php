@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -14,11 +14,11 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
  * Controller to edit a single item from the LogMessage model
@@ -26,11 +26,13 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
  * @author Carlos García Gómez      <carlos@facturascripts.com>
  */
-class EditLogMessage extends ExtendedController\EditController
+class EditLogMessage extends EditController
 {
 
     /**
-     * Returns the model name
+     * Returns the model name.
+     * 
+     * @return string
      */
     public function getModelClassName()
     {
@@ -44,21 +46,21 @@ class EditLogMessage extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'log';
-        $pagedata['menu'] = 'admin';
-        $pagedata['icon'] = 'fas fa-file-medical-alt';
-        $pagedata['showonmenu'] = false;
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['title'] = 'log';
+        $data['icon'] = 'fas fa-file-medical-alt';
+        return $data;
     }
 
     /**
-     * 
+     * Loads views.
      */
     protected function createViews()
     {
         parent::createViews();
-        $this->setSettings('Edit' . $this->getModelClassName(), 'btnNew', false);
+
+        /// settings
+        $this->setSettings($this->getMainViewName(), 'btnNew', false);
     }
 }

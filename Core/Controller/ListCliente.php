@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,8 +18,8 @@
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
 
 /**
  * Controller to list the items in the Cliente model
@@ -28,7 +28,7 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  * @author Artex Trading sa             <jcuello@artextrading.com>
  * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
-class ListCliente extends ExtendedController\ListController
+class ListCliente extends ListController
 {
 
     /**
@@ -38,12 +38,11 @@ class ListCliente extends ExtendedController\ListController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'customers';
-        $pagedata['icon'] = 'fas fa-users';
-        $pagedata['menu'] = 'sales';
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'sales';
+        $data['title'] = 'customers';
+        $data['icon'] = 'fas fa-users';
+        return $data;
     }
 
     /**
@@ -51,64 +50,85 @@ class ListCliente extends ExtendedController\ListController
      */
     protected function createViews()
     {
-        $valuesGroup = $this->codeModel->all('gruposclientes', 'codgrupo', 'nombre');
-
-        $this->createViewCustomers($valuesGroup);
+        $this->createViewCustomers();
         $this->createViewContacts();
-        $this->createViewGroups($valuesGroup);
+        $this->createViewGroups();
     }
 
-    protected function createViewContacts()
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createViewContacts($viewName = 'ListContacto')
     {
-        $this->addView('ListContacto', 'Contacto', 'addresses-and-contacts', 'fas fa-address-book');
-        $this->addSearchFields('ListContacto', ['nombre', 'apellidos', 'email']);
-        $this->addOrderBy('ListContacto', ['email'], 'email');
-        $this->addOrderBy('ListContacto', ['nombre'], 'name');
-        $this->addOrderBy('ListContacto', ['empresa'], 'company');
-        $this->addOrderBy('ListContacto', ['level'], 'level');
-        $this->addOrderBy('ListContacto', ['puntos'], 'points');
-        $this->addOrderBy('ListContacto', ['lastactivity'], 'last-activity', 2);
+        $this->addView($viewName, 'Contacto', 'addresses-and-contacts', 'fas fa-address-book');
+        $this->addSearchFields($viewName, ['nombre', 'apellidos', 'email', 'empresa', 'observaciones', 'telefono1', 'telefono2', 'lastip']);
+        $this->addOrderBy($viewName, ['email'], 'email');
+        $this->addOrderBy($viewName, ['nombre'], 'name');
+        $this->addOrderBy($viewName, ['empresa'], 'company');
+        $this->addOrderBy($viewName, ['level'], 'level');
+        $this->addOrderBy($viewName, ['puntos'], 'points');
+        $this->addOrderBy($viewName, ['lastactivity'], 'last-activity', 2);
 
+        /// filters
         $cargoValues = $this->codeModel->all('contactos', 'cargo', 'cargo');
-        $this->addFilterSelect('ListContacto', 'cargo', 'position', 'cargo', $cargoValues);
+        $this->addFilterSelect($viewName, 'cargo', 'position', 'cargo', $cargoValues);
 
-        $counties = $this->codeModel->all('paises', 'codpais', 'nombre');
-        $this->addFilterSelect('ListContacto', 'codpais', 'country', 'codpais', $counties);
+        $countries = $this->codeModel->all('paises', 'codpais', 'nombre');
+        $this->addFilterSelect($viewName, 'codpais', 'country', 'codpais', $countries);
 
         $provinces = $this->codeModel->all('contactos', 'provincia', 'provincia');
-        $this->addFilterSelect('ListContacto', 'provincia', 'province', 'provincia', $provinces);
+        $this->addFilterSelect($viewName, 'provincia', 'province', 'provincia', $provinces);
 
         $cities = $this->codeModel->all('contactos', 'ciudad', 'ciudad');
-        $this->addFilterSelect('ListContacto', 'ciudad', 'city', 'ciudad', $cities);
+        $this->addFilterSelect($viewName, 'ciudad', 'city', 'ciudad', $cities);
 
-        $this->addFilterCheckbox('ListContacto', 'verificado', 'verified', 'verificado');
-        $this->addFilterCheckbox('ListContacto', 'admitemarketing', 'allow-marketing', 'admitemarketing');
+        $this->addFilterCheckbox($viewName, 'verificado', 'verified', 'verificado');
+        $this->addFilterCheckbox($viewName, 'admitemarketing', 'allow-marketing', 'admitemarketing');
     }
 
-    private function createViewCustomers(array $valuesGroup)
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createViewCustomers($viewName = 'ListCliente')
     {
-        $this->addView('ListCliente', 'Cliente', 'customers', 'fas fa-users');
-        $this->addSearchFields('ListCliente', ['cifnif', 'codcliente', 'email', 'nombre', 'observaciones', 'razonsocial', 'telefono1', 'telefono2']);
-        $this->addOrderBy('ListCliente', ['codcliente'], 'code');
-        $this->addOrderBy('ListCliente', ['nombre'], 'name', 1);
-        $this->addOrderBy('ListCliente', ['fechaalta', 'codcliente'], 'date');
+        $this->addView($viewName, 'Cliente', 'customers', 'fas fa-users');
+        $this->addSearchFields($viewName, ['cifnif', 'codcliente', 'email', 'nombre', 'observaciones', 'razonsocial', 'telefono1', 'telefono2']);
+        $this->addOrderBy($viewName, ['codcliente'], 'code');
+        $this->addOrderBy($viewName, ['nombre'], 'name', 1);
+        $this->addOrderBy($viewName, ['fechaalta', 'codcliente'], 'date');
 
-        $this->addFilterSelect('ListCliente', 'codgrupo', 'group', 'codgrupo', $valuesGroup);
-
+        /// filters
         $values = [
             ['label' => $this->i18n->trans('only-active'), 'where' => [new DataBaseWhere('debaja', false)]],
             ['label' => $this->i18n->trans('only-suspended'), 'where' => [new DataBaseWhere('debaja', true)]],
             ['label' => $this->i18n->trans('all'), 'where' => []]
         ];
-        $this->addFilterSelectWhere('ListCliente', 'status', $values);
+        $this->addFilterSelectWhere($viewName, 'status', $values);
+
+        $groupValues = $this->codeModel->all('gruposclientes', 'codgrupo', 'nombre');
+        $this->addFilterSelect($viewName, 'codgrupo', 'group', 'codgrupo', $groupValues);
+
+        $series = $this->codeModel->all('series', 'codserie', 'descripcion');
+        $this->addFilterSelect($viewName, 'codserie', 'series', 'codserie', $series);
+
+        $retentions = $this->codeModel->all('retenciones', 'codretencion', 'descripcion');
+        $this->addFilterSelect($viewName, 'codretencion', 'retentions', 'codretencion', $retentions);
+
+        $paymentMethods = $this->codeModel->all('formaspago', 'codpago', 'descripcion');
+        $this->addFilterSelect($viewName, 'codpago', 'payment-methods', 'codpago', $paymentMethods);
     }
 
-    private function createViewGroups(array $valuesGroup)
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createViewGroups($viewName = 'ListGrupoClientes')
     {
-        $this->addView('ListGrupoClientes', 'GrupoClientes', 'groups', 'fas fa-folder-open');
-        $this->addSearchFields('ListGrupoClientes', ['nombre', 'codgrupo']);
-        $this->addOrderBy('ListGrupoClientes', ['codgrupo'], 'code');
-        $this->addOrderBy('ListGrupoClientes', ['nombre'], 'name', 1);
-        $this->addFilterSelect('ListGrupoClientes', 'parent', 'parent', 'parent', $valuesGroup);
+        $this->addView($viewName, 'GrupoClientes', 'groups', 'fas fa-users-cog');
+        $this->addSearchFields($viewName, ['nombre', 'codgrupo']);
+        $this->addOrderBy($viewName, ['codgrupo'], 'code');
+        $this->addOrderBy($viewName, ['nombre'], 'name', 1);
     }
 }

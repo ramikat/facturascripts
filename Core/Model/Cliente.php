@@ -31,7 +31,7 @@ class Cliente extends Base\ComercialContact
     use Base\ModelTrait;
 
     /**
-     * Employee assigned to this customer. Agent model.
+     * Agent assigned to this customer. Agent model.
      *
      * @var string
      */
@@ -45,19 +45,18 @@ class Cliente extends Base\ComercialContact
     public $codgrupo;
 
     /**
+     *
+     * @var string
+     */
+    public $codtarifa;
+
+    /**
      * Preferred payment days when calculating the due date of invoices.
      * Days separated by commas: 1,15,31
      *
      * @var string
      */
     public $diaspago;
-
-    /**
-     * Default contact for sending documentation
-     *
-     * @var integer
-     */
-    public $idcontactofact;
 
     /**
      * Default contact for the shipment of products
@@ -67,7 +66,26 @@ class Cliente extends Base\ComercialContact
     public $idcontactoenv;
 
     /**
-     * 
+     * Default contact for sending documentation
+     *
+     * @var integer
+     */
+    public $idcontactofact;
+
+    /**
+     *
+     * @var float
+     */
+    public $riesgoalcanzado;
+
+    /**
+     *
+     * @var float
+     */
+    public $riesgomax;
+
+    /**
+     *
      * @param string $query
      * @param string $fieldcode
      *
@@ -102,17 +120,32 @@ class Cliente extends Base\ComercialContact
         $contact = new Contacto();
         switch ($type) {
             case 'shipping':
-                $where = [new DataBaseWhere('idcontacto', $this->idcontactoenv)];
-                $contact->loadFromCode('', $where);
+                $contact->loadFromCode($this->idcontactoenv);
                 break;
 
             default:
-                $where = [new DataBaseWhere('idcontacto', $this->idcontactofact)];
-                $contact->loadFromCode('', $where);
+                $contact->loadFromCode($this->idcontactofact);
                 break;
         }
 
         return $contact;
+    }
+
+    /**
+     * Returns the preferred payment days for this customer.
+     * 
+     * @return array
+     */
+    public function getPaymentDays()
+    {
+        $days = [];
+        foreach (explode(',', $this->diaspago . ',') as $str) {
+            if (is_numeric(trim($str))) {
+                $days[] = trim($str);
+            }
+        }
+
+        return $days;
     }
 
     /**
@@ -168,7 +201,10 @@ class Cliente extends Base\ComercialContact
      */
     public function test()
     {
-        $this->codcliente = empty($this->codcliente) ? (string) $this->newCode() : trim($this->codcliente);
+        if (!empty($this->codcliente) && !preg_match('/^[A-Z0-9_\+\.\-]{1,10}$/i', $this->codcliente)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codcliente, '%column%' => 'codcliente', '%min%' => '1', '%max%' => '10']));
+            return false;
+        }
 
         /// we validate the days of payment
         $arrayDias = [];
@@ -178,18 +214,21 @@ class Cliente extends Base\ComercialContact
             }
         }
         $this->diaspago = empty($arrayDias) ? null : implode(',', $arrayDias);
-
         return parent::test();
     }
 
     /**
-     * 
+     *
      * @param array $values
      *
      * @return bool
      */
     protected function saveInsert(array $values = [])
     {
+        if (empty($this->codcliente)) {
+            $this->codcliente = (string) $this->newCode();
+        }
+
         $return = parent::saveInsert($values);
         if ($return && empty($this->idcontactofact)) {
             /// creates new contact

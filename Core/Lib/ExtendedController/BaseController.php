@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,8 +19,10 @@
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base;
-use FacturaScripts\Core\Lib\ExportManager;
-use FacturaScripts\Core\Model\CodeModel;
+use FacturaScripts\Dinamic\Lib\ExportManager;
+use FacturaScripts\Dinamic\Model\CodeModel;
+use FacturaScripts\Dinamic\Model\User;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Description of BaseController
@@ -70,12 +72,12 @@ abstract class BaseController extends Base\Controller
     /**
      * List of views displayed by the controller.
      *
-     * @var BaseView[]
+     * @var BaseView[]|ListView[]
      */
-    public $views;
+    public $views = [];
 
     /**
-     * Inserts the views to display.
+     * Inserts the views or tabs to display.
      */
     abstract protected function createViews();
 
@@ -104,7 +106,6 @@ abstract class BaseController extends Base\Controller
         $this->codeModel = new CodeModel();
         $this->exportManager = new ExportManager();
         $this->numberTools = new Base\NumberTools();
-        $this->views = [];
     }
 
     /**
@@ -123,8 +124,8 @@ abstract class BaseController extends Base\Controller
 
     /**
      *
-     * @param string   $viewName
-     * @param BaseView $view
+     * @param string            $viewName
+     * @param BaseView|ListView $view
      */
     public function addCustomView($viewName, $view)
     {
@@ -142,11 +143,25 @@ abstract class BaseController extends Base\Controller
 
     /**
      *
-     * @return BaseView
+     * @return BaseView|ListView
      */
     public function getCurrentView()
     {
         return $this->views[$this->current];
+    }
+
+    /**
+     * Returns the name assigned to the main view
+     *
+     * @return string
+     */
+    public function getMainViewName()
+    {
+        foreach (array_keys($this->views) as $key) {
+            return $key;
+        }
+
+        return '';
     }
 
     /**
@@ -160,6 +175,35 @@ abstract class BaseController extends Base\Controller
     public function getSettings($viewName, $property)
     {
         return isset($this->views[$viewName]->settings[$property]) ? $this->views[$viewName]->settings[$property] : null;
+    }
+
+    /**
+     * Return the value for a field in the model of the view.
+     *
+     * @param string $viewName
+     * @param string $fieldName
+     *
+     * @return mixed
+     */
+    public function getViewModelValue($viewName, $fieldName)
+    {
+        $model = $this->views[$viewName]->model;
+        return isset($model->{$fieldName}) ? $model->{$fieldName} : null;
+    }
+
+    /**
+     * Runs the controller's private logic.
+     *
+     * @param Response                   $response
+     * @param User                       $user
+     * @param Base\ControllerPermissions $permissions
+     */
+    public function privateCore(&$response, $user, $permissions)
+    {
+        parent::privateCore($response, $user, $permissions);
+
+        // Create the views to display
+        $this->createViews();
     }
 
     /**
@@ -191,19 +235,22 @@ abstract class BaseController extends Base\Controller
      */
     protected function autocompleteAction(): array
     {
-        $data = $this->requestGet(['field', 'source', 'fieldcode', 'fieldtitle', 'term', 'formname']);
+        $data = $this->requestGet(['field', 'fieldcode', 'fieldtitle', 'formname', 'source', 'strict', 'term']);
         if ($data['source'] == '') {
             return $this->getAutocompleteValues($data['formname'], $data['field']);
         }
 
         $results = [];
         foreach ($this->codeModel->search($data['source'], $data['fieldcode'], $data['fieldtitle'], $data['term']) as $value) {
-            $results[] = ['key' => $value->code, 'value' => $value->description];
+            $results[] = ['key' => Base\Utils::fixHtml($value->code), 'value' => Base\Utils::fixHtml($value->description)];
         }
 
-        if (empty($results)) {
+        if (empty($results) && '0' == $data['strict']) {
+            $results[] = ['key' => $data['term'], 'value' => $data['term']];
+        } elseif (empty($results)) {
             $results[] = ['key' => null, 'value' => $this->i18n->trans('no-data')];
         }
+
         return $results;
     }
 
@@ -222,8 +269,12 @@ abstract class BaseController extends Base\Controller
         $model = $this->views[$this->active]->model;
         $codes = $this->request->request->get('code', '');
 
-        // deleting multiples rows?
-        if (is_array($codes)) {
+        if (empty($codes)) {
+            // no selected item
+            $this->miniLog->warning($this->i18n->trans('no-selected-item'));
+            return false;
+        } elseif (is_array($codes)) {
+            // deleting multiples rows
             $numDeletes = 0;
             foreach ($codes as $cod) {
                 if ($model->loadFromCode($cod) && $model->delete()) {
@@ -233,17 +284,20 @@ abstract class BaseController extends Base\Controller
                 }
             }
 
+            $model->clear();
             if ($numDeletes > 0) {
                 $this->miniLog->notice($this->i18n->trans('record-deleted-correctly'));
                 return true;
             }
         } elseif ($model->loadFromCode($codes) && $model->delete()) {
-            // deleting a single row?
+            // deleting a single row
             $this->miniLog->notice($this->i18n->trans('record-deleted-correctly'));
+            $model->clear();
             return true;
         }
 
         $this->miniLog->warning($this->i18n->trans('record-deleted-error'));
+        $model->clear();
         return false;
     }
 

@@ -14,11 +14,12 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Dinamic\Lib\ExtendedController;
+use Exception;
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
 use FacturaScripts\Dinamic\Model\LogMessage;
 
 /**
@@ -28,7 +29,7 @@ use FacturaScripts\Dinamic\Model\LogMessage;
  * @author Francesc Pineda Segarra      <francesc.pineda.segarra@gmail.com>
  * @author Cristo M. Estévez Hernández  <cristom.estevez@gmail.com>
  */
-class ListLogMessage extends ExtendedController\ListController
+class ListLogMessage extends ListController
 {
 
     /**
@@ -38,13 +39,12 @@ class ListLogMessage extends ExtendedController\ListController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'logs';
-        $pagedata['icon'] = 'fas fa-file-medical-alt';
-        $pagedata['menu'] = 'admin';
-        $pagedata['submenu'] = 'control-panel';
-
-        return $pagedata;
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['submenu'] = 'control-panel';
+        $data['title'] = 'logs';
+        $data['icon'] = 'fas fa-file-medical-alt';
+        return $data;
     }
 
     /**
@@ -54,56 +54,78 @@ class ListLogMessage extends ExtendedController\ListController
     {
         $this->createLogMessageView();
         $this->createCronJobView();
+        $this->createEmailSentView();
     }
 
     /**
      * Create view to view all information about crons.
      * 
-     * @param string $name
+     * @param string $viewName
      */
-    private function createCronJobView($name = 'ListCronJob')
+    protected function createCronJobView($viewName = 'ListCronJob')
     {
-        $this->addView($name, 'CronJob', 'crons', 'fas fa-cogs');
-        $this->addSearchFields($name, ['jobname', 'pluginname']);
-        $this->addOrderBy($name, ['jobname'], 'job-name');
-        $this->addOrderBy($name, ['pluginname'], 'plugin');
-        $this->addOrderBy($name, ['date'], 'date');
+        $this->addView($viewName, 'CronJob', 'crons', 'fas fa-cogs');
+        $this->addSearchFields($viewName, ['jobname', 'pluginname']);
+        $this->addOrderBy($viewName, ['jobname'], 'job-name');
+        $this->addOrderBy($viewName, ['pluginname'], 'plugin');
+        $this->addOrderBy($viewName, ['date'], 'date');
 
         /// filters
-        $this->addFilterDatePicker($name, 'fromdate', 'from-date', 'date', '>=');
-        $this->addFilterDatePicker($name, 'untildate', 'until-date', 'date', '<=');
+        $plugins = $this->codeModel->all('cronjobs', 'pluginname', 'pluginname');
+        $this->addFilterSelect($viewName, 'pluginname', 'plugin', 'pluginname', $plugins);
+
+        $this->addFilterPeriod($viewName, 'date', 'period', 'date');
 
         /// settings
-        $this->setSettings($name, 'btnNew', false);
+        $this->setSettings($viewName, 'btnNew', false);
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createEmailSentView($viewName = 'ListEmailSent')
+    {
+        $this->addView($viewName, 'EmailSent', 'emails-sent', 'fas fa-envelope');
+        $this->addOrderBy($viewName, ['date'], 'date', 2);
+        $this->addSearchFields($viewName, ['addressee', 'body', 'subject']);
+
+        /// filters
+        $users = $this->codeModel->all('users', 'nick', 'nick');
+        $this->addFilterSelect($viewName, 'nick', 'user', 'nick', $users);
+
+        $this->addFilterPeriod($viewName, 'date', 'period', 'date');
+
+        /// settings
+        $this->setSettings($viewName, 'btnNew', false);
     }
 
     /**
      * Create view to get information about all logs.
      * 
-     * @param string $name
+     * @param string $viewName
      */
-    private function createLogMessageView($name = 'ListLogMessage')
+    protected function createLogMessageView($viewName = 'ListLogMessage')
     {
-        $this->addView($name, 'LogMessage', 'logs', 'fas fa-file-medical-alt');
-        $this->addSearchFields($name, ['message', 'uri']);
-        $this->addOrderBy($name, ['time'], 'date', 2);
-        $this->addOrderBy($name, ['level'], 'level');
+        $this->addView($viewName, 'LogMessage', 'logs', 'fas fa-file-medical-alt');
+        $this->addSearchFields($viewName, ['message', 'uri']);
+        $this->addOrderBy($viewName, ['time'], 'date', 2);
+        $this->addOrderBy($viewName, ['level'], 'level');
 
         /// filters
         $levels = $this->codeModel->all('logs', 'level', 'level');
-        $this->addFilterSelect($name, 'level', 'level', 'level', $levels);
+        $this->addFilterSelect($viewName, 'level', 'level', 'level', $levels);
 
-        $this->addFilterAutocomplete($name, 'nick', 'user', 'nick', 'users');
-        $this->addFilterAutocomplete($name, 'ip', 'ip', 'ip', 'logs');
+        $this->addFilterAutocomplete($viewName, 'nick', 'user', 'nick', 'users');
+        $this->addFilterAutocomplete($viewName, 'ip', 'ip', 'ip', 'logs');
 
         $uris = $this->codeModel->all('logs', 'uri', 'uri');
-        $this->addFilterSelect($name, 'url', 'url', 'uri', $uris);
+        $this->addFilterSelect($viewName, 'url', 'url', 'uri', $uris);
 
-        $this->addFilterDatePicker($name, 'fromdate', 'from-date', 'time', '>=');
-        $this->addFilterDatePicker($name, 'untildate', 'until-date', 'time', '<=');
+        $this->addFilterPeriod($viewName, 'time', 'period', 'time');
 
         /// settings
-        $this->setSettings($name, 'btnNew', false);
+        $this->setSettings($viewName, 'btnNew', false);
     }
 
     /**
@@ -128,12 +150,11 @@ class ListLogMessage extends ExtendedController\ListController
     /**
      * Delete logs based on active filters.
      */
-    private function deleteWithFilters()
+    protected function deleteWithFilters()
     {
         // start transaction
         $this->dataBase->beginTransaction();
 
-        // main save process
         try {
             $logMessage = new LogMessage();
 
@@ -149,13 +170,15 @@ class ListLogMessage extends ExtendedController\ListController
 
                 $counter++;
             }
+
             // confirm data
             $this->dataBase->commit();
+
             if ($counter > 0) {
                 $this->miniLog->notice($this->i18n->trans('record-deleted-correctly'));
             }
-        } catch (\Exception $e) {
-            $this->miniLog->alert($e->getMessage());
+        } catch (Exception $exc) {
+            $this->miniLog->alert($exc->getMessage());
         } finally {
             if ($this->dataBase->inTransaction()) {
                 $this->dataBase->rollback();

@@ -19,9 +19,10 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Lib\Accounting\AccountingPlanExport;
-use FacturaScripts\Core\Lib\Accounting\AccountingPlanImport;
-use FacturaScripts\Core\Lib\ExtendedController;
+use FacturaScripts\Core\Lib\ExtendedController\BaseView;
+use FacturaScripts\Core\Lib\ExtendedController\EditController;
+use FacturaScripts\Dinamic\Lib\Accounting\AccountingPlanExport;
+use FacturaScripts\Dinamic\Lib\Accounting\AccountingPlanImport;
 
 /**
  * Controller to edit a single item from the Ejercicio model
@@ -29,8 +30,9 @@ use FacturaScripts\Core\Lib\ExtendedController;
  * @author Carlos García Gómez      <carlos@facturascripts.com>
  * @author Artex Trading sa         <jcuello@artextrading.com>
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
+ * @author Oscar G. Villa González  <ogvilla@gmail.com>
  */
-class EditEjercicio extends ExtendedController\EditController
+class EditEjercicio extends EditController
 {
 
     /**
@@ -49,13 +51,41 @@ class EditEjercicio extends ExtendedController\EditController
      */
     public function getPageData()
     {
-        $pagedata = parent::getPageData();
-        $pagedata['title'] = 'exercise';
-        $pagedata['menu'] = 'accounting';
-        $pagedata['icon'] = 'fas fa-calendar-alt';
-        $pagedata['showonmenu'] = false;
+        $data = parent::getPageData();
+        $data['menu'] = 'accounting';
+        $data['title'] = 'exercise';
+        $data['icon'] = 'fas fa-calendar-alt';
+        return $data;
+    }
 
-        return $pagedata;
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createAccountingView($viewName = 'ListCuenta')
+    {
+        $this->addListView($viewName, 'Cuenta', 'accounts', 'fas fa-book');
+        $this->views[$viewName]->addOrderBy(['codcuenta'], 'code', 1);
+        $this->views[$viewName]->searchFields[] = 'descripcion';
+
+        /// disable columns
+        $this->views[$viewName]->disableColumn('fiscal-exercise');
+        $this->views[$viewName]->disableColumn('parent-account');
+    }
+
+    /**
+     * 
+     * @param string $viewName
+     */
+    protected function createSubAccountingView($viewName = 'ListSubcuenta')
+    {
+        $this->addListView($viewName, 'Subcuenta', 'subaccounts');
+        $this->views[$viewName]->addOrderBy(['codsubcuenta'], 'code', 1);
+        $this->views[$viewName]->addOrderBy(['saldo'], 'balance');
+        $this->views[$viewName]->searchFields[] = 'descripcion';
+
+        /// disable columns
+        $this->views[$viewName]->disableColumn('fiscal-exercise');
     }
 
     /**
@@ -64,19 +94,15 @@ class EditEjercicio extends ExtendedController\EditController
     protected function createViews()
     {
         parent::createViews();
-        $this->addListView('ListCuenta', 'Cuenta', 'accounts', 'fas fa-book');
-        $this->addListView('ListSubcuenta', 'Subcuenta', 'subaccount');
-
-        /// Disable columns
-        $this->views['ListCuenta']->disableColumn('fiscal-exercise', true);
-        $this->views['ListSubcuenta']->disableColumn('fiscal-exercise', true);
+        $this->createAccountingView();
+        $this->createSubAccountingView();
     }
 
     /**
      * Load view data procedure
      *
-     * @param string                      $viewName
-     * @param ExtendedController\EditView $view
+     * @param string   $viewName
+     * @param BaseView $view
      */
     protected function loadData($viewName, $view)
     {
@@ -97,6 +123,12 @@ class EditEjercicio extends ExtendedController\EditController
         }
     }
 
+    /**
+     * 
+     * @param string $action
+     *
+     * @return bool
+     */
     protected function execPreviousAction($action)
     {
         switch ($action) {
@@ -114,11 +146,11 @@ class EditEjercicio extends ExtendedController\EditController
     }
 
     /**
-     * Export AccountingPlan to XML.
+     * Export AccountingPlan to CSV file.
      * 
      * @return bool
      */
-    private function exportAccountingPlan()
+    protected function exportAccountingPlan()
     {
         $code = $this->request->get('code', '');
         if (empty($code)) {
@@ -127,11 +159,10 @@ class EditEjercicio extends ExtendedController\EditController
         }
 
         $this->setTemplate(false);
+        $this->response->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $this->response->headers->set('Content-Disposition', 'attachment;filename=' . $code . '.csv');
         $accountingPlanExport = new AccountingPlanExport();
-        $this->response->setContent($accountingPlanExport->exportXML($code));
-        $this->response->headers->set('Content-Type', 'text/xml; charset=utf-8');
-        $this->response->headers->set('Content-Disposition', 'attachment;filename=' . $code . '.xml');
-
+        $this->response->setContent($accountingPlanExport->exportCSV($code));
         return true;
     }
 
@@ -140,7 +171,7 @@ class EditEjercicio extends ExtendedController\EditController
      *
      * @return bool
      */
-    private function importAccountingPlan()
+    protected function importAccountingPlan()
     {
         $code = $this->request->request->get('codejercicio', '');
         if (empty($code)) {

@@ -18,7 +18,7 @@
  */
 namespace FacturaScripts\Core\Model;
 
-use FacturaScripts\Core\App\AppSettings;
+use FacturaScripts\Dinamic\Lib\Accounting\AccountingAccounts;
 
 /**
  * A VAT regularization.
@@ -43,14 +43,14 @@ class RegularizacionImpuesto extends Base\ModelClass
      *
      * @var string
      */
-    public $codsubcuentaacreedora;
+    public $codsubcuentaacr;
 
     /**
      * Code, not ID, of the related sub-account.
      *
      * @var string
      */
-    public $codsubcuentadeudora;
+    public $codsubcuentadeu;
 
     /**
      * Date of entry.
@@ -92,21 +92,21 @@ class RegularizacionImpuesto extends Base\ModelClass
      *
      * @var int
      */
-    public $idregularizacion;
+    public $idregiva;
 
     /**
      * Related sub-account ID.
      *
      * @var int
      */
-    public $idsubcuentaacreedora;
+    public $idsubcuentaacr;
 
     /**
      * Related sub-account ID.
      *
      * @var int
      */
-    public $idsubcuentadeudora;
+    public $idsubcuentadeu;
 
     /**
      * Period of regularization.
@@ -114,12 +114,6 @@ class RegularizacionImpuesto extends Base\ModelClass
      * @var string
      */
     public $periodo;
-
-    public function clear()
-    {
-        parent::clear();
-        $this->idempresa = AppSettings::get('default', 'idempresa');
-    }
 
     /**
      * Deletes the regularization of VAT from the database.
@@ -137,7 +131,7 @@ class RegularizacionImpuesto extends Base\ModelClass
     }
 
     /**
-     * 
+     *
      * @return Asiento
      */
     public function getAsiento()
@@ -145,6 +139,17 @@ class RegularizacionImpuesto extends Base\ModelClass
         $asiento = new Asiento();
         $asiento->loadFromCode($this->idasiento);
         return $asiento;
+    }
+
+    /**
+     * 
+     * @return Ejercicio
+     */
+    public function getEjercicio()
+    {
+        $ejercicio = new Ejercicio();
+        $ejercicio->loadFromCode($this->codejercicio);
+        return $ejercicio;
     }
 
     /**
@@ -165,11 +170,7 @@ class RegularizacionImpuesto extends Base\ModelClass
             . ' AND fechafin >= ' . self::$dataBase->var2str($fecha) . ';';
 
         $data = self::$dataBase->select($sql);
-        if (!empty($data)) {
-            return new self($data[0]);
-        }
-
-        return false;
+        return empty($data) ? false : new static($data[0]);
     }
 
     /**
@@ -194,6 +195,7 @@ class RegularizacionImpuesto extends Base\ModelClass
     {
         /// needed dependencies
         new Ejercicio();
+        new Subcuenta();
         new Asiento();
 
         return parent::install();
@@ -206,7 +208,7 @@ class RegularizacionImpuesto extends Base\ModelClass
      */
     public static function primaryColumn()
     {
-        return 'idregularizacion';
+        return 'idregiva';
     }
 
     /**
@@ -227,5 +229,83 @@ class RegularizacionImpuesto extends Base\ModelClass
     public static function tableName()
     {
         return 'regularizacionimpuestos';
+    }
+
+    /**
+     * Returns true if there are no errors in the values of the model properties.
+     * It runs inside the save method.
+     *
+     * @return bool
+     */
+    public function test()
+    {
+        /// calculate dates to selected period
+        $period = $this->getPeriod($this->periodo);
+        $this->fechainicio = $period['start'];
+        $this->fechafin = $period['end'];
+
+        if (empty($this->idempresa)) {
+            $this->idempresa = $this->getEjercicio()->idempresa;
+        }
+
+        if (empty($this->codsubcuentaacr) || empty($this->codsubcuentadeu)) {
+            $this->setDefaultAccounts();
+        }
+
+        return parent::test();
+    }
+
+    /**
+     *
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'ListImpuesto?activetab=List')
+    {
+        return parent::url($type, $list);
+    }
+
+    /**
+     * Calculate Period data
+     *
+     * @param string $period
+     *
+     * @return array
+     */
+    private function getPeriod($period): array
+    {
+        /// Calculate actual year
+        $year = explode('-', date('d-m-Y'))[2];
+
+        // return periods values
+        switch ($period) {
+            case 'T2':
+                return ['start' => date('01-04-' . $year), 'end' => date('30-06-' . $year)];
+
+            case 'T3':
+                return ['start' => date('01-07-' . $year), 'end' => date('30-09-' . $year)];
+
+            case 'T4':
+                return ['start' => date('01-10-' . $year), 'end' => date('31-12-' . $year)];
+
+            default:
+                return ['start' => date('01-01-' . $year), 'end' => date('31-03-' . $year)];
+        }
+    }
+
+    protected function setDefaultAccounts()
+    {
+        $accounts = new AccountingAccounts();
+        $accounts->exercise = $this->getEjercicio();
+
+        $subcuentaacr = $accounts->getSpecialSubAccount('IVAACR');
+        $this->codsubcuentaacr = $subcuentaacr->codsubcuenta;
+        $this->idsubcuentaacr = $subcuentaacr->primaryColumnValue();
+
+        $subcuentadeu = $accounts->getSpecialSubAccount('IVADEU');
+        $this->codsubcuentadeu = $subcuentadeu->codsubcuenta;
+        $this->idsubcuentadeu = $subcuentadeu->primaryColumnValue();
     }
 }

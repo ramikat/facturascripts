@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2018 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -24,7 +24,7 @@ use FacturaScripts\Core\Model\CronJob;
 /**
  * Defines global attributes and methos for all classes.
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
+ * @author Carlos García Gómez      <carlos@facturascripts.com>
  * @author Rafael San José Tovar
  */
 abstract class CronClass
@@ -101,7 +101,7 @@ abstract class CronClass
         $cronJob = new CronJob();
         $where = [
             new DataBaseWhere('pluginname', $this->pluginName),
-            new DataBaseWhere('jobname', $jobName),
+            new DataBaseWhere('jobname', $jobName)
         ];
 
         /// if we can't find it, then is the first time
@@ -110,7 +110,7 @@ abstract class CronClass
         }
 
         /// last time was before period?
-        if (strtotime($cronJob->date) < strtotime('-' . $period)) {
+        if ($cronJob->enabled && strtotime($cronJob->date) < strtotime('-' . $period)) {
             /// updates date and return true (if no error)
             $cronJob->date = date('d-m-Y H:i:s');
             $cronJob->done = false;

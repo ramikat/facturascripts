@@ -34,6 +34,12 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
     use Base\ModelTrait;
 
     /**
+     *
+     * @var int
+     */
+    public $canal;
+
+    /**
      * Exercise code of the accounting entry.
      *
      * @var string
@@ -74,6 +80,12 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
      * @var int
      */
     public $idasiento;
+
+    /**
+     *
+     * @var int
+     */
+    public $iddiario;
 
     /**
      * Foreign Key with Empresas table.
@@ -134,7 +146,7 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
         /// TODO: Check if accounting entry have VAT Accounts
         $regularization = new RegularizacionImpuesto();
         if ($regularization->getFechaInside($this->fecha)) {
-            self::$miniLog->alert(self::$i18n->trans('acounting-within-regularization', ['%tax%' => FS_IVA]));
+            self::$miniLog->alert(self::$i18n->trans('acounting-within-regularization'));
             return false;
         }
 
@@ -157,7 +169,6 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
     }
 
     /**
-     *
      *
      * @return Partida
      */
@@ -230,39 +241,36 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
     }
 
     /**
-     * Re-number the accounting entries of the open exercises
+     * Re-number the accounting entries of the open exercises.
+     * 
+     * @param string $codjercicio
      *
      * @return bool
      */
-    public function renumber()
+    public function renumber($codjercicio = '')
     {
         $ejercicio = new Ejercicio();
-        foreach ($ejercicio->all([new DataBaseWhere('estado', 'ABIERTO')]) as $eje) {
-            $posicion = 0;
-            $numero = 1;
-            $consulta = 'SELECT idasiento,numero,fecha FROM ' . static::tableName()
+        $where = empty($codjercicio) ? [] : [new DataBaseWhere('codejercicio', $codjercicio)];
+
+        foreach ($ejercicio->all($where) as $eje) {
+            if ($eje->isOpened() === false) {
+                continue;
+            }
+
+            $offset = 0;
+            $number = 1;
+            $sql = 'SELECT idasiento,numero,fecha FROM ' . static::tableName()
                 . ' WHERE codejercicio = ' . self::$dataBase->var2str($eje->codejercicio)
                 . ' ORDER BY codejercicio ASC, fecha ASC, idasiento ASC';
 
-            $asientos = self::$dataBase->selectLimit($consulta, 1000, $posicion);
+            $asientos = self::$dataBase->selectLimit($sql, 1000, $offset);
             while (!empty($asientos)) {
-                $sql = '';
-                foreach ($asientos as $col) {
-                    if ($col['numero'] !== $numero) {
-                        $sql .= 'UPDATE ' . static::tableName() . ' SET numero = ' . self::$dataBase->var2str($numero)
-                            . ' WHERE idasiento = ' . self::$dataBase->var2str($col['idasiento']) . ';';
-                    }
-
-                    ++$numero;
-                }
-
-                if (!empty($sql) && !self::$dataBase->exec($sql)) {
+                if (!$this->renumberAccountingEntries($asientos, $number)) {
                     self::$miniLog->alert(self::$i18n->trans('renumber-accounting-error', ['%exerciseCode%' => $eje->codejercicio]));
                     return false;
                 }
-
-                $posicion += 1000;
-                $asientos = self::$dataBase->selectLimit($consulta, 1000, $posicion);
+                $offset += 1000;
+                $asientos = self::$dataBase->selectLimit($sql, 1000, $offset);
             }
         }
 
@@ -365,6 +373,28 @@ class Asiento extends Base\ModelClass implements Base\GridModelInterface
     private function testErrorInData(): bool
     {
         return empty($this->codejercicio) || empty($this->concepto) || empty($this->fecha);
+    }
+
+    /**
+     * Update accounting entry number for
+     * 
+     * @param Asiento[] $entries
+     * @param int $number
+     * @return bool
+     */
+    protected function renumberAccountingEntries($entries, &$number)
+    {
+        $sql = '';
+        foreach ($entries as $row) {
+            if (self::$dataBase->var2str($row['numero']) !== self::$dataBase->var2str($number)) {
+                $sql .= 'UPDATE ' . static::tableName() . ' SET numero = ' . self::$dataBase->var2str($number)
+                    . ' WHERE idasiento = ' . self::$dataBase->var2str($row['idasiento']) . ';';
+            }
+
+            ++$number;
+        }
+
+        return empty($sql) || self::$dataBase->exec($sql);
     }
 
     /**

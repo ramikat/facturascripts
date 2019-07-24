@@ -105,9 +105,9 @@ class Partida extends Base\ModelOnChangeClass
     public $documento;
 
     /**
-     * Invoice of the departure.
+     * Invoice number of the departure.
      *
-     * @var
+     * @var string
      */
     public $factura;
 
@@ -303,6 +303,18 @@ class Partida extends Base\ModelOnChangeClass
     }
 
     /**
+     * 
+     * @param string $type
+     * @param string $list
+     *
+     * @return string
+     */
+    public function url(string $type = 'auto', string $list = 'List')
+    {
+        return $this->getAsiento()->url($type, $list);
+    }
+
+    /**
      * This mehtod is called before this record is save (update) in the database
      * when some field value is changed.
      * 
@@ -367,7 +379,7 @@ class Partida extends Base\ModelOnChangeClass
      *
      * @return bool
      */
-    private function testErrorInData(): bool
+    protected function testErrorInData(): bool
     {
         if (empty($this->idasiento) || empty($this->codsubcuenta)) {
             return true;

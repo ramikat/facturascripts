@@ -18,14 +18,15 @@
  */
 namespace FacturaScripts\Core\Lib\Accounting;
 
-use FacturaScripts\Core\Base\MiniLog;
-use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Dinamic\Lib\BusinessDocumentTools;
 use FacturaScripts\Dinamic\Model\Asiento;
 use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\FacturaCliente;
 use FacturaScripts\Dinamic\Model\FacturaProveedor;
+use FacturaScripts\Dinamic\Model\Impuesto;
 use FacturaScripts\Dinamic\Model\Proveedor;
+use FacturaScripts\Dinamic\Model\Retencion;
+use FacturaScripts\Dinamic\Model\Serie;
 
 /**
  * Class for the generation of accounting entries of a sale/purchase document
@@ -34,29 +35,8 @@ use FacturaScripts\Dinamic\Model\Proveedor;
  * @author Carlos García Gómez  <carlos@facturascripts.com>
  * @author Artex Trading sa     <jcuello@artextrading.com>
  */
-class InvoiceToAccounting extends AccountingAccounts
+class InvoiceToAccounting extends AccountingClass
 {
-
-    /**
-     * Document Model with data to process
-     *
-     * @var FacturaCliente|FacturaProveedor
-     */
-    protected $document;
-
-    /**
-     * Multi-language translator.
-     *
-     * @var Translator
-     */
-    protected $i18n;
-
-    /**
-     * Manage the log of all controllers, models and database.
-     *
-     * @var MiniLog
-     */
-    protected $miniLog;
 
     /**
      * Document Subtotals Lines array
@@ -66,70 +46,50 @@ class InvoiceToAccounting extends AccountingAccounts
     protected $subtotals;
 
     /**
-     * Class constructor and initializate auxiliar model class.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->i18n = new Translator();
-        $this->miniLog = new MiniLog();
-    }
-
-    /**
+     * Method to launch the accounting process
      *
      * @param FacturaCliente|FacturaProveedor $model
      */
-    public function generate(&$model)
+    public function generate($model)
     {
-        $this->document = $model;
-        $this->exercise->idempresa = $model->idempresa;
-
-        if (!empty($model->idasiento)) {
-            return;
-        } elseif (!$this->exercise->loadFromCode($model->codejercicio) || !$this->exercise->isOpened()) {
-            $this->miniLog->warning($this->i18n->trans('closed-exercise'));
-            return;
-        } elseif (!$this->loadSubtotals()) {
-            $this->miniLog->warning('invoice-subtotals-error');
+        parent::generate($model);
+        if (!$this->initialChecks()) {
             return;
         }
 
         switch ($model->modelClassName()) {
             case 'FacturaCliente':
-                $this->salesAccountingEntry($model);
+                $this->salesAccountingEntry();
                 break;
 
             case 'FacturaProveedor':
-                $this->purchaseAccountingEntry($model);
+                $this->purchaseAccountingEntry();
                 break;
         }
     }
 
     /**
+     * Add the customer line to the accounting entry
      *
      * @param Asiento $accountEntry
      *
      * @return bool
      */
-    protected function addCustomerLine($accountEntry)
+    protected function addCustomerLine($accountEntry): bool
     {
-        $cliente = new Cliente();
-        if (!$cliente->loadFromCode($this->document->codcliente)) {
+        $customer = new Cliente();
+        if (!$customer->loadFromCode($this->document->codcliente)) {
             $this->miniLog->warning($this->i18n->trans('customer-not-found'));
             return false;
         }
 
-        $subcuenta = $this->getCustomerAccount($cliente);
-        if (!$subcuenta->exists()) {
+        $subaccount = $this->getCustomerAccount($customer);
+        if (!$subaccount->exists()) {
             $this->miniLog->warning($this->i18n->trans('customer-account-not-found'));
             return false;
         }
 
-        $line = $accountEntry->getNewLine();
-        $line->codsubcuenta = $subcuenta->codsubcuenta;
-        $line->debe = $this->document->total;
-        $line->idsubcuenta = $subcuenta->idsubcuenta;
-        return $line->save();
+        return $this->addBasicLine($accountEntry, $subaccount, true);
     }
 
     /**
@@ -154,6 +114,7 @@ class InvoiceToAccounting extends AccountingAccounts
             return $line->save();
         }
 
+        $this->miniLog->alert($this->i18n->trans('purchases-subaccount-not-found'));
         return false;
     }
 
@@ -179,6 +140,7 @@ class InvoiceToAccounting extends AccountingAccounts
             return $line->save();
         }
 
+        $this->miniLog->alert($this->i18n->trans('sales-subaccount-not-found'));
         return false;
     }
 
@@ -190,50 +152,53 @@ class InvoiceToAccounting extends AccountingAccounts
      */
     protected function addPurchaseIrpfLines($accountEntry)
     {
-        $cuenta = $this->getSpecialAccount('IRPFPR');
-        if (!$cuenta->exists()) {
-            $this->miniLog->alert($this->i18n->trans('irpfpr-account-not-found'));
+        if (empty($this->document->totalirpf) || count($this->subtotals) == 0) {
+            return true;
+        }
+
+        $key = array_keys($this->subtotals)[0];
+        $percentaje = $this->subtotals[$key]['irpf'];
+
+        $retention = new Retencion();
+        if (!$retention->loadFromPercentage($percentaje)) {
+            $this->miniLog->alert($this->i18n->trans('irpf-code-not-found'));
             return false;
         }
 
-        foreach ($cuenta->getSubcuentas() as $subcuenta) {
-            $line = $accountEntry->getNewLine();
-            $line->codsubcuenta = $subcuenta->codsubcuenta;
-            $line->haber = $this->document->totalirpf;
-            $line->idsubcuenta = $subcuenta->idsubcuenta;
-            return empty($line->haber) ? true : $line->save();
+        $subaccount = $this->getIRPFPurchaseAccount($retention);
+        if (!$subaccount->exists()) {
+            $this->miniLog->alert($this->i18n->trans('irpfpr-subaccount-not-found'));
+            return false;
         }
 
-        return false;
+        return $this->addBasicLine($accountEntry, $subaccount, false, $this->subtotals[$key]['totalirpf']);
     }
 
     /**
+     * Add the purchase line to the accounting entry
      *
      * @param Asiento $accountEntry
      *
      * @return bool
      */
-    protected function addPurchaseTaxLines($accountEntry)
+    protected function addPurchaseTaxLines($accountEntry): bool
     {
-        if (!$this->addPurchaseIrpfLines($accountEntry)) {
-            return false;
+        $tax = new Impuesto();
+        foreach ($this->subtotals as $key => $value) {
+            /// search for tax data
+            $tax->loadFromCode($key);
+            $subaccount = $this->getTaxSupportedAccount($tax);
+            if (!$subaccount->exists()) {
+                $this->miniLog->alert($this->i18n->trans('ivasop-account-not-found'));
+                return false;
+            }
+
+            if (!$this->addTaxLine($accountEntry, $subaccount, true, $value)) {
+                return false;
+            }
         }
 
-        $cuenta = $this->getSpecialAccount('IVASOP');
-        if (!$cuenta->exists()) {
-            $this->miniLog->alert($this->i18n->trans('ivasop-account-not-found'));
-            return false;
-        }
-
-        foreach ($cuenta->getSubcuentas() as $subcuenta) {
-            $line = $accountEntry->getNewLine();
-            $line->codsubcuenta = $subcuenta->codsubcuenta;
-            $line->debe = $this->document->totaliva + $this->document->totalrecargo;
-            $line->idsubcuenta = $subcuenta->idsubcuenta;
-            return empty($line->debe) ? true : $line->save();
-        }
-
-        return false;
+        return true;
     }
 
     /**
@@ -244,21 +209,53 @@ class InvoiceToAccounting extends AccountingAccounts
      */
     protected function addSalesIrpfLines($accountEntry)
     {
-        $cuenta = $this->getSpecialAccount('IRPF');
-        if (!$cuenta->exists()) {
-            $this->miniLog->alert($this->i18n->trans('irpf-account-not-found'));
+        if (empty($this->document->totalirpf) || count($this->subtotals) == 0) {
+            return true;
+        }
+
+        $key = array_keys($this->subtotals)[0];
+        $percentaje = $this->subtotals[$key]['irpf'];
+
+        $retention = new Retencion();
+        if (!$retention->loadFromPercentage($percentaje)) {
+            $this->miniLog->alert($this->i18n->trans('irpf-code-not-found'));
             return false;
         }
 
-        foreach ($cuenta->getSubcuentas() as $subcuenta) {
-            $line = $accountEntry->getNewLine();
-            $line->codsubcuenta = $subcuenta->codsubcuenta;
-            $line->debe = $this->document->totalirpf;
-            $line->idsubcuenta = $subcuenta->idsubcuenta;
-            return empty($line->debe) ? true : $line->save();
+        $subaccount = $this->getIRPFSalesAccount($retention);
+        if (!$subaccount->exists()) {
+            $this->miniLog->alert($this->i18n->trans('irpf-subaccount-not-found'));
+            return false;
         }
 
-        return false;
+        return $this->addBasicLine($accountEntry, $subaccount, true, $this->subtotals[$key]['totalirpf']);
+    }
+
+    /**
+     * Add the sales line to the accounting entry
+     *
+     * @param Asiento $accountEntry
+     *
+     * @return bool
+     */
+    protected function addSalesTaxLines($accountEntry): bool
+    {
+        $tax = new Impuesto();
+        foreach ($this->subtotals as $key => $value) {
+            /// search for tax data
+            $tax->loadFromCode($key);
+            $subaccount = $this->getTaxImpactedAccount($tax);
+            if (!$subaccount->exists()) {
+                $this->miniLog->alert($this->i18n->trans('ivarep-subaccount-not-found'));
+                return false;
+            }
+
+            /// add tax line
+            if (!$this->addTaxLine($accountEntry, $subaccount, false, $value)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -267,54 +264,45 @@ class InvoiceToAccounting extends AccountingAccounts
      *
      * @return bool
      */
-    protected function addSalesTaxLines($accountEntry)
+    protected function addSupplierLine($accountEntry): bool
     {
-        if (!$this->addSalesIrpfLines($accountEntry)) {
-            return false;
-        }
-
-        $cuenta = $this->getSpecialAccount('IVAREP');
-        if (!$cuenta->exists()) {
-            $this->miniLog->alert($this->i18n->trans('ivarep-account-not-found'));
-            return false;
-        }
-
-        foreach ($cuenta->getSubcuentas() as $subcuenta) {
-            $line = $accountEntry->getNewLine();
-            $line->codsubcuenta = $subcuenta->codsubcuenta;
-            $line->haber = $this->document->totaliva + $this->document->totalrecargo;
-            $line->idsubcuenta = $subcuenta->idsubcuenta;
-            return empty($line->haber) ? true : $line->save();
-        }
-
-        return false;
-    }
-
-    /**
-     *
-     * @param Asiento $accountEntry
-     *
-     * @return bool
-     */
-    protected function addSupplierLine($accountEntry)
-    {
-        $proveedor = new Proveedor();
-        if (!$proveedor->loadFromCode($this->document->codproveedor)) {
+        $supplier = new Proveedor();
+        if (!$supplier->loadFromCode($this->document->codproveedor)) {
             $this->miniLog->warning($this->i18n->trans('supplier-not-found'));
             return false;
         }
 
-        $subcuenta = $this->getSupplierAccount($proveedor);
-        if (!$subcuenta->exists()) {
+        $subaccount = $this->getSupplierAccount($supplier);
+        if (!$subaccount->exists()) {
             $this->miniLog->warning($this->i18n->trans('supplier-account-not-found'));
             return false;
         }
 
-        $line = $accountEntry->getNewLine();
-        $line->codsubcuenta = $subcuenta->codsubcuenta;
-        $line->haber = $this->document->total;
-        $line->idsubcuenta = $subcuenta->idsubcuenta;
-        return $line->save();
+        return $this->addBasicLine($accountEntry, $subaccount, false);
+    }
+
+    /**
+     * Perform the initial checks to continue with the accounting process
+     *
+     * @return bool
+     */
+    protected function initialChecks(): bool
+    {
+        if (!empty($this->document->idasiento)) {
+            return false;
+        }
+
+        if (!$this->exercise->loadFromCode($this->document->codejercicio) || !$this->exercise->isOpened()) {
+            $this->miniLog->warning($this->i18n->trans('closed-exercise', ['%exerciseName%' => $this->document->codejercicio]));
+            return false;
+        }
+
+        if (!$this->loadSubtotals()) {
+            $this->miniLog->warning('invoice-subtotals-error');
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -330,25 +318,21 @@ class InvoiceToAccounting extends AccountingAccounts
 
     /**
      * Generate the accounting entry for a purchase document.
-     * 
-     * @param FacturaProveedor $model
      */
-    protected function purchaseAccountingEntry(&$model)
+    protected function purchaseAccountingEntry()
     {
         $accountEntry = new Asiento();
-        $accountEntry->codejercicio = $this->document->codejercicio;
-        $accountEntry->concepto = $this->i18n->trans('supplier-invoice') . ' ' . $this->document->codigo;
-        $accountEntry->documento = $this->document->codigo;
-        $accountEntry->fecha = $this->document->fecha;
-        $accountEntry->idempresa = $this->document->idempresa;
-        $accountEntry->importe = $this->document->total;
+        $this->setAccountingData($accountEntry, $this->i18n->trans('supplier-invoice') . ' ' . $this->document->codigo);
         if (!$accountEntry->save()) {
             $this->miniLog->warning('accounting-entry-error');
             return;
         }
 
-        if ($this->addSupplierLine($accountEntry) && $this->addPurchaseTaxLines($accountEntry) && $this->addGoodsPurchaseLine($accountEntry)) {
-            $model->idasiento = $accountEntry->primaryColumnValue();
+        if ($this->addSupplierLine($accountEntry) &&
+            $this->addPurchaseTaxLines($accountEntry) &&
+            $this->addPurchaseIrpfLines($accountEntry) &&
+            $this->addGoodsPurchaseLine($accountEntry)) {
+            $this->document->idasiento = $accountEntry->primaryColumnValue();
             return;
         }
 
@@ -358,29 +342,49 @@ class InvoiceToAccounting extends AccountingAccounts
 
     /**
      * Generate the accounting entry for a sales document.
-     * 
-     * @param FacturaCliente $model
      */
-    protected function salesAccountingEntry(&$model)
+    protected function salesAccountingEntry()
     {
         $accountEntry = new Asiento();
-        $accountEntry->codejercicio = $this->document->codejercicio;
-        $accountEntry->concepto = $this->i18n->trans('customer-invoice') . ' ' . $this->document->codigo;
-        $accountEntry->documento = $this->document->codigo;
-        $accountEntry->fecha = $this->document->fecha;
-        $accountEntry->idempresa = $this->document->idempresa;
-        $accountEntry->importe = $this->document->total;
+        $this->setAccountingData($accountEntry, $this->i18n->trans('customer-invoice') . ' ' . $this->document->codigo);
         if (!$accountEntry->save()) {
             $this->miniLog->warning('accounting-entry-error');
             return;
         }
 
-        if ($this->addCustomerLine($accountEntry) && $this->addSalesTaxLines($accountEntry) && $this->addGoodsSalesLine($accountEntry)) {
-            $model->idasiento = $accountEntry->primaryColumnValue();
+        if ($this->addCustomerLine($accountEntry) &&
+            $this->addSalesTaxLines($accountEntry) &&
+            $this->addSalesIrpfLines($accountEntry) &&
+            $this->addGoodsSalesLine($accountEntry)) {
+            $this->document->idasiento = $accountEntry->primaryColumnValue();
             return;
         }
 
         $this->miniLog->warning('accounting-lines-error');
         $accountEntry->delete();
+    }
+
+    /**
+     * Assign the document data to the accounting entry
+     *
+     * @param Asiento $accountEntry
+     * @param string  $concept
+     */
+    protected function setAccountingData(&$accountEntry, $concept)
+    {
+        $accountEntry->codejercicio = $this->document->codejercicio;
+        $accountEntry->concepto = $concept;
+        $accountEntry->documento = $this->document->codigo;
+        $accountEntry->fecha = $this->document->fecha;
+        $accountEntry->idempresa = $this->document->idempresa;
+        $accountEntry->importe = $this->document->total;
+        $accountEntry->editable = false;
+
+        /// Assign analytical data defined in Serie model
+        $serie = new Serie();
+        $serie->loadFromCode($this->document->codserie);
+
+        $accountEntry->iddiario = $serie->iddiario;
+        $accountEntry->canal = $serie->canal;
     }
 }

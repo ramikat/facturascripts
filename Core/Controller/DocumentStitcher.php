@@ -44,7 +44,7 @@ class DocumentStitcher extends Controller
 
     /**
      *
-     * @var Model\Base\BusinessDocument[]
+     * @var Model\Base\TransformerDocument[]
      */
     public $documents = [];
 
@@ -56,6 +56,7 @@ class DocumentStitcher extends Controller
     public $modelName;
 
     /**
+     * Fix escaped html from description.
      * 
      * @param string $description
      *
@@ -67,6 +68,27 @@ class DocumentStitcher extends Controller
     }
 
     /**
+     * Returns avaliable status to group this model.
+     * 
+     * @return array
+     */
+    public function getAvaliableStatus()
+    {
+        $status = [];
+
+        $documentState = new Model\EstadoDocumento();
+        $where = [new DataBaseWhere('tipodoc', $this->modelName)];
+        foreach ($documentState->all($where) as $docState) {
+            if (!empty($docState->generadoc)) {
+                $status[] = $docState;
+            }
+        }
+
+        return $status;
+    }
+
+    /**
+     * Returns default quantity avaliable from this line.
      * 
      * @param Model\Base\BusinessDocumentLine $line
      *
@@ -83,8 +105,14 @@ class DocumentStitcher extends Controller
             $idlines[] = $docTrans->idlinea2;
         }
 
+        $idchildren = [];
         foreach ($this->documents as $doc) {
             foreach ($doc->childrenDocuments() as $child) {
+                if (in_array($child->primaryColumnValue(), $idchildren)) {
+                    continue;
+                }
+
+                $idchildren[] = $child->primaryColumnValue();
                 foreach ($child->getLines() as $childLine) {
                     if (in_array($childLine->primaryColumnValue(), $idlines)) {
                         $quantity -= $childLine->cantidad;
@@ -97,38 +125,18 @@ class DocumentStitcher extends Controller
     }
 
     /**
-     * 
-     * @return array
-     */
-    public function getDestinyDocs()
-    {
-        $types = [];
-
-        $documentState = new Model\EstadoDocumento();
-        $where = [new DataBaseWhere('tipodoc', $this->modelName)];
-        foreach ($documentState->all($where) as $docState) {
-            if (!empty($docState->generadoc)) {
-                $types[$docState->generadoc] = $docState->generadoc;
-            }
-        }
-
-        return $types;
-    }
-
-    /**
      * Returns basic page attributes
      *
      * @return array
      */
     public function getPageData()
     {
-        $pageData = parent::getPageData();
-        $pageData['menu'] = 'sales';
-        $pageData['title'] = 'group-or-split';
-        $pageData['icon'] = 'fas fa-magic';
-        $pageData['showonmenu'] = false;
-
-        return $pageData;
+        $data = parent::getPageData();
+        $data['menu'] = 'sales';
+        $data['showonmenu'] = false;
+        $data['title'] = 'group-or-split';
+        $data['icon'] = 'fas fa-magic';
+        return $data;
     }
 
     /**
@@ -143,32 +151,93 @@ class DocumentStitcher extends Controller
         parent::privateCore($response, $user, $permissions);
         $this->codes = $this->getCodes();
         $this->modelName = $this->getModelName();
-        $this->setDocuments();
+        $this->loadDocuments();
 
-        $destiny = $this->request->request->get('destiny', '');
-        if (!empty($destiny)) {
-            $this->generateNewDocument($destiny);
+        // duplicated request?
+        $token = $this->request->request->get('multireqtoken', '');
+        if (!empty($token) && $this->multiRequestProtection->tokenExist($token)) {
+            $this->miniLog->alert($this->i18n->trans('duplicated-request'));
+            return false;
+        }
+
+        $status = $this->request->request->get('status', '');
+        if (!empty($status)) {
+            $this->generateNewDocument((int) $status);
         }
     }
 
     /**
      * 
-     * @param string $destiny
+     * @param Model\Base\TransformerDocument $newDoc
+     *
+     * @return bool
      */
-    protected function generateNewDocument($destiny)
+    protected function addDocument($newDoc)
     {
+        foreach ($this->documents as $doc) {
+            if ($doc->coddivisa != $newDoc->coddivisa || $doc->subjectColumnValue() != $newDoc->subjectColumnValue()) {
+                $this->miniLog->warning($this->i18n->trans('incompatible-document', ['%code%' => $newDoc->codigo]));
+                return false;
+            }
+        }
+
+        $this->documents[] = $newDoc;
+        return true;
+    }
+
+    /**
+     * 
+     * @param BusinessDocumentGenerator $generator
+     * @param int                       $idestado
+     */
+    protected function endGenerationAndRedit(&$generator, $idestado)
+    {
+        /// save new document status if no pending quantity
+        foreach ($this->documents as $doc) {
+            $update = true;
+            foreach ($doc->getLines() as $line) {
+                if ($this->getDefaultQuantity($line) > 0) {
+                    $update = false;
+                    break;
+                }
+            }
+
+            if ($update) {
+                $doc->setDocumentGeneration(false);
+                $doc->idestado = $idestado;
+                $doc->save();
+            }
+        }
+
+        /// redir to new document
+        foreach ($generator->getLastDocs() as $doc) {
+            $this->redirect($doc->url());
+            $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
+            break;
+        }
+    }
+
+    /**
+     * Generates a new document with this data.
+     * 
+     * @param int $idestado
+     */
+    protected function generateNewDocument($idestado)
+    {
+        /// group needed data
         $newLines = [];
+        $properties = ['fecha' => $this->request->request->get('fecha', '')];
         $prototype = null;
         $quantities = [];
         foreach ($this->documents as $doc) {
+            if (null === $prototype) {
+                $prototype = $doc;
+            }
+
             foreach ($doc->getLines() as $line) {
                 $quantity = (float) $this->request->request->get('approve_quant_' . $line->primaryColumnValue(), '0');
                 if (empty($quantity)) {
                     continue;
-                }
-
-                if (null === $prototype) {
-                    $prototype = $doc;
                 }
 
                 $quantities[$line->primaryColumnValue()] = $quantity;
@@ -176,26 +245,23 @@ class DocumentStitcher extends Controller
             }
         }
 
-        if (null === $prototype) {
+        if (null === $prototype || empty($newLines)) {
             return;
         }
 
+        /// generate new document
         $generator = new BusinessDocumentGenerator();
-        if ($generator->generate($prototype, $destiny, $newLines, $quantities)) {
-            $this->miniLog->notice($this->i18n->trans('record-updated-correctly'));
-
-            /// redir to new document
-            foreach ($generator->getLastDocs() as $doc) {
-                $this->response->headers->set('Refresh', '0; ' . $doc->url());
-                break;
-            }
+        $newClass = $this->getGenerateClass($idestado);
+        if (!$generator->generate($prototype, $newClass, $newLines, $quantities, $properties)) {
+            $this->miniLog->error($this->i18n->trans('record-save-error'));
             return;
         }
 
-        $this->miniLog->error($this->i18n->trans('record-save-error'));
+        $this->endGenerationAndRedit($generator, $idestado);
     }
 
     /**
+     * Returns documents keys.
      * 
      * @return array
      */
@@ -211,6 +277,21 @@ class DocumentStitcher extends Controller
     }
 
     /**
+     * Returns the name of the new class to generate from this status.
+     * 
+     * @param int $idestado
+     *
+     * @return string
+     */
+    protected function getGenerateClass($idestado)
+    {
+        $estado = new Model\EstadoDocumento();
+        $estado->loadFromCode($idestado);
+        return $estado->generadoc;
+    }
+
+    /**
+     * Returns model name.
      * 
      * @return string
      */
@@ -220,13 +301,16 @@ class DocumentStitcher extends Controller
         return $this->request->request->get('model', $model);
     }
 
-    protected function setDocuments()
+    /**
+     * Loads selected documents.
+     */
+    protected function loadDocuments()
     {
+        $modelClass = 'FacturaScripts\\Dinamic\\Model\\' . $this->modelName;
         foreach ($this->codes as $code) {
-            $modelClass = 'FacturaScripts\\Dinamic\\Model\\' . $this->modelName;
             $doc = new $modelClass();
             if ($doc->loadFromCode($code)) {
-                $this->documents[] = $doc;
+                $this->addDocument($doc);
             }
         }
     }

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2018    Carlos Garcia Gomez  <carlos@facturascripts.com>
+ * Copyright (C) 2015-2019 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,11 +18,13 @@
  */
 namespace FacturaScripts\Core\Model;
 
+use FacturaScripts\Core\Base\Utils;
+
 /**
  * Merchandise transport agency.
  *
- * @author Carlos García Gómez <carlos@facturascripts.com>
- * @author Artex Trading sa <jcuello@artextrading.com>
+ * @author Carlos García Gómez  <carlos@facturascripts.com>
+ * @author Artex Trading sa     <jcuello@artextrading.com>
  */
 class AgenciaTransporte extends Base\ModelClass
 {
@@ -51,6 +53,18 @@ class AgenciaTransporte extends Base\ModelClass
     public $nombre;
 
     /**
+     *
+     * @var string
+     */
+    public $telefono;
+
+    /**
+     *
+     * @var string
+     */
+    public $web;
+
+    /**
      * Reset the values of all model properties.
      */
     public function clear()
@@ -77,5 +91,37 @@ class AgenciaTransporte extends Base\ModelClass
     public static function tableName()
     {
         return 'agenciastrans';
+    }
+
+    /**
+     * 
+     * @return bool
+     */
+    public function test()
+    {
+        if (!empty($this->codtrans) && !preg_match('/^[A-Z0-9_\+\.\-]{1,8}$/i', $this->codtrans)) {
+            self::$miniLog->alert(self::$i18n->trans('invalid-alphanumeric-code', ['%value%' => $this->codtrans, '%column%' => 'codtrans', '%min%' => '1', '%max%' => '8']));
+            return false;
+        }
+
+        $this->nombre = Utils::noHtml($this->nombre);
+        $this->telefono = Utils::noHtml($this->telefono);
+        $this->web = Utils::noHtml($this->web);
+        return parent::test();
+    }
+
+    /**
+     * 
+     * @param array $values
+     *
+     * @return bool
+     */
+    protected function saveInsert(array $values = [])
+    {
+        if (empty($this->codtrans)) {
+            $this->codtrans = (string) $this->newCode();
+        }
+
+        return parent::saveInsert($values);
     }
 }
